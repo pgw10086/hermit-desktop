@@ -1,0 +1,35 @@
+{
+  "name": "@hermit-vnext/workspace",
+  "version": "0.0.0-private",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.7.0",
+  "engines": {
+    "node": "24.19.0"
+  },
+  "scripts": {
+    "verify:agent-contracts": "node scripts/verify-agent-contracts.mjs",
+    "verify:peers": "corepack pnpm peers check",
+    "qualification:public-contracts": "corepack pnpm run qualification:typecheck && node scripts/qualification/verify-public-contracts.mjs",
+    "qualification:client-module-host": "node scripts/qualification/verify-client-module-host.mjs",
+    "qualification:install": "node scripts/qualification/verify-clean-install.mjs",
+    "qualification:typecheck": "node node_modules/typescript/bin/tsc -p scripts/qualification/tsconfig.json",
+    "test:qualification": "node --test scripts/qualification/qualification.test.mjs",
+    "test": "node scripts/verify-agent-contracts.mjs && corepack pnpm peers check && corepack pnpm run qualification:public-contracts && node --test scripts/qualification/qualification.test.mjs"
+  },
+  "devDependencies": {
+    "@deepseek-ai/dsh": "0.1.1-rc.2",
+    "@deepseek-ai/dsh-app-boot": "0.1.1-rc.2",
+    "@deepseek-ai/dsh-client-connection": "0.1.1-rc.2",
+    "@deepseek-ai/dsh-client-modules": "0.1.1-rc.2",
+    "@deepseek-ai/dsh-client-web": "0.1.1-rc.2",
+    "@deepseek-ai/dsh-host-apiproxy": "0.1.1-rc.2",
+    "@deepseek-ai/dsh-host-webserver": "0.1.1-rc.2",
+    "@deepseek-ai/dsh-web-app": "0.1.1-rc.2",
+    "@deepseek-ai/dsh-web-frontend": "0.1.1-rc.2",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "typescript": "6.0.3",
+    "yaml": "2.9.0"
+  }
+}

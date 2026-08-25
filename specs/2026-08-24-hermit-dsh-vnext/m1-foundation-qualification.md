@@ -33,6 +33,10 @@ npm 发布物实际包含的公开 export，并且官方文档赋予了可供外
 `src/*`、测试、源码注释或结构类型中的实现不属于公开契约。
 _避免使用_：能 import 的文件、源码里存在的接口。
 
+资格认证脚本可以只读检查发布 tarball 内的 manifest、类型声明和构建后 JS，以证明
+发布物边界和阻塞事实；这种证据读取不会把内部文件升级为产品 runtime API，也不得被
+产品代码引用。
+
 **载体（Carrier）**：
 DSH Client 与 Host 之间承载请求、流、取消和 bundle 的物理通道，不负责判断产品
 插件是否有权限。
@@ -87,6 +91,19 @@ M1 不包含：
 DSH 上游当前 lockfile 解析到 React/ReactDOM `18.3.1`，这只是观察证据，不替代
 Hermit 自己的 lock 和 runtime identity test。
 
+第一次未声明 Host singleton 的 clean consumer install 解析为 React `18.3.1` 和
+ReactDOM `19.2.8`，`pnpm peers check` 明确失败。Hermit 因此把两者共同固定为
+`18.3.1` 作为当前资格认证候选；只有重新生成的 lock、peer check 和后续 runtime
+identity test 全部通过，才算 React gate 通过。这是 Host 对 singleton 的显式所有权，
+不是用 alias 隐藏重复版本。
+
+当前 qualification lock 的 SHA-256 为
+`1d69a486fdd19457cdbbdaad62bacb8b431fdc0981f21f9765a1de5542800a45`，包含 189 个
+带 integrity 的 `@deepseek-ai/dsh-*` `0.1.1-rc.2` package，React 和 ReactDOM 均只
+解析为 `18.3.1`，`pnpm peers check` 已通过。Q0 使用 `--ignore-scripts` 检查发布物和
+公开契约；这不等于 native/runtime lifecycle 已认证，相关 build script 只有在
+`Q-CMOD-01` 解锁后才建立精确 allowlist 并执行。
+
 ## 设计树结论
 
 ### Client 与 Host
@@ -124,14 +141,14 @@ M1 要求 Windows WebView2 实机闭环，以及 Windows、macOS、Linux 原生 
 
 | Gate | 必须证明 | 当前状态 |
 | --- | --- | --- |
-| `Q-ART-01` | DSH 发布物版本和 integrity 精确固定 | 待自动化 |
-| `Q-ART-02` | 运行依赖只使用批准的公开 export | 待自动化 |
-| `Q-BOOT-01` | 发布版 `app-boot.boot()` 可用 | 待自动化 |
-| `Q-API-01` | 自定义 Client transport 经过官方 ApiProxy/fetch contract | 待自动化 |
+| `Q-ART-01` | DSH 发布物版本和 integrity 精确固定 | **通过** |
+| `Q-ART-02` | 资格认证代码只执行批准的公开 export | **通过**；产品 runtime 未创建 |
+| `Q-BOOT-01` | 发布版 `app-boot.boot()` 公开入口存在 | **通过**；完整 boot 被阻塞 |
+| `Q-API-01` | ApiProxy/fetch 和 Client transport 公开入口存在 | **通过**；物理 carrier 被阻塞 |
 | `Q-CMOD-01` | 不激活 WebServer 即由官方公开 API 生成 graph 和 bundle lookup | **失败** |
 | `Q-INJ-01` | 只消费公开的五类 `IndexInjection` | 被 `Q-CMOD-01` 阻塞 |
 | `Q-BUNDLE-01` | bundle id/rev/bytes 一致且错误 revision fail loud | 被阻塞 |
-| `Q-REACT-01` | lock 和 runtime 中 React/ReactDOM 单实例 | 被阻塞 |
+| `Q-REACT-01` | lock 和 runtime 中 React/ReactDOM 单实例 | lock 通过；runtime 被阻塞 |
 | `Q-RPC-01` | unary、stream、respond、cancel 全链路通过 | 被阻塞 |
 | `Q-BP-01` | 背压有上限，慢消费者不会造成无界缓存 | 被阻塞 |
 | `Q-CRASH-01` | Node crash 后 pending operation 明确失败 | 被阻塞 |
@@ -153,10 +170,17 @@ package.json
 pnpm-workspace.yaml
 pnpm-lock.yaml
 .node-version
+.npmrc
 scripts/qualification/
 |-- inspect-client-module-host.mjs
+|-- qualification-status.mjs
 |-- verify-public-contracts.mjs
 |-- verify-client-module-host.mjs
+|-- verify-clean-install.mjs
+|-- tsconfig.json
+|-- fixtures/
+|   |-- css.d.ts
+|   `-- public-contracts.ts
 `-- qualification.test.mjs
 ```
 
@@ -177,3 +201,35 @@ contract：不激活 `dsh-host-webserver`，仍由官方实现完成 Loader 扫�
 
 新版本到来后从 Q0 重新资格认证。M1 全绿前不开发 M2；M1 fixture 的成功也不代表
 允许执行第三方插件。
+
+M2 当前状态固定为 `DEFERRED_BY_M1_Q0`。不提前设计 M2 接口、依赖或实现，也不为了
+未来插件平台改变 M1 gate。
+
+## 上游解锁计划
+
+截至 2026-08-26，DSH 官方 `master` 与 `dsh-v0.1.1-rc.2` commit
+`b150a551b8d465e31e418e1b2eaf5e79bbb7d28e` 相同，npm `latest` 和 `next` 也都指向
+`0.1.1-rc.2`。没有公开的未发布修复、承诺版本或 ETA。官方当前不接受外部 pull
+request，bug 和 idea 应先通过 Discussions 沟通。
+
+推荐向上游提交一个不包含 Hermit、Tauri 或特定桌面实现的通用设计提案：
+
+1. `@deepseek-ai/dsh-client-modules` 变为 transport-neutral Host，只依赖 Loader，
+   负责 `dsh.client` 扫描、校验、bundle path、revision、neutral snapshot 和变更通知；
+2. Web route、`/plugins` URL 和 index injection 移入独立 Web adapter；
+3. neutral snapshot 不含 HTTP URL，由 carrier projection 把 `{id, rev}` 映射为 Web、
+   Worker、Electron 或其他物理地址；
+4. Web adapter 保持现有 WebBootGraph、route、cache 和 index 行为兼容；
+5. 新增没有 `webServer` service 的 assembled boot，并 trap `net.Server.listen`，证明
+   zero-port 不是偶然未访问端口；
+6. npm pack consumer test 只通过公开 export 使用 snapshot 和 bundle lookup，不能
+   依赖 workspace、`src/*` 或复制内部扫描算法；
+7. 同步中英文 client-modules、web-server、GUI layering 和 Cordis catalog。
+
+官方 merge 只允许做非产品预检。只有包含该 commit 的官方 npm release 出现，并在
+Hermit 中重新生成 closure、integrity、lock、React 解析且新 Q0 全部通过，M1 才恢复。
+当前的 189 个 package 和 React `18.3.1` 是 rc.2 证据，不是未来版本的固定答案。
+
+向官方 Discussions 发帖或评论、clone/fork 外部仓库、创建 branch/commit、提供参考
+patch、开 PR 或 push 都是外部动作，需要用户分别明确授权。Hermit 本仓在获得新官方
+release 前只维护 release gate，不编写 workaround。

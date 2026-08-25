@@ -33,8 +33,20 @@ Tool、Approval 和 Web composition；完整业务能力以可独立安装的产
 在仓库根目录运行：
 
 ```powershell
-node scripts/verify-agent-contracts.mjs
+corepack pnpm qualification:install
+corepack pnpm install --frozen-lockfile --ignore-scripts
+corepack pnpm test
 ```
+
+上述命令必须由 `.node-version` 指定的 Node 运行。第一条命令在 `.hermit/tmp` 创建
+一次性独立 workspace，从已提交的 frozen lock 完整安装并检查 peer，然后删除该
+workspace；它不复用当前 `node_modules`。第二条命令才为当前工作区安装依赖。两条
+命令都禁止 dependency lifecycle script。
+
+当前 M1 硬门使用 `corepack pnpm qualification:client-module-host` 检查。对
+`0.1.1-rc.2` 运行时应返回 `Q-CMOD-01 blocked` 和退出码 2；目标版本或发布形状变化
+时返回 `review-required` 和退出码 3。当前没有自动通过状态，必须先为新增的官方
+public contract 实现完整行为 verifier，才能继续 Tauri 实现。
 
 当前中文 `README.md` 是权威入口。确有英文读者时再增加带 `translation-of` 声明的
 派生翻译。

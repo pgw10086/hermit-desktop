@@ -25,12 +25,17 @@ const allowedTopLevel = new Set([
   ".gitignore",
   ".hermit",
   ".idea",
+  ".node-version",
+  ".npmrc",
   ".vscode",
   "AGENTS.md",
   "CLAUDE.md",
   "CONTRIBUTING.md",
   "LICENSE",
   "NOTICE",
+  "package.json",
+  "pnpm-lock.yaml",
+  "pnpm-workspace.yaml",
   "README.md",
   "SECURITY.md",
   "apps",
@@ -117,6 +122,7 @@ if (fs.existsSync(rootAgentsPath)) {
 }
 
 for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
+  if (ignoredDirectories.has(entry.name)) continue;
   if (!allowedTopLevel.has(entry.name)) fail(`undefined top-level entry: ${entry.name}`);
 }
 

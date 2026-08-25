@@ -239,6 +239,7 @@ sandbox 未通过前，可以明确允许运行任意开发 Node 代码，但绝
 ## 12. 下一步
 
 Private `pgw10086/hermit-vnext` 已创建。下一步提交文档基线，并实现
-`scripts/qualification/` 中的 Q0 自动检查，固定 `0.1.1-rc.2` 的阻塞证据。官方发布物
-补齐 Client module Host contract 后重新运行 M1；Q0 变绿前不创建 Tauri、Core 或
-业务插件目录。
+`scripts/qualification/` 中的 Q0 自动检查，固定 `0.1.1-rc.2` 的阻塞证据；这两项已
+完成。推荐下一步按 M1 spec 中的通用方案向 DSH 官方 Discussions 提案。官方发布物
+补齐 Client module Host contract 后重新运行 M1；Q0 变绿前不创建 Tauri、Core、M2
+或业务插件目录。
