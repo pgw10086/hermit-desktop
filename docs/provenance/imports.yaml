@@ -19,6 +19,6 @@ imports:
     sourceState: approved-confirmation-document-uncommitted
     sourceLicense: project-internal-confirmed-document
     sanitization: none-required-no-user-data-or-secret
-    modifications: repository-identity-and-bootstrap-status-only
+    modifications: repository-identity-bootstrap-status-and-confirmed-document-governance
     reviewedBy: pgw10086
     importedAt: 2026-08-25

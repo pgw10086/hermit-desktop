@@ -1,6 +1,6 @@
 # Hermit DSH vNext 项目启动准备
 
-状态：`PR0_DOCUMENTATION_BOOTSTRAP`
+状态：`M1_BLOCKED_Q_CMOD_01`
 
 更新时间：2026-08-25
 
@@ -9,9 +9,10 @@
 
 ## 1. 大白话结论
 
-产品方向已经够清楚，但现在不能直接开始写个人事务、文件工作台或剪贴板。
-第一步要先建一个全新的 vNext 主仓库，把 DSH、Node、Rust、React、插件安装、
-权限、数据和恢复串成一个最小闭环。这个底座通过后，业务插件才可以并行开发。
+产品方向和文档基线已经够清楚，但现在不能直接开始个人事务、文件工作台、剪贴板
+或 Tauri 产品实现。DSH `0.1.1-rc.2` 缺少无 WebServer 的公开 Client module Host
+组装契约，M1 在 `Q-CMOD-01` 停止。阻塞详情和重新开启条件见
+[M1 底座资格认证](m1-foundation-qualification.md)。
 
 旧 Go 仓库和用户数据保持原样。所有开发、测试和迁移演练都在新仓库和 staging
 数据中进行；正式发布时数据权威只从 Go 切到 DSH 一次。
@@ -50,9 +51,11 @@
 [完成] 确认 GitHub owner：pgw10086
 -> [完成] 创建且只创建 pgw10086/hermit-vnext（Private）
 -> [完成] clone 到 D:\codes\hermit-vnext
--> 提交 PR0：治理文件、契约、工具链、workspace、CI 和空骨架
--> 启用 ruleset / CODEOWNERS / required checks
--> PR0 全绿，仓库 bootstrap 才算完成
+-> [进行中] 提交 PR0：治理文件和真实契约
+-> 固化 M1 资格认证工具链和 Q0 证据
+-> 等待 DSH 发布 transport-neutral Client module Host contract
+-> Q0 全绿后实现 Core-only desktop slice
+-> 启用稳定 CI 对应的 ruleset / required checks
 -> 完成第一条 Core-only vertical slice
 -> 再开始三个业务插件
 -> API 稳定后创建 template
@@ -60,10 +63,13 @@
 -> 必须 patch DSH 时才创建 fork
 ```
 
-GitHub owner、远端和本地兄弟目录已经确认。当前只执行文档/目录 bootstrap；
-业务代码仍等待 PR0 contracts、toolchain、CI 和首个 vertical slice。
+GitHub owner、远端和本地兄弟目录已经确认。当前只执行文档/治理 bootstrap；
+产品代码等待 M1 Q0、toolchain、CI 和首个 vertical slice。
 
-## 4. 新主仓目标目录
+## 4. 新主仓目标所有权
+
+下列路径描述目标所有权，不要求初始化时建立空目录。每个 app、package、plugin 和
+native crate 必须与首份真实契约、manifest 或实现一起创建。
 
 ```text
 hermit-vnext/
@@ -125,7 +131,8 @@ hermit-vnext/
 
 - Node 24.19.0；
 - pnpm 11.7.0，通过 Corepack 启动；
-- React/ReactDOM 18.2.0，与 pinned DSH Web 共用唯一 identity；
+- React/ReactDOM 使用 DSH 声明的 `^18.2.0` 兼容范围，精确版本由 Hermit
+  qualification lock 和 runtime identity test 决定；
 - Rust 1.98.0 候选；
 - DSH 0.1.1-rc.2 精确 package closure 候选；
 - 一个根 `pnpm-lock.yaml` 和一个 vNext `Cargo.lock`。
@@ -139,52 +146,38 @@ workspace。vNext 完整替代验收前不迁移或删除它。
 
 ## 6. 开工前阻塞项
 
-以下内容属于 PR0 或第一条 vertical slice，未完成前不开始业务插件：
+以下内容未完成前不开始业务插件：
 
-1. Legacy/vNext 的路径级 authority 和 scoped AGENTS；
-2. DSH 精确 closure 的 clean-room qualification；
-3. 根 pnpm/Cargo workspace、Node/Rust pin 和 frozen lock；
-4. Tauri -> Rust -> Node -> DSH versioned carrier spike；
-5. React singleton、DSH public export/slot/token 自动门禁；
-6. `hermit.plugin.json`、Package Gate 和签名/权限 schema；
-7. runtime protocol、取消、deadline、server push、shutdown、crash generation；
-8. Canonical root、schema registry、data generation、backup/restore envelope；
-9. authority epoch/lease 和 migration ledger；
-10. Day-1 CI、目录 owner、dependency boundary、license/SBOM/secret checks；
-11. 三平台正式插件 sandbox 未证明前，Production Profile 只允许第一方或 Hermit
-    审计签名插件；
-12. `.claude/skills` 既有布局问题使用有 owner/reason/expiry 的 baseline 处理，
-    不通过修改用户工作区顺手消除。
+1. DSH 精确发布物、integrity、public export 和 frozen lock；
+2. transport-neutral Client module Host contract 通过 `Q-CMOD-01`；
+3. 零 TCP 的 WebView -> Rust -> Node/DSH versioned carrier；
+4. React singleton、DSH public export/slot/token 自动门禁；
+5. 精确打包的 `@hermit/core` 在隔离 Profile 中 clean boot；
+6. Windows WebView2 实机闭环和三平台原生 CI；
+7. 取消、背压、shutdown、crash 和 child cleanup 验收；
+8. M1 所有 gate 通过后，再冻结 M2 的 Package Gate、Broker 和 Runner 对抗测试。
 
 ## 7. 首个 Vertical Slice
 
-```text
-资格认证一套精确 DSH closure
--> 新 Tauri 空壳使用 bundled Node 启动真实 DSH
--> 验证目标 carrier：request/response/push/cancel/shutdown/crash
--> 显示官方 Conversation/Settings/theme
--> 通过公开 slot 挂一个零 Tailwind Probe UI
--> 验证 WebView 只有一份 React
--> Package Gate 安装签名 Probe Plugin
--> 真实 DSH Session 调用 Probe Tool 和官方 Approval
--> Capability Broker 以 callId 幂等写一条 SQLite
--> 重启后 Session、数据和 slot 恢复
--> 卸载 Probe 后 Core-only 仍完整，数据不丢
--> 强杀 Node 后 Tier0/Tier1 Safe Mode 能恢复
-```
+首个闭环按 [M1 底座资格认证](m1-foundation-qualification.md) 的 gate 顺序执行：先
+证明 DSH 发布物能在不激活 WebServer 的情况下生成 Client graph 和 bundle lookup，
+再实现零 TCP carrier、官方 Conversation/Settings、keyless replay、React 单实例、
+Core lifecycle 和进程恢复。
 
-这条闭环先验证最危险的 DSH public seam、React、WebView、Node、插件、权限和数据
-假设。SQLite CRUD 本身不是第一个风险，不从 Organizer 数据表开始。
+M1 fixture 是第一方无特权测试代码，只证明 UI、transport 和 lifecycle，不证明插件
+安全。Package Gate、Capability Broker、隔离 Runner、SQLite 业务数据和插件权限 UI
+进入 M2，不用空实现占位。
 
-目标 carrier 优先 spike 不开放 TCP 的 Tauri IPC/自定义 DSH transport；若实际 pinned
-DSH 公共契约无法支持，再通过 ADR 评估带 runtime token 的随机 loopback fallback，
-不能先做临时 localhost 版本再承诺重写。
+零 TCP 决策见
+[ADR-0001](../../docs/adr/0001-zero-tcp-desktop-carrier.md)。资格认证失败时停止，
+不会在同一里程碑自动改成 localhost 或反向代理。
 
 ## 8. Day-1 GitHub 和 CI 基线
 
 第一批 commit 至少包含 README、SECURITY、CONTRIBUTING、LICENSE/NOTICE、
-CODEOWNERS、PR/Issue 模板、ADR/contracts、精确工具链、root locks、Tauri/workspace
-空骨架、三个插件合同骨架、migration lock schema 和 CI/release dry-run。
+CODEOWNERS、PR/Issue 模板、已确认 contracts、精确工具链、root locks、首个可运行
+carrier、必要 schema 和 CI/release dry-run。ADR 只在记录真实且难以反转的决定时创建；
+目录和插件不使用 README 或空 package 预占位置。
 
 main 从第一天禁止直接/强制 push，必须 PR、required checks 和 CODEOWNER review；
 API/spec/security/release 路径需要更严格 review。Actions 使用最小权限并 pin 完整
@@ -192,7 +185,7 @@ commit SHA。
 
 第一天 required checks：
 
-- policy：无 Go、无 nested `.git`、无 vendor/submodule、目录 owner 合法；
+- policy：顶层 allowlist、无 nested `.git`、无未批准 submodule、目录 owner 合法；
 - Node/pnpm frozen lock、TypeScript host/client typecheck/test；
 - DSH exact closure/public exports/React singleton；
 - Rust fmt/clippy/test 和三平台 compile smoke；
@@ -245,6 +238,7 @@ sandbox 未通过前，可以明确允许运行任意开发 Node 代码，但绝
 
 ## 12. 下一步
 
-Private `pgw10086/hermit-vnext` 已创建并克隆到 `D:\codes\hermit-vnext`。下一步
-完成 PR0 contracts、toolchain、workspace、CI 和 Core-only vertical slice；在这些
-门通过前不直接实现业务模块。
+Private `pgw10086/hermit-vnext` 已创建。下一步提交文档基线，并实现
+`scripts/qualification/` 中的 Q0 自动检查，固定 `0.1.1-rc.2` 的阻塞证据。官方发布物
+补齐 Client module Host contract 后重新运行 M1；Q0 变绿前不创建 Tauri、Core 或
+业务插件目录。

@@ -2,6 +2,11 @@
 
 DSH 是经过资格认证的外部平台契约，并且当前仍是 developer preview。
 
+当前资格认证目标 `0.1.1-rc.2` 在 transport-neutral Client module Host contract 上
+未通过，状态和证据见
+`specs/2026-08-24-hermit-dsh-vnext/m1-foundation-qualification.md`。目标版本未通过前
+不得称为 Hermit 底座。
+
 ## 资格认证和固定版本
 
 - 使用在 clean-room 中通过资格认证的精确 DSH/npm closure 和唯一 frozen lockfile；
@@ -16,6 +21,8 @@ DSH 是经过资格认证的外部平台契约，并且当前仍是 developer pr
 Hermit 只能通过 `packages/dsh-adapter` 和 `packages/ui-adapter` import DSH。
 
 - 只消费批准的 package root 或公开 `./client` export；
+- 公开 export 还必须有官方文档赋予外部组合语义；测试 mock、结构兼容对象和仅在源码
+  中存在的实现不自动成为 public contract；
 - 插件之间通过 typed slot 或 service 组合；
 - `@deepseek-ai/**/src/*`、implementation store、private DOM/class、private CSS 和
   router internals 均视为不支持；

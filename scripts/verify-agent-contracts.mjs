@@ -14,9 +14,7 @@ const requiredFiles = [
   "docs/contracts/dsh-integration.md",
   "docs/contracts/product-plugin-security.md",
   "docs/contracts/runtime-agent.md",
-  "docs/development/documentation-language.md",
-  "docs/development/documentation-rules.md",
-  "docs/development/workspace-safety.md",
+  "docs/development/engineering-rules.md",
 ];
 
 const allowedTopLevel = new Set([
@@ -45,15 +43,8 @@ const allowedTopLevel = new Set([
   "specs",
 ]);
 
-const allowedScopedAgents = new Set([
-  ".github/AGENTS.md",
-  "apps/desktop-vnext/AGENTS.md",
-  "migration/AGENTS.md",
-  "native/AGENTS.md",
-  "packages/AGENTS.md",
-  "plugins/AGENTS.md",
-  "specs/AGENTS.md",
-]);
+// 当前没有真实的局部规则。新增 scoped AGENTS 时必须在布局评审中同步登记。
+const allowedScopedAgents = new Set([]);
 
 const ignoredDirectories = new Set([
   ".git",
@@ -121,8 +112,8 @@ if (fs.existsSync(claudePath) && fs.readFileSync(claudePath, "utf8") !== "@AGENT
 
 const rootAgentsPath = path.join(root, "AGENTS.md");
 if (fs.existsSync(rootAgentsPath)) {
-  const count = wordCount(fs.readFileSync(rootAgentsPath, "utf8"));
-  if (count > 1000) fail(`root AGENTS.md exceeds 1000 words: ${count}`);
+  const count = fs.readFileSync(rootAgentsPath, "utf8").split(/\r?\n/u).length;
+  if (count > 80) fail(`root AGENTS.md exceeds 80 lines: ${count}`);
 }
 
 for (const entry of fs.readdirSync(root, { withFileTypes: true })) {

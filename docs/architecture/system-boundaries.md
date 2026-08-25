@@ -30,6 +30,13 @@ migration -> data/authority contracts and sanitized fixtures
 产品插件源码不得 import 另一个产品插件或特权 provider implementation。跨插件
 协作必须经过 Core contract。
 
+## Native Provider
+
+Native/FFI 是 Core 拥有的特权 provider，不是产品插件可以直接调用的环境能力。
+所有跨进程和 ABI 输入都要在边界校验，并明确 protocol generation、timeout、
+cancellation 和 error 语义。`unsafe` 保持在最小封装内并说明安全前提；平台实现留在
+所属 Rust crate。拒绝路径、进程退出和资源回收必须经过行为测试。
+
 ## 运行时权威边界
 
 Hermit vNext 的 runtime state 只能由本文明确列出的 authority component 和 store
@@ -44,8 +51,9 @@ lifecycle，由 `migration/` 和对应 change-specific spec 定义。
 
 在业务开发前，第一个 vertical slice 必须先资格认证目标
 `WebView <-> Rust <-> Node/DSH` carrier。首选方案是没有 TCP listener 的 versioned
-custom IPC transport。若资格认证后的 DSH 公共 contract 不能支持，再通过 ADR 评估
-random loopback fallback，并要求 per-start runtime token 和 workspace scope。
+custom IPC transport，具体决定见
+`docs/adr/0001-zero-tcp-desktop-carrier.md`。当前 DSH 公共 contract 不能支持时停止
+M1；loopback、反向代理或其他 carrier 必须另行决策，不作为自动 fallback。
 
 Protocol 至少包含 version、generation、request/call identity、request/response、
 server push、cancellation、deadline、ready、shutdown、crash/restart、idempotency 和

@@ -54,4 +54,7 @@ sandbox vocabulary 不能证明 network/process/credential 已隔离。
 - 每个 registration 和后台资源都属于 activation generation，并可确定性 dispose；
 - 卸载默认删除 code/derived state、保留 Canonical data，历史 Session 由 Core 渲染。
 
+每个插件都必须能只与 Core 一起完成 build、test 和 clean boot。未安装或卸载任意一个
+插件时，Core 和其他插件仍能独立运行；插件不能把自身启动条件藏在另一个插件中。
+
 安全边界必须使用恶意 fixture 做 negative test，不能只依赖 manifest/static check。

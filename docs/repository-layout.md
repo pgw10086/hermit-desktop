@@ -1,153 +1,72 @@
 # 仓库布局
 
-本文档是 Hermit vNext 顶层目录所有权和生命周期的唯一事实来源。创建新的顶层目录
-前，必须先在本文中定义。
+本文档是顶层目录所有权和生命周期的唯一事实来源。新增顶层目录前，必须先说明负责
+人、用途、依赖边界、创建条件和退出方式，并在这里登记。
 
 ## 原则
 
-1. 同一事实只有一个权威 owner；
-2. 源码所有权和可安装 package boundary 必须明确；
-3. Runtime state、生成 evidence、cache 和 upstream checkout 不属于项目知识；
-4. 产品插件独立性通过 contract 保证，不通过嵌套仓库实现；
-5. 只有包含真实 owner 和 lifecycle 文件时才创建目录。
+1. 一个事实、模块或数据只由一个明确负责人维护。
+2. 目录跟随真实代码、契约或运维需要创建，不为未来计划保留空壳。
+3. 可安装插件的独立性由 package 和公共契约保证，不通过嵌套 Git 仓库保证。
+4. 本地状态、缓存、下载依赖、浏览器状态和生成证据不属于项目知识。
+5. package、插件和 native crate 的具体清单由真实 manifest/workspace 配置负责，本文
+   不复制容易过期的目录快照。
 
-## 顶层结构
+## 顶层所有权
 
-```text
-hermit-vnext/
-|-- README.md
-|-- AGENTS.md
-|-- CLAUDE.md
-|-- apps/                    # Product assembly
-|-- packages/                # 共享且可版本化的平台 package
-|-- plugins/                 # 第一方可安装 Product Plugin
-|-- native/                  # Rust/native 特权 provider
-|-- migration/               # Legacy rehearsal 和 cutover program
-|-- docs/                    # 长期架构和开发事实
-|-- specs/                   # Normative requirement 和 machine contract
-|-- scripts/                 # 维护的开发/release command
-|-- .github/                 # GitHub collaboration 和 CI 配置
-|-- .agents/                 # Coding Agent skill（需要时）
-|-- .claude/                 # Claude-only Coding Agent adapter
-|-- .codex/                  # Codex-only Coding Agent adapter
-|-- .hermit/                 # 已忽略的 local cache/tmp/artifacts
-|-- package.json             # PR0 建立的根 pnpm command surface
-|-- pnpm-workspace.yaml
-|-- pnpm-lock.yaml
-|-- Cargo.toml               # vNext Rust workspace
-|-- Cargo.lock
-`-- rust-toolchain.toml
-```
-
-## 仓库布局契约
-
-仓库顶层采用 allowlist。每个允许的 entry 必须有明确 owner、architecture layer 和
-lifecycle。新增顶层目录或文件前，必须先更新本文并通过对应 verifier。
-
-源码、配置、文档、迁移材料和生成物的合法位置由所属 owner/layer 定义。未声明的
-顶层 entry 视为无 owner，并由自动门禁拒绝。
-
-仓库内部不得包含嵌套 Git metadata。Symlink、junction 或等价链接必须解析到当前
-已授权 workspace root 内，除非存在明确的 scoped authorization。
-
-## 所有权表
-
-| 路径 | 负责人 | 层 | 生命周期 |
+| 路径 | 用途和负责人 | 创建条件 | 生命周期 |
 | --- | --- | --- | --- |
-| `apps/desktop-vnext/` | Desktop Platform | 最终 Tauri/DSH assembly | 随 Core release 发布 |
-| `packages/core/` | Runtime Platform | Core-only DSH composition | 随 Core 版本化 |
-| `packages/plugin-api/` | Architecture + Platform | 公共 Product Plugin contract | SemVer public API |
-| `packages/plugin-sdk/` | Ecosystem + Platform | 插件 build helper | 跟随兼容 API major |
-| `packages/plugin-testkit/` | Quality + Ecosystem | Conformance/clean-boot test | 跟随兼容 API major |
-| `packages/dsh-adapter/` | DSH Integration | 唯一批准的 DSH import 边界 | 随 qualified DSH generation |
-| `packages/ui-adapter/` | UI Platform | DSH public UI/token/slot wrapper | 随 qualified DSH generation |
-| `packages/capability-broker/` | Security Platform | Capability decision/narrow handle | Core security release |
-| `packages/data-registry/` | Data Platform | Canonical namespace/schema owner | Core data release |
-| `plugins/organizer/` | Organizer Product | 第一方可安装插件 | 独立 artifact/version |
-| `plugins/file-workspace/` | File Workspace Product | 第一方可安装插件 | 独立 artifact/version |
-| `plugins/smart-clipboard/` | Clipboard Product | 第一方可安装插件 | 独立 artifact/version |
-| `native/` | Native Platform | Rust/OS 特权 provider | 根 Cargo workspace |
-| `migration/` | Migration Program | Snapshot-only rehearsal/cutover | 保留到迁移支持结束 |
-| `docs/` | 对应领域 owner | 长期人类可读事实 | 随实现事实维护 |
-| `specs/` | Architecture + Product + Security | Normative requirement/schema | 先于依赖代码版本化 |
-| `scripts/` | Developer Experience + Release | 确定性 command | 维护并测试 |
-| `.github/` | DevEx + Security + Release | CI 和仓库治理 | 受保护 review 路径 |
+| `apps/` | Desktop Platform 负责最终应用装配 | 出现首个可运行应用时 | 随对应应用维护 |
+| `packages/` | 各平台 owner 负责可复用公共契约和实现 | 首份契约或实现通过评审时 | 随 package 版本维护 |
+| `plugins/` | 各 Product Plugin owner 负责第一方可安装插件 | 插件进入实现时 | 独立打包和版本化 |
+| `native/` | Native Platform 负责 Rust/OS 特权 provider | 首个 native protocol 实现时 | 随根 Rust workspace 维护 |
+| `migration/` | Migration Program 负责演练、转换和切换材料 | 迁移实现或 fixture 出现时 | 迁移支持结束后归档 |
+| `docs/` | 对应领域 owner 负责长期有效的工程事实 | 当前事实需要长期维护时 | 随事实更新或删除 |
+| `specs/` | Product、Architecture 和 Security 负责已确认需求与规范 | 需求或机器契约确认时 | 按变更主题冻结或演进 |
+| `scripts/` | Developer Experience 和 Release 负责维护命令 | 首个可执行维护命令出现时 | 随命令维护和测试 |
+| `.github/` | DevEx、Security 和 Release 负责协作与 CI 配置 | GitHub 配置出现时 | 随仓库治理维护 |
+| `.agents/` | Developer Experience 负责项目开发 skill | 出现可复用开发流程时 | 随流程维护 |
+| `.claude/` | Developer Experience 负责 Claude 专用适配 | 确有 Claude 专用配置时 | 随适配维护 |
+| `.codex/` | Developer Experience 负责 Codex 专用适配 | 确有 Codex 专用配置时 | 随适配维护 |
+| `.hermit/` | 本地运行者拥有 cache、tmp 和 artifacts | 工具运行时按需创建 | 始终忽略，不提交 |
 
-## Assembly 和 Package
+根级 `README.md`、`AGENTS.md`、`CONTRIBUTING.md`、`SECURITY.md`、许可证、lockfile、
+workspace 配置和工具链 pin 由其直接用途负责，不为它们建立第二份目录说明。
 
-`apps/desktop-vnext` 是唯一桌面混合 assembly。它可以组合 public package 和第一方
-plugin artifact，但 feature logic 必须留在所属 owner。
+## 创建模块
 
-`packages/` 保存有明确依赖方向的 contract 和平台实现。创建 package 前必须先定义
-owner。Public contract 与 privileged provider implementation 必须分离。
+新增 app、package、plugin 或 native crate 时，在同一个变更中完成：
 
-`plugins/` 保存第一方 Product Plugin 源码。每个可安装插件以独立 package boundary
-存在，并由当前 monorepo 统一跟踪。每个插件必须只与 Core build/test；跨插件协作
-经过 Core contract。
+1. 定义负责人、公共入口、允许的依赖方向和退出方式；
+2. 提交真实契约、manifest 或实现，不只提交 README 和空目录；
+3. 将公共边界接入对应 schema、lint、依赖检查和测试；
+4. 只有该子树存在根规则无法表达的真实差异时，才添加 scoped `AGENTS.md`；
+5. 更新本文件只记录长期所有权，不复制 manifest 能直接证明的版本和文件清单。
 
-`native/` 保存 Node runtime supervision、Tier 0 Rescue、OS credential、clipboard、
-parser isolation 和 desktop integration 等根 Rust workspace member。平台代码留在
-所属 crate 内。
+产品插件只依赖 Core 公共契约。跨插件协作经过 Core contract，不直接引用另一个
+插件的内部实现、数据表或迁移。
 
-## Runtime Profile 和上游源码
+## 文档归属
 
-DSH Profile 是临时或用户 `DSH_HOME` 下 materialize 的 runtime state；仓库拥有
-bundle/materialization logic，不把 runtime profile 当源码模块。
+- `README.md`：项目入口、当前状态、常用命令和文档导航；
+- `AGENTS.md`：所有编码任务都会用到的入口和红线；
+- `docs/architecture/`：当前系统职责和依赖方向；
+- `docs/contracts/`：DSH、插件安全和运行时 Agent 的独立边界；
+- `docs/development/`：全仓工程与工作区规则；
+- `docs/research/`：调研证据，不进入默认执行链；
+- `specs/`：已确认产品需求、阶段门和机器规范；
+- `docs/provenance/`：外部资料的来源与完整性记录。
 
-Qualified DSH 依赖使用 exact npm closure + provenance。只有 fork/patch ADR 已批准
-后，upstream source checkout 才作为独立仓库或外部只读缓存进入依赖流程。
+从外部导入的确认文档必须在 `docs/provenance/imports.yaml` 记录来源、完整性和已做
+修改；provenance 只负责追溯，不重复需求正文。
 
-## 文档和 Spec
+计划、任务日志和生成报告不进入上述长期文档。复杂变更的临时材料放在所属
+change-specific spec；本地生成证据放在 `.hermit/artifacts/`。
 
-`docs/` 解释当前架构、contract、decision、安全和开发流程，不保存 task log 或
-生成 report。第一方维护性 Markdown 的语言规则见
-`docs/development/documentation-language.md`。
+## 工作区边界
 
-`specs/` 保存已确认产品需求和机器可读 invariant。代码不得在局部 README 中重新
-解释 normative schema；所属 spec 和依赖代码必须一起修改。
+仓库内部不包含嵌套 Git metadata。Symlink、junction 和等价链接解析后必须留在已
+授权的工作区内。外部依赖源码使用明确授权的只读缓存，不复制进仓库。
 
-从外部来源导入的确认文档必须记录在 `docs/provenance/imports.yaml`。导入范围以
-provenance 和当前任务授权为准。
-
-## 生成和本地状态
-
-本地状态统一放在：
-
-```text
-.hermit/
-|-- cache/
-|-- tmp/
-`-- artifacts/
-```
-
-Package output 放在 owner 声明的 `dist/`、`lib/` 或 Rust `target/` 并默认忽略；只有
-spec 明确声明为 source-of-record 的 generated source 才能提交。
-
-Synthetic fixture 留在所属 owner。Sanitized fixture 必须有 provenance 和字段说明。
-Browser profile、cookie、credential、真实 Session content 和真实用户文件禁止进入。
-
-## Scoped Agent 规则
-
-只有以下目录的执行行为确实不同，需要 scoped `AGENTS.md`：
-
-- `apps/desktop-vnext/`；
-- `packages/`；
-- `plugins/`；
-- `native/`；
-- `migration/`；
-- `specs/`；
-- `.github/`。
-
-更深目录只有出现真实新增规则时才增加 scoped 文件。Scoped 文件只补充根规则，不
-复制根安全边界。
-
-## 修改布局
-
-1. 明确 owner、layer、dependency direction 和 lifecycle；
-2. 先更新本文；
-3. 只有执行行为变化时才增加/修改 scoped `AGENTS.md`；
-4. 在同一个 reviewed change 中创建文件和目录；
-5. 同步 ownership/invariant gate 和维护链接；
-6. 验证没有 nested repository、out-of-root link、Secret 或生成状态。
-
-自动布局门禁建立前，由 reviewer 手工验证上述清单。
+顶层采用自动 allowlist。新增顶层 entry 时，先更新本文件，再同步门禁；未定义负责
+人和生命周期的 entry 由门禁拒绝。
