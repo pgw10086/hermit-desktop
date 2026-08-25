@@ -1,0 +1,24 @@
+schemaVersion: 1
+imports:
+  - target: specs/2026-08-24-hermit-dsh-vnext/core-requirements.md
+    sourceRepository: local-legacy-hermit
+    sourcePath: specs/2026-08-24-hermit-dsh-vnext/core-requirements.md
+    sourceContextCommit: 95d9601b9e059d7d5da20f2a8db101bf27c9c4fb
+    sourceSha256: 92CEE0C87D8F9236964AB077FDF0B86DB9405CCC79BC4826D4FBB8895EC845A8
+    sourceState: approved-confirmation-document-uncommitted
+    sourceLicense: project-internal-confirmed-document
+    sanitization: none-required-no-user-data-or-secret
+    modifications: repository-identity-and-bootstrap-status-only
+    reviewedBy: pgw10086
+    importedAt: 2026-08-25
+  - target: specs/2026-08-24-hermit-dsh-vnext/start-readiness.md
+    sourceRepository: local-legacy-hermit
+    sourcePath: specs/2026-08-24-hermit-dsh-vnext/start-readiness.md
+    sourceContextCommit: 95d9601b9e059d7d5da20f2a8db101bf27c9c4fb
+    sourceSha256: 3E81B8CA340C99651AE4751E88E01ED5193F7F3CBE8BA563588FC6E114B77D8D
+    sourceState: approved-confirmation-document-uncommitted
+    sourceLicense: project-internal-confirmed-document
+    sanitization: none-required-no-user-data-or-secret
+    modifications: repository-identity-and-bootstrap-status-only
+    reviewedBy: pgw10086
+    importedAt: 2026-08-25

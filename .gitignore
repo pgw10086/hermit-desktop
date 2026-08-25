@@ -1,0 +1,26 @@
+# Local Hermit state
+.hermit/
+
+# Node
+node_modules/
+dist/
+lib/
+*.tsbuildinfo
+
+# Rust
+target/
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+
+# Logs and OS/editor state
+*.log
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
