@@ -16,10 +16,15 @@ Tool、Approval 和 Web composition；完整业务能力以可独立安装的产
 - [核心需求](specs/2026-08-24-hermit-dsh-vnext/core-requirements.md)
 - [文档索引](docs/README.md)
 
-## 仓库边界
+## 仓库范围
 
-本仓库与旧 Go 产品完全分离，不复制旧源码和真实用户数据。迁移开发只使用
-synthetic fixture 或有 provenance 的 sanitized fixture，并固定旧系统来源身份。
+Hermit vNext 是当前产品实现、架构和工程规则的权威仓库。
+
+- 当前系统边界由 `docs/architecture/system-boundaries.md` 定义；
+- 目录职责由 `docs/repository-layout.md` 定义；
+- 工作区安全由 `docs/development/workspace-safety.md` 定义；
+- 迁移输入、authority transfer、cutover 和 rollback 只由 `migration/` 及对应
+  change-specific `specs/` 维护。
 
 当前中文 `README.md` 是权威入口。未来公开需要英文入口时，再创建带
 `translation-of` 声明的 `README.en.md` 派生翻译。

@@ -3,6 +3,9 @@
 本文档定义 Hermit vNext 第一方维护性文档的语言规则。根 `AGENTS.md` 只保留执行
 所需摘要和本文入口；语言治理细节以本文为准。
 
+文档事实应放在哪里、历史信息何时允许出现，由
+`docs/development/documentation-rules.md` 负责。
+
 ## 适用范围
 
 本规则适用于项目维护者编写和维护的 Markdown，包括：

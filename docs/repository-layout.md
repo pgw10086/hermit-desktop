@@ -39,7 +39,16 @@ hermit-vnext/
 `-- rust-toolchain.toml
 ```
 
-本仓库不包含 Go source、`go.mod`、嵌套 Git repository 或旧产品 runtime。
+## 仓库布局契约
+
+仓库顶层采用 allowlist。每个允许的 entry 必须有明确 owner、architecture layer 和
+lifecycle。新增顶层目录或文件前，必须先更新本文并通过对应 verifier。
+
+源码、配置、文档、迁移材料和生成物的合法位置由所属 owner/layer 定义。未声明的
+顶层 entry 视为无 owner，并由自动门禁拒绝。
+
+仓库内部不得包含嵌套 Git metadata。Symlink、junction 或等价链接必须解析到当前
+已授权 workspace root 内，除非存在明确的 scoped authorization。
 
 ## 所有权表
 
@@ -72,9 +81,9 @@ plugin artifact，但 feature logic 必须留在所属 owner。
 `packages/` 保存有明确依赖方向的 contract 和平台实现。创建 package 前必须先定义
 owner。Public contract 与 privileged provider implementation 必须分离。
 
-`plugins/` 保存第一方 Product Plugin 源码。可安装插件是 package boundary，不是
-嵌套 Git repository。每个插件必须只与 Core build/test；跨插件协作经过 Core
-contract。
+`plugins/` 保存第一方 Product Plugin 源码。每个可安装插件以独立 package boundary
+存在，并由当前 monorepo 统一跟踪。每个插件必须只与 Core build/test；跨插件协作
+经过 Core contract。
 
 `native/` 保存 Node runtime supervision、Tier 0 Rescue、OS credential、clipboard、
 parser isolation 和 desktop integration 等根 Rust workspace member。平台代码留在
@@ -82,12 +91,11 @@ parser isolation 和 desktop integration 等根 Rust workspace member。平台�
 
 ## Runtime Profile 和上游源码
 
-不得创建源码 `profiles/` 目录。DSH Profile 是临时或用户 `DSH_HOME` 下 materialize
-的 runtime state；仓库只拥有 bundle/materialization logic。
+DSH Profile 是临时或用户 `DSH_HOME` 下 materialize 的 runtime state；仓库拥有
+bundle/materialization logic，不把 runtime profile 当源码模块。
 
-默认不得创建 `vendor/`、`third_party/` 或 DSH submodule。Qualified DSH 依赖使用
-exact npm closure + provenance。只有 fork/patch ADR 已批准后，源码 checkout 才能
-存在于独立仓库或外部只读缓存。
+Qualified DSH 依赖使用 exact npm closure + provenance。只有 fork/patch ADR 已批准
+后，upstream source checkout 才作为独立仓库或外部只读缓存进入依赖流程。
 
 ## 文档和 Spec
 
@@ -98,8 +106,8 @@ exact npm closure + provenance。只有 fork/patch ADR 已批准后，源码 che
 `specs/` 保存已确认产品需求和机器可读 invariant。代码不得在局部 README 中重新
 解释 normative schema；所属 spec 和依赖代码必须一起修改。
 
-从旧环境导入的确认文档必须记录在 `docs/provenance/imports.yaml`。Legacy source、
-真实数据和外部未提交文件不得导入。
+从外部来源导入的确认文档必须记录在 `docs/provenance/imports.yaml`。导入范围以
+provenance 和当前任务授权为准。
 
 ## 生成和本地状态
 

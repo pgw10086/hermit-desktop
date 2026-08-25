@@ -21,6 +21,8 @@ Hermit vNext 有两个完全分离的 Agent 域：
   运行时日志前，必须读取 `docs/contracts/runtime-agent.md`；
 - 处理迁移、fixture、Secret、生成状态、GitHub、release 或 cutover 前，必须读取
   `docs/development/workspace-safety.md`。
+- 新增或修改根级项目说明、架构、布局、开发规则中的历史背景前，必须读取
+  `docs/development/documentation-rules.md`。
 
 距离当前目录最近的 scoped `AGENTS.md` 用来补充本文件。局部规则可以收紧或细化，
 但不得削弱根文件中的工作区、数据、信任、凭据和外部动作边界。
@@ -40,11 +42,19 @@ Hermit vNext 有两个完全分离的 Agent 域：
 - 如提供英文翻译，中文 canonical 文档仍是工程事实来源；译文必须声明中文来源，
   不得包含只存在于译文中的规范性事实。
 
+## 文档事实
+
+- 使用 Hermit vNext 的当前正向事实定义系统；历史项目名称、技术栈和实现细节，
+  只有在 migration、compatibility、provenance、cutover/rollback 或明确安全授权
+  边界中具有直接语义时才可出现，并由对应 canonical 文档拥有；
+- 根级文档不得复制历史背景；需要历史上下文时必须链接对应 owner；
+- 工作区操作默认限制在当前 Git root，root 外资源必须有明确 scoped authorization。
+
 ## 工作区和数据
 
-只在当前 Git worktree 内工作。兄弟仓库（包括旧仓 `D:\codes\hermit`）不属于
-默认读写范围。只能使用用户明确批准的确认文档，以及 synthetic fixture 或有记录
-的 sanitized fixture。
+只在当前 Git worktree 的解析后 root 内工作。Root 外的 repository、worktree、目录、
+数据集和 credential 默认不属于读写范围；只有当前任务或 canonical scoped 文档
+明确授权时才可以访问。
 
 真实用户数据、浏览器状态、凭据、Secret 和外部未提交源码不得进入本仓库或编码
 Agent 上下文。

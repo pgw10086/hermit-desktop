@@ -1,7 +1,5 @@
 # 系统边界（System Boundaries）
 
-Hermit vNext 是新的运行时，不是在旧 Go 产品目录中原地改造。
-
 ## 进程所有权
 
 ```text
@@ -17,8 +15,7 @@ Tauri / Rust Desktop Shell
 - Core 负责 DSH Session/Tool/Approval composition、Package Gate、Capability Broker、
   Data Registry、diagnostics 和 Tier 1 Safe Profile；
 - 产品插件负责自己的 Canonical 业务数据和 UI/Tool contribution，只获得 narrow
-  capability，不获得 ambient host authority；
-- 目标进程树中不存在 Hermit Go runtime。
+  capability，不获得 ambient host authority。
 
 ## 依赖方向
 
@@ -32,6 +29,16 @@ migration -> data/authority contracts and sanitized fixtures
 
 产品插件源码不得 import 另一个产品插件或特权 provider implementation。跨插件
 协作必须经过 Core contract。
+
+## 运行时权威边界
+
+Hermit vNext 的 runtime state 只能由本文明确列出的 authority component 和 store
+提供。所有 runtime reader/writer 必须通过这些 authority 的正式接口访问状态；未列入
+runtime dependency graph 的 repository、data source 或 process 不属于 steady-state
+runtime authority。
+
+Authority transfer、writer fencing、data migration 和 rollback boundary 属于迁移
+lifecycle，由 `migration/` 和对应 change-specific spec 定义。
 
 ## Carrier
 
@@ -51,6 +58,6 @@ Code generation 与 data generation 一起切换。Candidate code 只能使用 s
 Node/DSH；Tier 1 Safe Profile 只加载资格认证过的 Core recovery surface，不加载
 产品插件或模型调用。
 
-旧 Go authority 不挂载到本开发仓库。迁移 rehearsal 只读取批准的 snapshot 并写入
-staging generation。Production authority 通过受 epoch/lease 保护的原子 commit
-从 Go 切换一次，之后永不返回 Go。
+迁移 rehearsal 只读取批准的 snapshot 并写入 staging generation。Production
+authority 的转换必须使用受 epoch/lease 保护的原子 commit，并遵循所属 migration
+spec 的 rollback boundary。

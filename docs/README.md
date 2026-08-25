@@ -9,6 +9,7 @@
 - 产品 AI 行为：[运行时 Agent 契约](contracts/runtime-agent.md)
 - 编码工作区安全：[工作区安全](development/workspace-safety.md)
 - 文档语言：[文档语言规范](development/documentation-language.md)
+- 文档事实归属：[文档事实与归属规范](development/documentation-rules.md)
 - 已确认产品范围：[核心需求](../specs/2026-08-24-hermit-dsh-vnext/core-requirements.md)
 - 启动顺序：[项目启动准备](../specs/2026-08-24-hermit-dsh-vnext/start-readiness.md)
 - 调研证据：[DSH Agent 限制调研](research/dsh-agent-constraints.md)

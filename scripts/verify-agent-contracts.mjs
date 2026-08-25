@@ -15,6 +15,7 @@ const requiredFiles = [
   "docs/contracts/product-plugin-security.md",
   "docs/contracts/runtime-agent.md",
   "docs/development/documentation-language.md",
+  "docs/development/documentation-rules.md",
   "docs/development/workspace-safety.md",
 ];
 
@@ -89,6 +90,13 @@ function hasChineseProse(text) {
   return matches.length >= 20;
 }
 
+function isCurrentMarkdown(rel) {
+  if (!rel.endsWith(".md")) return false;
+  if (rel.startsWith("migration/") || rel.startsWith("specs/")) return false;
+  if (rel.startsWith("docs/provenance/")) return false;
+  return true;
+}
+
 function walk(directory, visitor) {
   for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
     if (entry.name === ".git") {
@@ -160,6 +168,10 @@ walk(root, (fullPath, entry) => {
       fail(`第一方维护性 Markdown 缺少中文正文: ${rel}`);
     }
 
+    if (isCurrentMarkdown(rel) && /\b[A-Za-z]:\\/u.test(text)) {
+      fail(`当前文档不得硬编码本机绝对路径: ${rel}`);
+    }
+
     if (/\.(?:en|zh|zh-CN)\.md$/u.test(entry.name)) {
       const marker = text.match(/<!--\s*translation-of:\s*([^;]+);\s*canonical-language:\s*zh-CN\s*-->/u);
       if (!marker) {
@@ -169,10 +181,6 @@ walk(root, (fullPath, entry) => {
         if (!fs.existsSync(canonical)) fail(`派生翻译的 canonical 不存在: ${rel}`);
       }
     }
-  }
-
-  if (entry.isFile() && (entry.name === "go.mod" || entry.name === "go.sum" || path.extname(entry.name) === ".go")) {
-    fail(`Go source/runtime file is not allowed: ${rel}`);
   }
 
   if (entry.isFile() && (secretNames.has(lowerName) || /\.(pem|p12|key)$/iu.test(entry.name))) {

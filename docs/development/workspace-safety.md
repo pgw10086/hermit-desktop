@@ -2,11 +2,14 @@
 
 ## 仓库范围
 
-写文件前必须解析当前 Git root，并且只在本仓库工作。兄弟仓库，特别是旧仓
-`D:\codes\hermit`，默认不属于读写范围；只有用户明确批准的具体确认文档例外。
+默认情况下，所有仓库操作必须限制在当前 Git worktree 的解析后 root 内。
 
-不得检查、diff、copy、build、execute 或挖掘 legacy 未提交源码。迁移知识只能通过
-reviewed doc、synthetic fixture 或有记录的 sanitizer/provenance 流程进入。
+不得读取、修改或执行 root 外的 repository、worktree、目录、数据集或 credential，
+除非当前任务或 canonical scoped 文档明确授权该外部资源。
+
+访问文件前必须考虑 symlink、junction、mount 或其他路径重定向；解析后的目标不得
+越出已授权 root。被授权作为 migration input 的外部资源默认只读，只有 scoped rule
+明确授予写权限时才能修改。
 
 ## Worktree 和 Git
 
@@ -24,9 +27,9 @@ cutover 都需要用户对该动作的明确授权。
 - Browser profile、Cookies、Login Data、Local State、API key、certificate、真实
   clipboard/history/Session content 和真实用户文件均禁止进入。
 
-Runtime cache 和生成 evidence 放在 `.hermit/`。资格认证 checkout 可以位于
-`D:\codes\.hermit-vnext-cache\deepseek-harness\<commit>` 等外部只读缓存，但不得
-嵌套进本 Git 仓库。
+Runtime cache 和生成 evidence 放在 `.hermit/`。资格认证 checkout 通过
+`HERMIT_DSH_UPSTREAM_DIR` 指向已授权的外部只读缓存，并校验 exact commit/hash；
+不得嵌套进本 Git 仓库。
 
 ## 迁移和 Cutover
 
