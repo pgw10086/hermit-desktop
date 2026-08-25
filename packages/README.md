@@ -1,6 +1,7 @@
-# Platform Packages
+# 平台 Package
 
-Planned owned packages are defined in `docs/repository-layout.md`: Core,
-Plugin API/SDK/Testkit, DSH/UI adapters, Capability Broker, and Data Registry.
-Directories are created with their first reviewed contract or implementation,
-not as empty placeholders.
+计划中的 package 已在 `docs/repository-layout.md` 定义：Core、Plugin API/SDK/
+Testkit、DSH/UI adapter、Capability Broker 和 Data Registry。
+
+Package 必须与第一份 reviewed contract 或 implementation 一起创建，不建立空占位
+目录。

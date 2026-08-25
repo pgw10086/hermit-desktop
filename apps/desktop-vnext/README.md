@@ -1,7 +1,7 @@
-# Desktop vNext
+# Desktop vNext（桌面端）
 
-Owner: Desktop Platform.
+负责人：Desktop Platform。
 
-This directory will contain the Tauri executable and DSH Web composition for
-the first Core-only vertical slice. Product implementation starts only after
-the contracts and qualification gates in `start-readiness.md` exist.
+本目录将保存第一个 Core-only vertical slice 的 Tauri executable 和 DSH Web
+composition。只有 `start-readiness.md` 中的 contract 和资格认证门落地后，才开始
+产品实现。

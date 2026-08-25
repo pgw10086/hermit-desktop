@@ -1,23 +1,22 @@
-# Product Plugin Security Contract
+# 产品插件安全契约
 
-Product Plugin is a Hermit trust/package boundary, not a synonym for an
-in-process Cordis plugin.
+产品插件（Product Plugin）是 Hermit 的信任和打包边界，不等同于进程内 Cordis
+plugin。
 
-## Trust Tiers
+## 信任等级
 
-P0 Production accepts only:
+P0 Production 只接受：
 
-1. Hermit first-party signed artifacts.
-2. Hermit-audited artifacts whose exact digest is signed/attested and present in
-   the production catalog.
+1. Hermit 第一方签名 artifact；
+2. Hermit 审计过、精确 digest 已签名/attest 且进入 production catalog 的 artifact。
 
-Community discovery does not authorize installation. Developer Mode is a
-separate app/profile/data/credential security domain with no Production
-authority, database, migration command, or Secret namespace.
+社区发现不等于允许安装。Developer Mode 必须使用独立 app/profile/data/credential
+安全域，不得拥有 Production authority、database、migration command 或 Secret
+namespace。
 
 ## Package Gate
 
-Package Gate validates bytes before lifecycle code executes:
+任何 lifecycle code 执行前，Package Gate 必须先验证 bytes：
 
 ```text
 stage bytes
@@ -31,34 +30,28 @@ stage bytes
 -> load into the approved Runner
 ```
 
-Unknown capabilities and compatibility states fail closed.
+未知 capability 和 compatibility state 必须 fail closed。
 
-## Capability Model
+## Capability 模型
 
-The manifest declares capabilities and data namespaces. Capability Broker mints
-short-lived narrow handles scoped by plugin, Session/agent, action, resource,
-constraints, and generation.
+Manifest 声明 capability 和 data namespace。Capability Broker 按 plugin、
+Session/agent、action、resource、constraint 和 generation 签发短生命周期 narrow
+handle。
 
-Product Plugin code expresses intent. It does not directly obtain filesystem,
-network, process, environment, credential, model/`ctx.llm`, Tauri, native/FFI,
-or another plugin's data authority. Pure computation APIs are not treated as
-privileged merely because they are Node built-ins.
+产品插件只能表达 intent。它不得直接获得 filesystem、network、process、
+environment、credential、model/`ctx.llm`、Tauri、native/FFI 或其他插件的数据
+authority。纯计算 API 不应仅因属于 Node built-in 就被当成特权能力。
 
-The isolated Runner is defense in depth; ordinary Cordis composition and DSH
-filesystem sandbox vocabulary are not proof of network/process/credential
-isolation.
+隔离 Runner 属于 defense in depth；普通 Cordis composition 和 DSH filesystem
+sandbox vocabulary 不能证明 network/process/credential 已隔离。
 
-## Dependency And Lifecycle Rules
+## 依赖和生命周期
 
-- The only Hermit hard runtime dependency is the Core public contract.
-- Cross-plugin cooperation uses Core events/services/capabilities, not value
-  imports, shared tables, or foreign keys.
-- Client code does not invoke Tauri/native directly; Host code goes through the
-  Broker/provider contract.
-- Every registration and background resource belongs to the activation
-  generation and disposes cleanly.
-- Uninstall removes code/derived state, preserves Canonical data by default,
-  and leaves historical Session rendering to Core.
+- 唯一 Hermit 硬运行时依赖是 Core 公共 contract；
+- 跨插件协作使用 Core event/service/capability，不使用 value import、shared table
+  或 foreign key；
+- Client code 不直接 invoke Tauri/native；Host code 经过 Broker/provider contract；
+- 每个 registration 和后台资源都属于 activation generation，并可确定性 dispose；
+- 卸载默认删除 code/derived state、保留 Canonical data，历史 Session 由 Core 渲染。
 
-Security boundaries require negative tests with malicious fixtures, not only
-manifest/static checks.
+安全边界必须使用恶意 fixture 做 negative test，不能只依赖 manifest/static check。

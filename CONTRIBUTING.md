@@ -1,16 +1,15 @@
-# Contributing
+# 参与贡献
 
-Hermit vNext is currently in private incubation.
+Hermit vNext 当前处于 Private incubation。
 
-1. Read `AGENTS.md` and the owning context for the area you change.
-2. Preserve package ownership and dependency direction from
-   `docs/repository-layout.md`.
-3. Change a public contract/spec before dependent implementations.
-4. Use synthetic or documented sanitized fixtures only.
-5. Run the narrowest relevant checks and include denial-path tests for security
-   boundaries.
-6. Submit changes through a pull request. External publish, release, signing,
-   GitHub settings, migration, and cutover operations need separate approval.
+1. 先读取 `AGENTS.md` 和本次修改所属区域的 canonical context；
+2. 遵守 `docs/repository-layout.md` 中的 package owner 和 dependency direction；
+3. 修改 public contract/spec 后，再修改依赖实现；
+4. 只使用 synthetic fixture 或有记录的 sanitized fixture；
+5. 运行最小且相关的检查；安全边界必须包含 denial-path test；
+6. 通过 pull request 提交变更。Publish、release、sign、GitHub setting、migration
+   和 cutover 需要单独授权。
 
-The first implementation milestone is the Core-only vertical slice described
-in `specs/2026-08-24-hermit-dsh-vnext/start-readiness.md`.
+第一个实现目标是
+`specs/2026-08-24-hermit-dsh-vnext/start-readiness.md` 中定义的 Core-only vertical
+slice。

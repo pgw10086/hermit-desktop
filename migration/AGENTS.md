@@ -1,12 +1,11 @@
-# Migration Rules
+# 迁移规则
 
-- Default input is synthetic or documented sanitized data. The sibling legacy
-  repository and real user data remain outside scope.
-- Rehearsal is dry-run capable, repeatable, and writes only a new staging
-  generation with reconciliation evidence.
-- Bind adapters to a pinned legacy source identity and explicit field mapping.
-- Never move or overwrite source data; copy, hash, validate, and commit staging.
-- Real-input migration and production cutover are separate actions requiring
-  explicit user authorization.
-- Authority epoch/lease, backup receipt, validation, and crash point evidence
-  precede the one-time authority commit.
+- 默认输入只能是 synthetic data 或有记录的 sanitized data；兄弟 legacy 仓库和真实
+  用户数据不属于默认范围；
+- rehearsal 必须支持 dry-run、可重跑，并只写新的 staging generation 和 reconciliation
+  evidence；
+- adapter 必须绑定固定 legacy source identity 和明确字段映射；
+- 不得移动或覆盖源数据；必须 copy、hash、validate 后再提交 staging；
+- 真实输入迁移和 production cutover 是两个分别需要用户明确授权的动作；
+- authority epoch/lease、backup receipt、validation 和 crash point evidence 必须先于
+  一次性 authority commit。

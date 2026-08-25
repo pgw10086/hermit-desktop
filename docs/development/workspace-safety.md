@@ -1,42 +1,35 @@
-# Workspace Safety
+# 工作区安全
 
-## Repository Scope
+## 仓库范围
 
-Resolve the current Git root before writing. Work only in this repository.
-Sibling repositories, especially the legacy `D:\codes\hermit` workspace, are
-outside read and write scope unless the user explicitly authorizes a specific
-confirmation document.
+写文件前必须解析当前 Git root，并且只在本仓库工作。兄弟仓库，特别是旧仓
+`D:\codes\hermit`，默认不属于读写范围；只有用户明确批准的具体确认文档例外。
 
-Do not inspect, diff, copy, build, execute, or mine uncommitted legacy source.
-Migration knowledge enters through reviewed docs, synthetic fixtures, or a
-documented sanitizer/provenance process.
+不得检查、diff、copy、build、execute 或挖掘 legacy 未提交源码。迁移知识只能通过
+reviewed doc、synthetic fixture 或有记录的 sanitizer/provenance 流程进入。
 
-## Worktree And Git
+## Worktree 和 Git
 
-Preserve unknown worktree state. Use scoped status/diff and normal additive
-edits. Do not use reset, clean, broad restore/checkout, or another operation
-whose purpose is to discard unrelated work.
+保留未知 worktree state。使用范围明确的 status/diff 和增量编辑。不得使用 reset、
+clean、broad restore/checkout 或其他以丢弃无关工作为目的的操作。
 
-Local editing and tests are repository-scoped. Push, force-push, PR mutation,
-tag, release, publish, signing, GitHub settings/secrets, privileged workflow
-dispatch, real-input migration, and production cutover require explicit user
-authorization for that action.
+本地编辑和测试属于仓库内动作。Push、force-push、PR 修改、tag、release、publish、
+签名、GitHub 设置/Secret、特权 workflow dispatch、真实输入迁移和 production
+cutover 都需要用户对该动作的明确授权。
 
-## Data And Fixtures
+## 数据和 Fixture
 
-- `synthetic` fixtures are fabricated and contain no real user values.
-- `sanitized` fixtures have provenance, field descriptions, and a review record.
-- Browser profiles, Cookies, Login Data, Local State, API keys, certificates,
-  real clipboard/history/Session content, and real user files are forbidden.
+- `synthetic` fixture 是虚构数据，不含真实用户值；
+- `sanitized` fixture 必须有 provenance、字段说明和 review 记录；
+- Browser profile、Cookies、Login Data、Local State、API key、certificate、真实
+  clipboard/history/Session content 和真实用户文件均禁止进入。
 
-Runtime caches and generated evidence live under `.hermit/`. A qualification
-checkout may live in an external read-only cache such as
-`D:\codes\.hermit-vnext-cache\deepseek-harness\<commit>` and is never nested
-inside this Git repository.
+Runtime cache 和生成 evidence 放在 `.hermit/`。资格认证 checkout 可以位于
+`D:\codes\.hermit-vnext-cache\deepseek-harness\<commit>` 等外部只读缓存，但不得
+嵌套进本 Git 仓库。
 
-## Migration And Cutover
+## 迁移和 Cutover
 
-Rehearsal reads only approved snapshots and writes a new staging generation.
-It is dry-run capable, repeatable, and emits reconciliation evidence. Real data
-migration and production authority cutover are separate explicitly authorized
-operations.
+Rehearsal 只读取批准的 snapshot，写入新的 staging generation，必须支持 dry-run、
+可重跑并产生 reconciliation evidence。真实数据迁移和 production authority cutover
+是两个分别需要明确授权的动作。

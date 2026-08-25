@@ -1,40 +1,37 @@
-# Repository Layout
+# 仓库布局
 
-This document is the source of truth for top-level ownership and lifecycle in
-Hermit vNext. Define a new top-level directory here before creating it.
+本文档是 Hermit vNext 顶层目录所有权和生命周期的唯一事实来源。创建新的顶层目录
+前，必须先在本文中定义。
 
-## Principles
+## 原则
 
-1. One fact has one authoritative owner.
-2. Source ownership and installable package boundaries are explicit.
-3. Runtime state, generated evidence, caches, and upstream checkouts are not
-   project knowledge.
-4. Product Plugin independence is enforced through contracts, not repository
-   nesting.
-5. Directories exist only when they contain owned files with a real lifecycle.
+1. 同一事实只有一个权威 owner；
+2. 源码所有权和可安装 package boundary 必须明确；
+3. Runtime state、生成 evidence、cache 和 upstream checkout 不属于项目知识；
+4. 产品插件独立性通过 contract 保证，不通过嵌套仓库实现；
+5. 只有包含真实 owner 和 lifecycle 文件时才创建目录。
 
-## Top-Level Layout
+## 顶层结构
 
 ```text
 hermit-vnext/
 |-- README.md
-|-- README.zh-CN.md
 |-- AGENTS.md
 |-- CLAUDE.md
-|-- apps/                    # Product assemblies
-|-- packages/                # Versioned shared platform packages
-|-- plugins/                 # First-party installable Product Plugins
-|-- native/                  # Rust/native privileged providers
-|-- migration/               # Legacy rehearsal and cutover program
-|-- docs/                    # Durable architecture and development facts
-|-- specs/                   # Normative requirements and machine contracts
-|-- scripts/                 # Maintained developer/release commands
-|-- .github/                 # GitHub collaboration and CI configuration
-|-- .agents/                 # Coding Agent skills, when required
-|-- .claude/                 # Claude-only Coding Agent adapters
-|-- .codex/                  # Codex-only Coding Agent adapters
-|-- .hermit/                 # Ignored local cache/tmp/artifacts
-|-- package.json             # Root pnpm command surface, when bootstrapped
+|-- apps/                    # Product assembly
+|-- packages/                # 共享且可版本化的平台 package
+|-- plugins/                 # 第一方可安装 Product Plugin
+|-- native/                  # Rust/native 特权 provider
+|-- migration/               # Legacy rehearsal 和 cutover program
+|-- docs/                    # 长期架构和开发事实
+|-- specs/                   # Normative requirement 和 machine contract
+|-- scripts/                 # 维护的开发/release command
+|-- .github/                 # GitHub collaboration 和 CI 配置
+|-- .agents/                 # Coding Agent skill（需要时）
+|-- .claude/                 # Claude-only Coding Agent adapter
+|-- .codex/                  # Codex-only Coding Agent adapter
+|-- .hermit/                 # 已忽略的 local cache/tmp/artifacts
+|-- package.json             # PR0 建立的根 pnpm command surface
 |-- pnpm-workspace.yaml
 |-- pnpm-lock.yaml
 |-- Cargo.toml               # vNext Rust workspace
@@ -42,77 +39,71 @@ hermit-vnext/
 `-- rust-toolchain.toml
 ```
 
-The repository does not contain Go source, `go.mod`, nested Git repositories,
-or the legacy product runtime.
+本仓库不包含 Go source、`go.mod`、嵌套 Git repository 或旧产品 runtime。
 
-## Ownership Map
+## 所有权表
 
-| Path | Owner | Layer | Lifecycle |
+| 路径 | 负责人 | 层 | 生命周期 |
 | --- | --- | --- | --- |
-| `apps/desktop-vnext/` | Desktop Platform | Final Tauri/DSH assembly | Ships with each Core release |
-| `packages/core/` | Runtime Platform | Core-only DSH composition | Versioned with Core |
-| `packages/plugin-api/` | Architecture + Platform | Public Product Plugin contract | SemVer public API |
-| `packages/plugin-sdk/` | Ecosystem + Platform | Plugin build helpers | Follows compatible API majors |
-| `packages/plugin-testkit/` | Quality + Ecosystem | Conformance and clean-boot tests | Follows compatible API majors |
-| `packages/dsh-adapter/` | DSH Integration | Only approved DSH import boundary | Changes with qualified DSH generation |
-| `packages/ui-adapter/` | UI Platform | Public DSH UI/token/slot wrappers | Changes with qualified DSH generation |
-| `packages/capability-broker/` | Security Platform | Capability decisions and narrow handles | Core security release |
-| `packages/data-registry/` | Data Platform | Canonical namespace/schema ownership | Core data release |
-| `plugins/organizer/` | Organizer Product | Installable first-party plugin | Independent artifact/version |
-| `plugins/file-workspace/` | File Workspace Product | Installable first-party plugin | Independent artifact/version |
-| `plugins/smart-clipboard/` | Clipboard Product | Installable first-party plugin | Independent artifact/version |
-| `native/` | Native Platform | Privileged Rust/OS providers | Root Cargo workspace |
-| `migration/` | Migration Program | Snapshot-only rehearsal/cutover | Retained through migration support window |
-| `docs/` | Named domain owner | Durable human-readable facts | Maintained with implementation truth |
-| `specs/` | Architecture + Product + Security | Normative requirements and schemas | Versioned before dependent code |
-| `scripts/` | Developer Experience + Release | Deterministic commands | Maintained and tested |
-| `.github/` | DevEx + Security + Release | CI and repository governance | Protected review paths |
+| `apps/desktop-vnext/` | Desktop Platform | 最终 Tauri/DSH assembly | 随 Core release 发布 |
+| `packages/core/` | Runtime Platform | Core-only DSH composition | 随 Core 版本化 |
+| `packages/plugin-api/` | Architecture + Platform | 公共 Product Plugin contract | SemVer public API |
+| `packages/plugin-sdk/` | Ecosystem + Platform | 插件 build helper | 跟随兼容 API major |
+| `packages/plugin-testkit/` | Quality + Ecosystem | Conformance/clean-boot test | 跟随兼容 API major |
+| `packages/dsh-adapter/` | DSH Integration | 唯一批准的 DSH import 边界 | 随 qualified DSH generation |
+| `packages/ui-adapter/` | UI Platform | DSH public UI/token/slot wrapper | 随 qualified DSH generation |
+| `packages/capability-broker/` | Security Platform | Capability decision/narrow handle | Core security release |
+| `packages/data-registry/` | Data Platform | Canonical namespace/schema owner | Core data release |
+| `plugins/organizer/` | Organizer Product | 第一方可安装插件 | 独立 artifact/version |
+| `plugins/file-workspace/` | File Workspace Product | 第一方可安装插件 | 独立 artifact/version |
+| `plugins/smart-clipboard/` | Clipboard Product | 第一方可安装插件 | 独立 artifact/version |
+| `native/` | Native Platform | Rust/OS 特权 provider | 根 Cargo workspace |
+| `migration/` | Migration Program | Snapshot-only rehearsal/cutover | 保留到迁移支持结束 |
+| `docs/` | 对应领域 owner | 长期人类可读事实 | 随实现事实维护 |
+| `specs/` | Architecture + Product + Security | Normative requirement/schema | 先于依赖代码版本化 |
+| `scripts/` | Developer Experience + Release | 确定性 command | 维护并测试 |
+| `.github/` | DevEx + Security + Release | CI 和仓库治理 | 受保护 review 路径 |
 
-## Assemblies And Packages
+## Assembly 和 Package
 
-`apps/desktop-vnext` is the only mixed desktop assembly. It may compose public
-packages and first-party plugin artifacts, but feature logic stays with its
-owner.
+`apps/desktop-vnext` 是唯一桌面混合 assembly。它可以组合 public package 和第一方
+plugin artifact，但 feature logic 必须留在所属 owner。
 
-`packages/` contains contracts and platform implementations with explicit
-dependency direction. A package must have an owner before creation. Public
-contracts and privileged provider implementations remain separate.
+`packages/` 保存有明确依赖方向的 contract 和平台实现。创建 package 前必须先定义
+owner。Public contract 与 privileged provider implementation 必须分离。
 
-`plugins/` contains first-party Product Plugin source. An installable plugin is
-a package boundary, not a nested Git repository. Each plugin builds and tests
-against Core alone; cross-plugin cooperation goes through Core contracts.
+`plugins/` 保存第一方 Product Plugin 源码。可安装插件是 package boundary，不是
+嵌套 Git repository。每个插件必须只与 Core build/test；跨插件协作经过 Core
+contract。
 
-`native/` contains the root Rust workspace members for runtime supervision,
-Tier 0 rescue, OS credentials, clipboard, parser isolation, and desktop
-integration. Platform-specific code stays inside its owning crate.
+`native/` 保存 Node runtime supervision、Tier 0 Rescue、OS credential、clipboard、
+parser isolation 和 desktop integration 等根 Rust workspace member。平台代码留在
+所属 crate 内。
 
-## Runtime Profiles And Upstream Source
+## Runtime Profile 和上游源码
 
-Do not create a source `profiles/` directory. DSH profiles are materialized
-runtime state under an ephemeral or user `DSH_HOME`; source owns only bundle
-and materialization logic.
+不得创建源码 `profiles/` 目录。DSH Profile 是临时或用户 `DSH_HOME` 下 materialize
+的 runtime state；仓库只拥有 bundle/materialization logic。
 
-Do not create `vendor/`, `third_party/`, or a DSH submodule by default. The
-qualified DSH dependency is an exact npm closure plus provenance. A downstream
-source checkout exists only after an approved fork/patch ADR and lives in a
-separate repository or read-only external cache.
+默认不得创建 `vendor/`、`third_party/` 或 DSH submodule。Qualified DSH 依赖使用
+exact npm closure + provenance。只有 fork/patch ADR 已批准后，源码 checkout 才能
+存在于独立仓库或外部只读缓存。
 
-## Documentation And Specs
+## 文档和 Spec
 
-`docs/` explains current architecture, contracts, decisions, safety, and
-development workflows. It does not store task logs or generated reports.
+`docs/` 解释当前架构、contract、decision、安全和开发流程，不保存 task log 或
+生成 report。第一方维护性 Markdown 的语言规则见
+`docs/development/documentation-language.md`。
 
-`specs/` owns confirmed product requirements and machine-readable invariants.
-Code may not reinterpret a normative schema in a local README. Change the
-owning spec and dependent code together.
+`specs/` 保存已确认产品需求和机器可读 invariant。代码不得在局部 README 中重新
+解释 normative schema；所属 spec 和依赖代码必须一起修改。
 
-Imported confirmation documents record provenance under
-`docs/provenance/imports.yaml`. Legacy application source, real data, and
-uncommitted external files are not imported.
+从旧环境导入的确认文档必须记录在 `docs/provenance/imports.yaml`。Legacy source、
+真实数据和外部未提交文件不得导入。
 
-## Generated And Local State
+## 生成和本地状态
 
-Local state belongs under:
+本地状态统一放在：
 
 ```text
 .hermit/
@@ -121,37 +112,34 @@ Local state belongs under:
 `-- artifacts/
 ```
 
-Package output stays in owner-declared `dist/`, `lib/`, or Rust `target/`
-directories and is ignored unless a spec explicitly declares generated source
-as authoritative.
+Package output 放在 owner 声明的 `dist/`、`lib/` 或 Rust `target/` 并默认忽略；只有
+spec 明确声明为 source-of-record 的 generated source 才能提交。
 
-Synthetic fixtures stay with their owner. Sanitized fixtures require a
-provenance record and field-level description. Browser profiles, cookies,
-credentials, real Session content, and real user files never enter fixtures.
+Synthetic fixture 留在所属 owner。Sanitized fixture 必须有 provenance 和字段说明。
+Browser profile、cookie、credential、真实 Session content 和真实用户文件禁止进入。
 
-## Scoped Agent Policy
+## Scoped Agent 规则
 
-Create scoped `AGENTS.md` only where behavior differs materially from the root:
+只有以下目录的执行行为确实不同，需要 scoped `AGENTS.md`：
 
-- `apps/desktop-vnext/`
-- `packages/`
-- `plugins/`
-- `native/`
-- `migration/`
-- `specs/`
-- `.github/`
+- `apps/desktop-vnext/`；
+- `packages/`；
+- `plugins/`；
+- `native/`；
+- `migration/`；
+- `specs/`；
+- `.github/`。
 
-Do not add deeper scoped files unless the subtree has a real additional rule.
-Scoped files supplement root safety rules and do not duplicate them.
+更深目录只有出现真实新增规则时才增加 scoped 文件。Scoped 文件只补充根规则，不
+复制根安全边界。
 
-## Changing The Layout
+## 修改布局
 
-1. Identify the owner, layer, dependency direction, and lifecycle.
-2. Update this document first.
-3. Add or update a scoped `AGENTS.md` only when execution behavior changes.
-4. Create files and directories in the same reviewed change.
-5. Update ownership/invariant checks and maintained links.
-6. Verify no nested repository, out-of-root link, Secret, or generated state was
-   introduced.
+1. 明确 owner、layer、dependency direction 和 lifecycle；
+2. 先更新本文；
+3. 只有执行行为变化时才增加/修改 scoped `AGENTS.md`；
+4. 在同一个 reviewed change 中创建文件和目录；
+5. 同步 ownership/invariant gate 和维护链接；
+6. 验证没有 nested repository、out-of-root link、Secret 或生成状态。
 
-Until automated layout gates exist, reviewers verify this checklist manually.
+自动布局门禁建立前，由 reviewer 手工验证上述清单。

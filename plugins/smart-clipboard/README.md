@@ -1,7 +1,6 @@
-# Smart Clipboard Product Plugin
+# 智能剪贴板插件（Smart Clipboard Product Plugin）
 
-Owner: Clipboard Product.
+负责人：Clipboard Product。
 
-Planned complete workflow: opt-in capture, local history/search, privacy
-markers, pin/copy/paste, one-entry DSH authorization, retention, Trash, and
-export. No implementation is present yet.
+计划中的完整闭环包括 opt-in capture、本地 history/search、privacy marker、pin/
+copy/paste、单条 DSH authorization、retention、Trash 和 export。目前没有实现代码。

@@ -1,7 +1,6 @@
-# Organizer Product Plugin
+# 个人事务插件（Organizer Product Plugin）
 
-Owner: Organizer Product.
+负责人：Organizer Product。
 
-Planned complete workflow: Inbox capture, Note/Todo/Event management, Today,
-Reminder, local search, Trash, import/export, and DSH Resource/Tool integration.
-No implementation is present yet.
+计划中的完整闭环包括 Inbox capture、Note/Todo/Event 管理、Today、Reminder、
+本地搜索、Trash、import/export 和 DSH Resource/Tool integration。目前没有实现代码。

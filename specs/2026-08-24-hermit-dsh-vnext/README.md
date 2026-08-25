@@ -1,14 +1,12 @@
-# Hermit DSH vNext Specification Set
+# Hermit DSH vNext 规格集
 
-Status: confirmed product requirements plus PR0/start-readiness tracking.
+状态：产品核心需求已确认，PR0/start-readiness 持续跟踪中。
 
-## Documents
+## 文档
 
-- `core-requirements.md`: authoritative product/plugin/UI requirements and
-  release gates.
-- `start-readiness.md`: repository strategy, bootstrap blockers, target tree,
-  first Core-only vertical slice, and Day-1 CI requirements.
+- `core-requirements.md`：权威产品、插件、UI 需求和 release gate；
+- `start-readiness.md`：仓库策略、bootstrap blocker、目标结构、首个 Core-only
+  vertical slice 和 Day-1 CI 要求。
 
-These files were imported from explicitly approved confirmation documents in
-the legacy workspace and then updated only for the confirmed vNext repository
-identity. Provenance is recorded in `docs/provenance/imports.yaml`.
+这两份文件来自用户明确批准的旧工作区确认文档，只根据已确认的新仓 identity
+更新。Provenance 记录在 `docs/provenance/imports.yaml`。

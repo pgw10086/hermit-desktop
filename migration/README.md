@@ -1,7 +1,6 @@
-# Legacy Migration Program
+# Legacy 迁移程序
 
-Owner: Migration Program.
+负责人：Migration Program。
 
-This area will contain source-identity locks, synthetic/sanitized fixtures,
-rehearsal tooling, mapping specifications, goldens, and cutover evidence. It
-does not contain legacy Go source or real user data.
+本目录将保存 source-identity lock、synthetic/sanitized fixture、rehearsal tooling、
+mapping spec、golden 和 cutover evidence，不保存旧 Go source 或真实用户数据。

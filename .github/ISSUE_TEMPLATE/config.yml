@@ -1,5 +1,5 @@
 blank_issues_enabled: true
 contact_links:
-  - name: Security report
+  - name: 私下报告安全问题
     url: https://github.com/pgw10086/hermit-vnext/security
-    about: Report sensitive security issues privately.
+    about: 包含敏感信息的安全问题请通过私有渠道报告。

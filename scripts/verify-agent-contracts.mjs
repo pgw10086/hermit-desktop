@@ -14,6 +14,7 @@ const requiredFiles = [
   "docs/contracts/dsh-integration.md",
   "docs/contracts/product-plugin-security.md",
   "docs/contracts/runtime-agent.md",
+  "docs/development/documentation-language.md",
   "docs/development/workspace-safety.md",
 ];
 
@@ -24,13 +25,14 @@ const allowedTopLevel = new Set([
   ".github",
   ".gitignore",
   ".hermit",
+  ".idea",
+  ".vscode",
   "AGENTS.md",
   "CLAUDE.md",
   "CONTRIBUTING.md",
   "LICENSE",
   "NOTICE",
   "README.md",
-  "README.zh-CN.md",
   "SECURITY.md",
   "apps",
   "docs",
@@ -55,6 +57,8 @@ const allowedScopedAgents = new Set([
 const ignoredDirectories = new Set([
   ".git",
   ".hermit",
+  ".idea",
+  ".vscode",
   "node_modules",
   "target",
 ]);
@@ -69,6 +73,20 @@ function fail(message) {
 
 function wordCount(text) {
   return text.trim().split(/\s+/u).filter(Boolean).length;
+}
+
+function maintainedMarkdownProse(text) {
+  return text
+    .replace(/<!-- doc-lang: allow-en-start;[\s\S]*?<!-- doc-lang: allow-en-end -->/gu, "")
+    .replace(/```[\s\S]*?```/gu, "")
+    .replace(/`[^`]*`/gu, "")
+    .replace(/\]\((?:https?:\/\/|mailto:)[^)]+\)/gu, "]")
+    .replace(/<!--(?!\s*translation-of:)[\s\S]*?-->/gu, "");
+}
+
+function hasChineseProse(text) {
+  const matches = maintainedMarkdownProse(text).match(/[\u3400-\u9fff]/gu) ?? [];
+  return matches.length >= 20;
 }
 
 function walk(directory, visitor) {
@@ -113,6 +131,8 @@ const secretNames = new Set([
   "local state",
 ]);
 
+const markdownLanguageAllowlist = new Set(["CLAUDE.md"]);
+
 walk(root, (fullPath, entry) => {
   const rel = relative(fullPath);
   const lowerName = entry.name.toLowerCase();
@@ -129,6 +149,26 @@ walk(root, (fullPath, entry) => {
     if (!allowedScopedAgents.has(rel)) fail(`unapproved scoped AGENTS.md: ${rel}`);
     const count = wordCount(fs.readFileSync(fullPath, "utf8"));
     if (count > 350) fail(`scoped AGENTS.md exceeds 350 words: ${rel} (${count})`);
+  }
+
+  if (entry.isFile() && path.extname(entry.name).toLowerCase() === ".md") {
+    const text = fs.readFileSync(fullPath, "utf8");
+    const fenceCount = (text.match(/^```/gmu) ?? []).length;
+    if (fenceCount % 2 !== 0) fail(`Markdown code fence 未成对闭合: ${rel}`);
+
+    if (!markdownLanguageAllowlist.has(rel) && !hasChineseProse(text)) {
+      fail(`第一方维护性 Markdown 缺少中文正文: ${rel}`);
+    }
+
+    if (/\.(?:en|zh|zh-CN)\.md$/u.test(entry.name)) {
+      const marker = text.match(/<!--\s*translation-of:\s*([^;]+);\s*canonical-language:\s*zh-CN\s*-->/u);
+      if (!marker) {
+        fail(`派生翻译缺少 translation-of 声明: ${rel}`);
+      } else {
+        const canonical = path.resolve(path.dirname(fullPath), marker[1].trim());
+        if (!fs.existsSync(canonical)) fail(`派生翻译的 canonical 不存在: ${rel}`);
+      }
+    }
   }
 
   if (entry.isFile() && (entry.name === "go.mod" || entry.name === "go.sum" || path.extname(entry.name) === ".go")) {
@@ -149,6 +189,13 @@ walk(root, (fullPath, entry) => {
     }
   }
 });
+
+if (
+  fs.existsSync(path.join(root, "README.md")) &&
+  fs.existsSync(path.join(root, "README.zh-CN.md"))
+) {
+  fail("中文 README.md 已是 canonical，不得并列维护 README.zh-CN.md");
+}
 
 if (failures.length > 0) {
   console.error("Agent contract verification failed:");

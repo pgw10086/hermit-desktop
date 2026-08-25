@@ -1,11 +1,10 @@
-# First-Party Product Plugins
+# 第一方产品插件
 
-This monorepo initially owns three independently packaged plugins:
+本 monorepo 初期拥有三个可独立打包的插件：
 
-- `organizer/`
-- `file-workspace/`
-- `smart-clipboard/`
+- `organizer/`；
+- `file-workspace/`；
+- `smart-clipboard/`。
 
-Installable artifact boundaries do not require separate Git repositories.
-Plugin directories contain product code only after the shared manifest,
-capability, and runtime contracts are reviewed.
+可安装 artifact boundary 不要求独立 Git 仓库。Shared manifest、capability 和
+runtime contract 经过 review 后，插件目录才进入产品实现。

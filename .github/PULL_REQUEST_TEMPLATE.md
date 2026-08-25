@@ -1,20 +1,19 @@
-## What Changed
+## 修改内容
 
-Describe the owned behavior or contract changed by this pull request.
+说明本 PR 修改了哪个 owner 的行为或 contract。
 
-## Authority And Boundaries
+## 权威和边界
 
-- [ ] I read the owning context referenced by `AGENTS.md`.
-- [ ] Package/directory ownership and dependency direction remain valid.
-- [ ] No real user data, Secret, browser state, or legacy uncommitted source was added.
-- [ ] Public contracts/specs changed before dependent implementation, when applicable.
+- [ ] 已读取 `AGENTS.md` 指向的所属 canonical context；
+- [ ] Package/directory ownership 和 dependency direction 仍然有效；
+- [ ] 未加入真实用户数据、Secret、browser state 或 legacy 未提交源码；
+- [ ] 如涉及 public contract/spec，已先修改 contract/spec 再修改依赖实现。
 
-## Verification
+## 验证
 
-List the commands and denial-path tests run.
+列出已运行的 command 和 denial-path test。
 
-## External Effects
+## 外部副作用
 
-State whether this PR changes publishing, signing, GitHub settings, migration,
-or production authority. Writing workflow/config files does not authorize
-executing those effects.
+说明本 PR 是否涉及 publish、sign、GitHub setting、migration 或 production authority。
+编写 workflow/config 文件不代表已获得执行这些副作用的授权。
