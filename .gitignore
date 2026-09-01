@@ -10,6 +10,9 @@ lib/
 # Rust
 target/
 
+# Native build output
+native/macos-clipboard-bridge/build/
+
 # Secrets and local configuration
 .env
 .env.*

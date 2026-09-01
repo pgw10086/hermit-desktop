@@ -1,0 +1,3 @@
+- insert:
+    - id: personal-organizer
+      name: '@hermit/organizer'

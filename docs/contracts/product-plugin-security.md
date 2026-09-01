@@ -39,7 +39,8 @@ Session/agent、action、resource、constraint 和 generation 签发短生命周
 handle。
 
 产品插件只能表达 intent。它不得直接获得 filesystem、network、process、
-environment、credential、model/`ctx.llm`、Tauri、native/FFI 或其他插件的数据
+environment、credential、model/`ctx.llm`、Electron、preload、native/FFI 或其他
+插件的数据
 authority。纯计算 API 不应仅因属于 Node built-in 就被当成特权能力。
 
 隔离 Runner 属于 defense in depth；普通 Cordis composition 和 DSH filesystem
@@ -47,14 +48,19 @@ sandbox vocabulary 不能证明 network/process/credential 已隔离。
 
 ## 依赖和生命周期
 
-- 唯一 Hermit 硬运行时依赖是 Core 公共 contract；
-- 跨插件协作使用 Core event/service/capability，不使用 value import、shared table
-  或 foreign key；
-- Client code 不直接 invoke Tauri/native；Host code 经过 Broker/provider contract；
+- Product Plugin 默认只有 Core 公共 contract 这一项 Hermit 硬运行时依赖；
+- 跨插件协作使用 Core
+  event/service/capability，不使用 value import、shared table 或 foreign key；
+- Client code 不直接调用 Electron、`ipcRenderer`、Node 或私有 preload；若某个 Core 能力必须
+  经过 renderer 承载，必须使用该插件专属、最小化、sender 校验的公开 facade（例如
+  Smart Clipboard 的 `hermitSmartClipboard`），并为 facade 单独做 schema 与生命周期测试；
+  Host code 经过 Broker/provider contract；
 - 每个 registration 和后台资源都属于 activation generation，并可确定性 dispose；
 - 卸载默认删除 code/derived state、保留 Canonical data，历史 Session 由 Core 渲染。
 
-每个插件都必须能只与 Core 一起完成 build、test 和 clean boot。未安装或卸载任意一个
-插件时，Core 和其他插件仍能独立运行；插件不能把自身启动条件藏在另一个插件中。
+每个插件都必须能只与 Core 和自己声明的必需依赖闭包一起完成 build、test 和 clean
+boot。必需依赖是 manifest 与安装确认中的显式事实，不能藏在运行时探测中。File
+Workspace 缺少兼容 Product Surface capability 时必须拒绝激活；它失效不能阻止 Core 和
+其他插件运行。
 
 安全边界必须使用恶意 fixture 做 negative test，不能只依赖 manifest/static check。

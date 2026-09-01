@@ -1,9 +1,10 @@
 # Hermit DSH vNext 核心需求确认稿
 
-状态：核心需求、UI 组件路线和 Private incubation 启动策略已确认；
-`pgw10086/hermit-vnext` 文档/目录 bootstrap 进行中
-更新时间：2026-08-25
-当前确认模块：全部完成
+状态：核心产品边界和 M1 底座路线已确认；Product Plugin 详细设计、UI 资格验证和
+最新变更后的跨模块复核仍在进行
+更新时间：2026-08-27
+当前审查结论：上一轮终审曾为 `PASS`，但已被 2026-08-27 的产品变更取代；当前不能
+标记为终审 `PASS`
 
 > 本文档是 vNext 产品和后续详细设计的唯一主需求。旧版 `spec.md`、原型和
 > 模块复用文档只作为历史输入；发生冲突时，以本文档为准。
@@ -76,7 +77,7 @@ Hermit Product Plugin 不得：
 已确认：DSH 主 Conversation 输入框使用一个统一的 `@` 入口选择业务数据。
 
 - DSH Core 提供 Files 和历史 Sessions；
-- Personal Organizer 安装后贡献未整理 Inbox capture、Note/Todo/Event 等候选；
+- Personal Organizer 安装后贡献 Note/Todo/Event 等候选；
 - 后续 Product Plugin 可以按同一契约贡献自己的候选；
 - 输入 `@` 后按当前已安装 Provider 分组显示候选；
 - Core 只认识 Provider、稳定引用、显示名称和通用状态，不理解 Todo、File
@@ -92,30 +93,41 @@ Hermit Product Plugin 不得：
 删除引用、丢弃草稿或切换 Session 都不会留下授权。
 
 统一的是选择体验，不是把不同数据强行变成同一种读取方式。File Workspace
-候选只绑定稳定 FileRecord；纯文本可映射到受控 path，PDF/Office 则
-生成带 locator 的安全 UTF-8 projection，再由模型显式调用官方 `read`。Organizer
-业务引用由 Organizer Provider 按自己的安全投影规则解析。
+候选只绑定稳定 FileRecord；打开 `@` 菜单和搜索候选时不读取正文。用户明确选中
+File Workspace 文件时，Provider 从最后一次成功保存的 revision 生成一次安全 UTF-8
+projection，并把其身份放入尚未发送的原子引用；编辑器未保存内容不进入 projection，
+也不为此触发或等待保存。文件从未成功保存或 projection 无法安全生成时不插入引用。
+这一步只是准备待发送材料，不签发模型读取权，也不产生 DSH Tool Result；Organizer
+业务引用仍由 Organizer Provider 按自己的安全投影规则解析。
 
 #### 4.1.2 Live Reference 策略
 
-已确认选择简单的 Live Reference 方向：Session 不在资源被选中时额外保存一份
-业务内容快照，只保存 Provider 和稳定引用。
+结构化业务资源默认使用简单的 Live Reference：Session 不在资源被选中时额外保存
+一份业务内容快照，只保存 Provider 和稳定引用。File Workspace 是明确例外：为了让用户
+清楚控制“这次引用的是哪次已保存内容”，选择文件时生成一次临时 projection，后续发送
+和读取都绑定这份 projection，不在发送时或模型读取时重新读取最新文件。来源 revision
+用于追溯，不提供用户可见的“锁定 revision”功能。
 
 `@` 同时代表本轮读取授权：
 
-- 当前用户消息中新出现的 `@Ref` 可以读取数据源当前版本；
+- 当前用户消息中新出现的普通 `@Ref` 可以读取数据源当前版本；File Workspace `@文件`
+  只能读取用户选择时已经捕获的 projection；
 - 实际读取结果以 DSH Tool Result 形式进入 Session 历史；
 - 以后继续旧对话时只使用旧 Tool Result，不允许模型根据历史 `@Ref` 自动读取
   数据源最新版本；
 - 用户必须在新一轮再次 `@` 同一资源，才建立新的读取授权和新的 Tool Result；
 - Provider 被卸载后，旧 Tool Result 仍可查看，新读取返回 Provider unavailable。
 
-已确认：本轮出现新 `@Ref` 后，Core 不自动预读。模型在确实需要内容时必须
-显式调用 DSH Tool：
+已确认：本轮出现新 `@Ref` 后，Core 不自动把正文送给模型。File Workspace 在用户明确
+选择时准备 projection 是 Provider 的用户触发动作，不等于模型已经读取。模型在确实需要
+内容时仍必须显式调用 DSH Tool：
 
 - 没有成功 Tool Result，模型不能声称已经看过资源正文，也不能根据标题猜测；
-- Tool 执行时按当前权限读取 Provider 提供的 AI-safe projection；
-- 普通选择、取消输入或未实际依赖该资源时，不读取业务正文；
+- Tool 执行时按当前权限读取 Provider 提供的 AI-safe projection；File Workspace 读取
+  选择时捕获的 projection，不自动换成最新 revision；
+- 普通结构化资源在选择、取消输入或未实际依赖时不读取业务正文；File Workspace 只在
+  用户明确选择文件时读取最后成功 revision 以准备 pending projection，该正文此时不进入
+  模型或 Tool Result；
 - 正文只有在对应 Tool Result 成功后才能进入模型上下文；没有成功结果时，系统
   提示词和结果状态都禁止声称已经读取。Core 不承诺判断模型内部究竟“依赖”了
   哪条资料；
@@ -144,12 +156,14 @@ Provider 自己负责：
 - 业务访问审计和更严格的内部超时。
 
 `resource_read` 只能读取，不提供 search、update、delete、complete、relation 或
-跨 Provider fallback。搜索和写入仍由 Product Plugin 的业务 Tool 承担。
+跨 Provider fallback。搜索和写入仍走各模块已经确认的独立入口；File Workspace 正文和
+跨插件搜索由 Core Federated Search 发起，不因此塞进 `resource_read`。
 
 File 不强行接入 `resource_read`，继续使用 DSH 官方有界 UTF-8 `read` 的 path、
 offset 和 limit 语义。文件 containment、只读 AI filesystem scope 和可选的
 read-before-write observation policy 由 Hermit Core adapter 显式提供，不能把它们
-误写成 `read` Tool 自带的安全保证。
+误写成 `read` Tool 自带的安全保证。对 File Workspace 文件，受控 path 指向用户选择时
+生成的 projection，不允许 `read` 绕过它改读 external 原路径或最新 ManagedBlob。
 
 #### 4.1.4 Reference、Provider 和本轮授权
 
@@ -161,8 +175,9 @@ read-before-write observation policy 由 Hermit Core adapter 显式提供，不�
 ```
 
 - Ref 是门牌号，不是门票；不能保存 `authorized=true`；
-- `referenceProtocolVersion` 是 envelope 协议版本，不是业务对象 revision；对象的
-  observed revision 只在实际成功读取的 Tool Result 中记录；
+- `referenceProtocolVersion` 是 envelope 协议版本，不是业务对象 revision；File
+  Workspace pending selection 可以在内部绑定 projection 的来源 revision，但持久 Ref
+  不因此变成 revision ID，实际 observed revision 仍只在成功读取的 Tool Result 中记录；
 - 只有当前真实用户消息中新出现的 `@` 才签发只活一个 turn 的读取授权；
 - grant 中保存 session、turn、ref、expected/observed version 约束、expiry 和读取
   次数等运行信息；这些都不能编码进持久 Ref；
@@ -233,16 +248,18 @@ read-before-write observation policy 由 Hermit Core adapter 显式提供，不�
 Provider audit 保留业务对象访问事实并按插件数据策略清理。删除任何一本账都不能
 静默声称另外两本也已经删除。
 
-### 4.2 插件单独安装也必须有完整价值
+### 4.2 插件及其声明的依赖闭包必须有完整价值
 
-每个 Product Plugin 单独安装在 Core 上，都必须覆盖：
+每个 Product Plugin 安装在 Core 和自己声明的必需依赖闭包上，都必须覆盖：
 
 ```text
 数据进入 -> 管理 -> AI 操作 -> 持久化 -> 搜索/历史 -> 数据退出
 ```
 
-可选插件之间不得形成硬依赖。移除一个插件，只能让它自己的页面、Tools、
-后台任务和数据入口消失，不能导致 DSH 或其他插件无法启动。
+默认不允许可选业务插件之间形成硬依赖。File Workspace 只依赖 Core 与已经资格通过的
+Hermit Product Surface 公共契约，不再拥有业务插件依赖例外。Product Surface 契约缺失或
+不兼容时 File Workspace 不激活，但不能导致 DSH、Core 或其他插件无法启动，也不能删除
+File Workspace 数据。
 
 ### 4.3 插件消失等于能力收回，不等于系统故障
 
@@ -264,15 +281,14 @@ Hermit DSH vNext
 |   |-- 完整 DSH AI、Conversation 和 Session
 |   |-- Models、Tools、Approval、MCP、Skills、Presets、Settings
 |   |-- Package Gate、插件生命周期和权限边界
-|   |-- Unified Quick Panel
 |   |-- Tray / Status Host
-|   |-- Shortcut Registry
 |   |-- Typed Command Bus
 |   |-- Federated Search Host
 |   `-- Embedding Gateway（P0 可暂不开启）
 |-- Personal Organizer（首发业务插件）
 |-- File Workspace（首发业务插件）
-`-- Smart Clipboard（后续业务插件）
+|-- Smart Clipboard（后续业务插件）
+`-- Quick Panel（独立模块，待单独设计，不属于当前 M1）
 ```
 
 Core 只拥有宿主、路由、安全和恢复能力，不拥有 WorkItem、Reminder、
@@ -292,7 +308,7 @@ FileRecord 或 Clipboard History 等业务数据。
 - Provider、Model、Tools、Approval、MCP、Skills、Presets；
 - 统一 AI 入口和 Session 历史；
 - 插件安装、禁用、升级、卸载和失败回滚；
-- 统一 Quick Panel、状态栏/托盘和快捷键；
+- 状态栏/托盘和桌面生命周期；
 - 联邦搜索入口；
 - 最低限度的诊断、Safe Mode、更新和恢复。
 
@@ -301,7 +317,7 @@ FileRecord 或 Clipboard History 等业务数据。
 当前方向和模块 4 完整业务闭环：已确认。
 
 核心价值：安装后就是一套本地个人事务工具。没有 AI、File Workspace、网络
-或系统通知权限时，用户仍能记录、整理、完成、提醒、搜索和导出。
+或系统通知权限时，用户仍能记录、管理、完成、提醒、搜索和导出。
 
 #### 6.2.1 用户只需理解三个内容和一个时间能力
 
@@ -316,64 +332,145 @@ FileRecord 或 Clipboard History 等业务数据。
 - Reminder 不是第四份重复正文，而是挂在内容上的时间规则；
 - “新建提醒”默认创建一个最小 Note 并加提醒。用户明确勾选“这是一件要完成
   的事”时才创建 Todo；
-- Inbox 也不是第四类内容，只表示“已经存下，但还没决定是什么”。
+- 不保留 Inbox、无类型临时记录或待整理队列；无法明确判断为 Todo 或 Event 的
+  内容直接成为 Note。
 
-统一记录具有稳定 ID、可空类型、`triage_state`、标题、正文、标签、revision、
-创建/修改/删除时间、捕获来源、捕获原文和可选外部引用。`kind` 只能是
-Note/Todo/Event 或空；`triage_state` 只能是 inbox/organized。收件箱记录的 kind
-为空，整理后在同一事务中设置 kind 并把 triage_state 改为 organized。
+统一记录具有稳定 ID、必填类型、标题、正文、标签、revision、创建/修改/删除时间、
+来源、原始输入、类型变更历史和可选外部引用。`kind` 只能是 Note/Todo/Event。
 
 | 类型 | 主要字段 | 业务状态 |
 |---|---|---|
 | Note | 标题、正文、标签、置顶 | active / archived |
 | Todo | 详情、清单、开始/截止、优先级、标签 | planned / completed / canceled |
-| Event | 详情、开始/结束/全天、地点、标签 | scheduled / canceled |
+| Event | 详情、时间形态、日期或开始/可选结束、全天范围、地点、标签 | scheduled / canceled |
 
 Trash 不混进业务状态，只通过 `deleted_at` 表示。因此 planned Todo 进垃圾箱再
 恢复仍是 planned，canceled Event 恢复后仍是 canceled。已经过去的 Event 仍
 是 scheduled，只在界面派生显示“已过去”，不自动假装已完成。
 
 日期必须区分“只有日期”和“具体时刻”。“8 月 28 日截止”不能偷偷变成 UTC
-零点。定时日程保存 UTC 时刻和 IANA 时区；全天日程保存本地开始日期和不包含
-最后一天的结束日期。
+零点。Event 的 Canonical 时间语义显式区分 date-only、all-day 和 timed 三种互斥形态，
+不能靠午夜时刻、空字段组合或展示规则相互冒充；具体存储字段名留到数据设计阶段确定。
 
-#### 6.2.2 捕获和收件箱
+Todo 的 start/due 角色必须由用户明确表达：“开始/从……开始”映射 start，“截止/最晚/
+……前完成或提交”映射 due；裸日期不能默认当作 due 或 start。日期角色明确后，今天、
+明天和可唯一解析的星期表达按当前 locale 与 IANA 时区解析；无钟点保存 date-only，有明确
+钟点才保存时刻。“X 日前”作为排他日期边界，在只有日期精度时落到前一个本地日历日期。
 
-插件页面允许用户明确选择 Note、Todo 或 Event 手工创建。Quick Panel 的
-“存到收件箱”只保存原文，不用本地关键词规则假装 AI 分类。
+Todo 内容足以创建而日期角色、日期值或关系不完整时，先创建 Todo；只持久化角色明确、
+值唯一且彼此一致的时间事实并反馈部分成功。`start > due` 时冲突中的两者都不写；不保存
+pending date。后续补充针对同一 item ID 使用 expected revision 和独立幂等 update。Today
+只根据 durable start/due 投影，不从原始输入中的未确定日期文字派生状态。
+
+Todo 相对 Reminder 显式区分 start-relative 和 due-relative。用户明确说“开始前/截止前”
+时使用对应字段；普通“提前 X”只在 start/due 恰好存在一个时使用唯一锚点，同时存在两个
+时不建立默认优先级并追问。date-only 锚点不得提供隐含钟点：日历日偏移还需用户明确
+Reminder 钟点，分钟/小时偏移必须有具体时刻锚点。
+
+相对 Rule 保留锚点关系并随合法字段修改重算。Todo 锚点、受影响 Rule 和未来 Occurrence
+原子提交；删除锚点、降低时间精度导致 Rule 不可调度或重算到过去时，不得自动改锚、固化
+旧时刻、删除、补发或留下半有效 Rule，用户处理相关 Reminder 前不提交该锚点修改。
+absolute Reminder 不随 start/due 变化。
+
+一次性相对 Reminder 按 nominal Occurrence 去重，不在首次 fired/dismissed 后永久终止
+Rule 的锚点关系。新未来 nominal time 可以为同一 Rule 产生新 Occurrence；同一 nominal
+time 已消费后不得因改期往返、revision 或重启再次投递。旧 fired/dismissed 历史不可改写；
+旧 pending snooze 因事项改期停止未来投递但保留历史。absolute one-time 不因事项改期
+重新产生 Occurrence。
+
+用户显式移除 Reminder 时，目标 Rule 进入不可恢复 removed 终态，未来 Occurrence 和
+pending snooze 停止投递，既有历史保持可解释；当前不提供可恢复的 Rule pause。Removed
+Rule 不因 item 改期、生命周期恢复或重启重新调度。重新创建相同 Reminder 使用全新 Rule
+ID，旧 Rule 的去重历史不抑制新意图。Item 永久删除时才清除所属 Rule 与 Occurrence 历史；
+原生 JSON round-trip 在 item 仍存在时保留 removed 终态且不得重新 enable。
+
+同一 item 的正常 create/update 不得形成 Canonical 调度语义完全相同的 active Reminder
+Rule。Exact equality 基于 Rule 类型、锚点、offset、明确钟点、absolute 时间、recurrence、
+timezone 等调度事实，不使用文本或模型相似度。重复请求是 no-op 并返回现有 Rule，不增加
+revision、Occurrence 或通知；不同入口并发创建必须原子收敛为一条。Removed Rule 不参与；
+原生 JSON 无损恢复保留 legacy 数据，普通外部导入遵守当前唯一性并报告重复。
+
+同一 item 的不同 Canonical Rule 恰好得到同一实际触发时刻时，不合并 Rule 或 Occurrence，
+只在展示和投递层按 item、exact effective fire instant、channel 聚合；不同 item 或不同
+时刻不使用模糊窗口合并。聚合项必须说明多个提醒原因，同一系统通知渠道只投递一次；每个
+Occurrence 仍独立保留状态、历史和投递结果。聚合 snooze/dismiss 原子处理当时仍可操作的
+全部成员，打开只打开关联 item，通知失败不删除 Canonical Reminder。
+
+同一 repeating Rule 的 snoozed Occurrence 不得越过下一次正常 nominal Occurrence：target
+严格早于下一实际 nominal instant 时保留，等于或晚于时停止旧实例未来投递并记录“由下一
+次正常提醒接替”，但不删除、dismiss、合并或改写历史。该 cutoff 同时约束恢复补发；应用
+在 cutoff 到达后恢复时旧 snooze 不补发，下一正常实例和 Rule recurrence 不受影响。
+
+- date-only 只保存本地日历日期，表示“属于这一天，但时间未指定”；没有开始/结束时刻，
+  不是 all-day，日期也不因设备切换时区而移动；
+- all-day 只在用户明确表达全天时间范围或导入来源明确标记 all-day 时创建，保存本地开始
+  日期和不包含最后一天的结束日期；不得根据“休假、出差、团建、节假日、培训”等标题或
+  内容语义推断全天；
+- timed 的开始时间必填，结束时间可选；结束时间存在时必须晚于开始时间，不存在时只表示
+  “用户未指定结束时间”，不能同时表示解析失败、尚未加载、全天或零时长。timed 保存 UTC
+  时刻和 IANA 时区。
+
+用户明确要求创建 Event 并提供日期和开始时间、但没有结束时间时，直接创建 start-only
+scheduled Event：不追问、不套用默认时长、不写成 `start=end`，也不改存 Note。它正常
+进入近期安排、Items 和 Calendar；Calendar 为可点击性使用的最小视觉尺寸只是展示事实，
+不能写回 Canonical 数据。没有已知结束时间时，冲突判断不得擅自声明后续时间被占用。
+
+用户明确要求创建 Event 并只提供日期、没有具体时间且没有表达全天时，直接创建 date-only
+scheduled Event：不追问、不假设全天或午夜，也不改存 Note。它在 Calendar 对应日期和
+Today 的“时间未指定”语义位置显示，不进入 timed 时间轴、不参与具体时间段冲突判断。
+以后补充具体时间或明确改为全天时，在同一 item ID 上原子改变时间形态并递增 revision。
+只修改标题或详情不能改变时间形态。
+
+#### 6.2.2 创建和类型纠正
+
+插件页面允许用户明确选择 Note、Todo 或 Event 手工创建。DSH 中只提供一个
+Personal Organizer Skill：明确表达“要完成一件事”时创建 Todo，明确表达“某段时间
+有安排”时创建 Event，其余内容直接创建 Note。Skill 通过 Organizer Tool 写入同一套
+Canonical 数据，不用本地关键词规则或第二个 Agent 旁路分类。
+
+active Note 可以由用户在右侧抽屉明确改为 Todo 或 Event。修改不复制、不换 ID、
+不删除旧记录，保留正文、标签、Reminder、来源、原始输入和类型变更历史，并要求用户
+补齐目标类型的必要字段，因此搜索、历史和已有 `@Ref` 不会断。Skill 不在后台静默改变
+已保存事项的类型；P0 不提供 Todo 与 Event 之间任意互转，避免含糊映射字段。
+
+archived Note 必须先由用户显式恢复为 active，再单独执行 Note → Todo/Event；类型转换
+不得隐式解除归档或合并成“恢复并转换”。恢复成功后，后续转换取消或失败不自动重新归档。
+恢复和转换分别使用 expected revision 与幂等保护；恢复只恢复未来有效 Reminder，不补
+归档期间错过触发。Note 专属生命周期事实只保留在历史中，不污染目标 kind 的业务状态。
+
+Note → Event 只允许从 active Note 发起；archived Note 必须先显式恢复，不能在类型转换中
+隐式解除归档。标题/正文映射为 Event 标题/详情，标签、来源、原始输入和已有 absolute
+Reminder 保留，置顶只记入类型变更历史。用户必须明确选择 date-only/all-day/timed 并
+提供目标形态的最低必要时间事实；UI 手工转换不得从正文推断日期、全天或持续时长，也不
+重新解释已有 Reminder。转换保持同一 ID，并将 kind、时间、scheduled 状态和历史原子提交。
 
 ```text
-Quick Panel 输入“周五跟老王吃饭，可能晚上七点”
--> 创建 item #A17，kind=null，triage_state=inbox，原文完整保留
--> 用户选择“整理为日程”
--> 仍是 item #A17，设置 kind=event、triage_state=organized 并补充时间
--> 原始捕获文本和 inbox -> event 历史仍保留
-```
-
-Inbox 转为 Note/Todo/Event 时不复制、不换 ID、不删除旧记录，因此历史、搜索
-和已存在的 `@Ref` 不会断。P0 不提供已整理 Todo 与 Event 之间任意互转，避免
-含糊映射字段。
-
-收件箱原型：
-
-```text
-| 收件箱 4                              + 手工捕获   |
-|----------------------------------------------------|
-| “周五跟老王吃饭，可能晚上七点”                    |
-| Quick Panel · 12:31                                |
-| [整理为笔记] [整理为待办] [整理为日程]            |
-|                                                    |
-| 原文永远保留。这里不自动猜类型。                  |
+Conversation 输入“下午那个记一下”
+-> 无法明确判断完成语义或时间占用，创建 Note #A17
+-> 用户在右侧抽屉选择“改为日程”
+-> 补充开始时间；结束时间可以保持未指定
+-> 仍是 item #A17，正文、提醒和类型变更历史保留
 ```
 
 #### 6.2.3 页面和 Today
 
-一级页面为：今天、收件箱、待办、日程、笔记、提醒中心、搜索、垃圾箱。详情和
-编辑复用同一套实体编辑器；导入/导出从插件“数据与存储”设置进入。P0 日历只做
-周视图和列表视图；今天页面已经完成日视图，完整月历放到 P1。
+DSH 只注册一个“个人事项”全局入口，默认打开由近期 Event、全部未完成 Todo 和
+默认收起的最近 Note 组成的精简工作面，不默认进入 Today，也不另建“概览”页。
+Items、Today 和 Calendar 放在同一个查看入口；Reminder Center 在有待处理提醒或
+通知异常时成为状态入口；Trash、导入和导出属于低频入口。详情、新建和编辑在桌面端
+复用同一个单实例右侧抽屉，并保留原列表条件和浏览位置。P0 日历只做周视图和列表
+视图；Today 已承担日视图，完整月历放到 P1。
 
 Today 固定展示四组：逾期待办、今天待办、今天日程、今天提醒。用户可以手工
 排序和固定，但 Today 排序属于单独的视图数据，不能偷偷改写 Todo priority。
+今天的 date-only Event 属于“今天日程”，但稳定显示在“时间未指定”组或等价语义位置，
+不按 00:00 排序，也不假装全天占用。
+
+Today 不提供跨 Todo、Event 和 Reminder 的含糊通用“推迟”。Todo 提供完成、改日期和
+打开，Event 提供改期、取消和打开，Reminder Occurrence 提供稍后提醒、忽略和打开关联
+事项。“改日期/改期”进入统一右侧抽屉，由用户明确编辑 Canonical 时间事实；Todo 和
+Event 不提供一键推到明天。snooze 只修改当前 Occurrence。所有动作 durable success 后
+重新计算 Today 投影，不维护第二套分组状态。
 
 ```text
 | 今天 · 8 月 25 日                    + 新建  搜索 |
@@ -420,6 +517,34 @@ Occurrence，记录 scheduled、fired、snoozed、dismissed、canceled、通知�
 ```
 
 - 系统通知只是投递渠道，权限被拒绝或 API 失败都不能删除 Canonical 提醒；
+- date-only 或 all-day Event 本身不会自动创建 Reminder，也不会默认使用当天 00:00；
+  Reminder 仍必须具有自己明确的提醒时间事实；
+- 一条复合指令中 Event 信息完整但 Reminder 缺少可调度时刻时，先持久化 Event，再反馈
+  “日程已添加，提醒尚未设置”并在同一 Conversation 追问。此时不创建 Reminder Rule、
+  Occurrence 或“待补全提醒”状态，也不使用默认时间；用户未回答时 Event 保留且没有提醒；
+- 用户补充明确时刻后，使用前一次 Tool Result 的稳定 item ID，在独立事务中把 Reminder
+  Rule 附着到原 Event。只有附着成功后才能声称提醒已设置；附着失败不回滚 Event，重试
+  只处理 Reminder 并使用自己的幂等键；Event 创建失败时不得继续创建 Reminder；
+- 对 date-only 或 all-day Event，“提前一天”“当天”“前两天”等只确定相对日历日期、
+  没有具体钟点的表达仍不具有可调度时刻，因此沿用上述部分成功与追问流程。任何 Reminder
+  Rule 持久化时都必须已经解析为明确可调度的时间事实；不得以默认午夜、默认钟点、标题
+  语义、未配置的用户偏好或调度器自行选择来补全用户未表达的时刻；
+- 对具有明确 start 的 timed Event，未限定锚点的精确“提前 X”统一以 Event start 为
+  锚点，interval 和 start-only 规则相同，end 是否存在不改变该语义。能够解析为未来明确
+  时刻时直接持久化 Reminder Rule，不得再次追问等价的绝对钟点；分钟、小时按实际经过
+  时间计算，“一天”按 Event 的 IANA 时区解释为前一个本地日历日期的相同本地钟点；
+- 相对偏移在创建 Rule 时解析出的时刻已经过去或不再属于未来时，不创建 Rule 或
+  Occurrence，不立即触发通知、不自动缩短偏移，也不引入宽限期；Event 已成功时保持
+  Event 并明确反馈提醒未设置；
+- Reminder 保留用户实际表达的语义：明确给出独立时刻的 absolute Reminder 在 Event
+  改期后保持固定；基于 timed Event start 的 start-relative Reminder 保留相对关系并随
+  start 确定性重算，不能只保留首次计算的绝对结果。Event 时间修改、受影响 Rule 重算和
+  未来 Occurrence 更新作为一个 Canonical 原子业务修改提交；
+- timed Event 改为 date-only/all-day 导致相对 Rule 失去 start 锚点，或新 start 使重算
+  结果已经过去时，不提交本次 Event 时间修改，要求用户先删除或重新设置相关 Reminder。
+  不得静默删除、固化旧绝对结果、改成午夜、缩短偏移或立即补发；revision conflict 和
+  Canonical 失败不得部分提交。系统通知重新注册失败作为下游渠道失败独立重试，不回滚
+  已经成功的 Event、Rule 和 Occurrence；
 - 应用关闭后若当前平台不能保证系统级调度，界面必须如实说明，不假装能提醒；
 - 启动、系统睡眠/崩溃恢复时，从数据库重新扫描并按错过提醒规则处理，不依赖旧
   内存 Timer；用户主动停用插件或暂停后台任务已经明确放弃这段时间的提醒，恢复
@@ -452,7 +577,7 @@ Occurrence，记录 scheduled、fired、snoozed、dismissed、canceled、通知�
 
 #### 6.2.5 搜索和 DSH AI
 
-插件本地全文搜索覆盖标题、正文、清单、标签、地点和 Inbox 原文，可按类型、
+插件本地全文搜索覆盖标题、正文、清单、标签、地点和原始输入，可按类型、
 状态、日期和标签筛选；默认不依赖 Embedding。中文/CJK 分词必须用真实语料验证，
 不能假定英文 FTS 配置已经够用。
 
@@ -460,9 +585,26 @@ Occurrence，记录 scheduled、fired、snoozed、dismissed、canceled、通知�
 后打开 Canonical 详情。外部文件引用不可用时显示“当前不可打开”，不影响事项
 阅读、修改、完成、搜索或提醒。
 
+Organizer Local Search 与 Organizer Federated Search Provider 共享同一 Canonical 检索
+语义和索引能力，但承担不同工作：前者在插件内提供业务筛选和连续处理，后者只通过安全
+契约参与跨来源定位。Federated query 不自动变为插件本地查询。点击全局事项结果后进入
+Organizer 真实工作面并打开同一抽屉；关闭抽屉留在 Organizer，用户明确返回时 Core 恢复
+当前瞬时 Search session 的 query、Provider 状态和列表位置，不把这些内容持久化。
+
+有明确 query 时，两个普通搜索入口默认覆盖所有非 Trash Organizer item，包括 archived、
+completed 和 canceled 终态；终态必须在既有安全展示契约内明确标记。Trash 不进入普通
+Local/Federated scope，只在 Trash 管理入口内单独搜索。可恢复 Trash item 可以继续存在于
+插件本地索引，由 query-time scope 隔离；永久删除才清理对应索引和派生搜索数据。
+
+Organizer Search result 的 primary time 使用类型自己的语义并带标签：Note 用 updated_at，
+Todo 用 due > start > updated_at，Event 用原 start/date；终态只改变状态和“原定”语义，不
+用 completed/canceled/archived 时间替换业务身份。默认组内排序以文本相关性为主，当前状态
+和 updated_at 只做 tie-break，不用互不可比的跨类型业务日期排序。date-only/all-day 不得
+伪造成午夜 timestamp。
+
 AI 只能在真实 DSH Conversation 中工作：
 
-- `@` 选择未整理 Inbox capture 或 Note/Todo/Event，`resource_read` 读取 AI-safe
+- `@` 选择 Note/Todo/Event，`resource_read` 读取 AI-safe
   projection；
 - P0 Tool 为 create、update、complete、cancel、archive、snooze、dismiss、search、
   list_today、trash、restore、purge；结构化正文没有第二个 `read` 旁路，只能通过
@@ -483,11 +625,16 @@ AI 只能在真实 DSH Conversation 中工作：
 - 移到 Trash 时写 `deleted_at` 并暂停提醒；可恢复原业务状态；
 - 30 天后只提示用户清理，不静默永久删除；永久删除单独确认并原子清掉提醒；
 - JSON 是唯一无损导入导出格式，必须包含 `schemaVersion`，round-trip 覆盖稳定
-  ID、revision、kind/triage_state、捕获原文/转换历史、标签、Checklist、Reminder
-  Rule/Occurrence、Trash 和 opaque ref；Todo CSV 和 Event ICS 只是互操作格式，
-  界面明确哪些信息会丢失；
+  ID、revision、kind、来源/原始输入、类型变更历史、标签、Checklist、Reminder
+  Rule/Occurrence、Event 未指定结束时间、Trash 和 opaque ref；Todo CSV 和 Event ICS
+  只是互操作格式，界面明确哪些信息会丢失；
 - ICS P0 只处理普通非重复 VEVENT，遇到 RRULE、RECURRENCE-ID 等不支持内容
   必须在预览中拦住，不能悄悄只导入第一条；
+- ICS 的 `VALUE=DATE` 按来源语义导入为 all-day，不自动解释成 Hermit date-only；目标
+  格式无法无损表达 date-only 时，导出预览必须明确拦住或要求用户处理，不能静默改成
+  all-day 或当天 00:00；
+- ICS 标题中的 `Vacation`、`Holiday`、`Travel` 等内容词不得改写来源的时间形态；Hermit
+  all-day 按标准日期范围和 exclusive end 导出，date-only 仍按上条无损边界处理；
 - 导入先进入临时区预览和去重，再整批事务提交。任何一条失败时整批不落库；
 - JSON 用稳定 ID 去重，ICS 优先 UID，CSV 只提示可能重复，不按相似标题自动覆盖；
 - 数据库存放在稳定的插件数据目录，不在插件安装目录。停用/卸载保留数据库，
@@ -523,8 +670,8 @@ Star 只作为初筛信号，不是可信或兼容证明。所有直接依赖仍
 - 当前 DSH 社区 Todo/Notification 插件收藏和验证时间不足，只借鉴 DSH 注册、
   UI Slot 和通知接线方法，不直接安装到正式产品。
 
-自研：Item/Inbox/Note/Todo/Event 模型、提醒规则与触发记录、调度恢复、DST 规则、
-Today、无损 Inbox 转换、revision 冲突、DSH Resource/Tool 适配、通知幂等、FTS
+自研：Item/Note/Todo/Event 模型、提醒规则与触发记录、调度恢复、DST 规则、
+Today、保持同一 ID 的 Note 类型纠正、revision 冲突、DSH Resource/Tool 适配、通知幂等、FTS
 查询、导入预览、Trash/恢复/永久删除和安全审计。DSH API 仍处开发预览期，这些
 业务层不得直接 import DSH 私有 UI，只通过可替换 adapter 连接。
 
@@ -532,300 +679,266 @@ Today、无损 Inbox 转换、revision 冲突、DSH Resource/Tool 适配、通�
 
 当前方向和模块 5 文件业务闭环：已确认。
 
-核心价值：安装后就是一套不依赖 AI 的本地文件工作台，可以导入、预览、组织、
-搜索、打开、移除、恢复和导出文件。
+核心价值：通过 Hermit Product Surface 提供一套不依赖 AI 的轻量文件工作台。File
+Workspace 在中央工作面内拥有 logical FileRecord tree、managed 文件、Markdown 编辑状态、
+搜索与数据生命周期，不再建设独立文件库壳、文件详情页或预览系统。
 
-#### 6.3.1 文件归属先说清楚
+File Workspace 的功能、页面、交互和当前 vertical slice 以
+[File Workspace DESIGN](../../plugins/file-workspace/DESIGN.md)为唯一权威来源。本节只保留
+产品范围、跨域契约、数据边界和验收红线；重复描述若与插件 DESIGN 冲突，插件可见行为
+以 DESIGN 为准，Core 授权、安全和生命周期红线仍以本文为准。
 
-内部有 external 和 managed 两种模式，但界面不把术语丢给普通用户：
+#### 6.3.1 文件归属和组织边界
 
-```text
-| 导入 36 个项目                                  |
-|-------------------------------------------------|
-| 文件要放在哪里？                               |
-|                                                 |
-| (*) 保留在原位置（推荐）                       |
-|     Hermit 只建立链接和搜索索引，不移动或删除  |
-|                                                 |
-| ( ) 复制到 Hermit 文件库                       |
-|     Hermit 保存自己的副本，之后可整理和删除    |
-|                                                 |
-| [ ] 以后默认这样做                              |
-| [取消]                              [继续]      |
-```
+内部长期保留 external 和 managed 两种模式，但界面不把内部术语丢给普通用户：
 
-- 首次默认“保留在原位置”；
-- 只有用户主动勾选“以后默认这样做”才记住选择，每批仍显示当前模式并可切换；
-- 保留原位置：外部原文件属于用户或其他系统，Hermit 不改名、不移动、不删除；
-- 复制到文件库：Hermit 管理自己的副本，承担完整性、内部 Trash、恢复和导出；
-- 即使两个文件内容 hash 相同，也可以是两个 FileRecord。managed 模式可在底层
-  共用一份 blob 节省空间，但用户看到的两条记录和组织方式仍相互独立。
-
-#### 6.3.2 哪些数据是真正的原件
+- “复制到 Hermit”创建独立 managed 副本，由 Hermit 持有 ManagedBlob、revision 和
+  完整数据生命周期；之后原文件移动或删除不影响该副本；
+- “保留原位置”创建 external FileRecord 和私密 SecretLocator，不复制正文；外部原文件
+  属于用户或其他系统，Hermit 不因导入、组织、Trash、卸载或清理而改名、移动或删除；
+- 两种模式都是长期产品语义，不能为了界面简单把 external path、managed 存储和
+  FileRecord 合并成同一种数据，也不能用 content hash 代替稳定文件身份。
 
 | 对象 | 是否不可替代 | 说明 |
 |---|---|---|
 | 外部原文件 | 是，但由用户/外部系统拥有 | Hermit 永不替用户删除 |
 | ManagedBlob | 是，由 File Workspace 拥有 | 用户明确复制进来的文件内容 |
-| FileRecord | 是 | 稳定 ID、显示名、状态、revision 和组织关系 |
+| FileRecord | 是 | 稳定 ID、显示名、状态和 revision |
 | SecretLocator | 是，属于私密定位层 | 绝对路径、书签、卷/文件身份和权限 |
-| 标签、集合、收藏、关系 | 是 | 用户自己整理的数据 |
-| 解析文本、FTS chunk、缩略图 | 否 | 可换解析器后重新生成 |
-| Safe AI text projection | 否 | 当前版本临时生成的只读 UTF-8 材料 |
-| Watcher event | 否 | 只表示“文件可能变化了” |
+| Safe AI text projection | 否 | 从已保存 revision 临时生成的只读 UTF-8 材料 |
+| 文件正文搜索派生物 | 否 | 由 Core Federated Search 契约管理，可重新生成 |
 
-FileRecord 保存稳定 ID、mode、display name、声明/检测类型、size、content hash、
-locator/blob 引用、revision、source fingerprint、parser/version、访问/解析/索引
-状态、创建/修改/删除时间。绝对路径不直接放进普通记录，而由 `locator_id` 指向
-SecretLocator。
+SecretLocator 绝不能进入文件树、搜索结果、普通日志、遥测、AI Tool Result 或 Resource
+Picker 候选。首版工作区只提供根层普通文件夹，不支持嵌套、文件夹移动或文件夹 Trash；
+它们只是 Hermit 的组织关系，不代表 external 文件的真实磁盘父目录。同一工作区文件夹
+可以容纳 managed 和既有 external FileRecord。改变工作区组织关系不能据此操作 external
+原文件。
 
-SecretLocator 绝不能进入列表、安全搜索结果、FTS、普通日志、遥测、AI Tool
-Result 或 Resource Picker 候选。content hash 也不是文件身份，不能用路径或 hash
-计算稳定 file ID。
+访问、解析和索引仍是分开的事实，但 P0 不把 missing、permission denied、password
+required、unsupported、parse failed、stale 或 external changed 做成文件树常驻徽标，
+也不建设 Needs Attention 页面；只有打开、保存、“在对话中使用”等相关动作发生时才显示
+具体原因。路径、FileRecord、ManagedBlob、解析文本、projection、搜索派生物和 revision
+不能混成一个状态对象。
 
-访问、解析和索引状态分开表达：
+#### 6.3.2 单一工作面和快速记事
 
-- access：available、missing、permission denied、relink required、offline；
-- parse：pending、parsing、ready、unsupported、password required、too large、
-  failed、stale；
-- index：pending、ready、stale、excluded、failed。
-
-#### 6.3.3 页面和导入闭环
-
-P0 一级页面为：概览、文件库、集合与标签、搜索、垃圾箱。“正在导入”是短任务，
-使用全局进度抽屉和文件库筛选；“无法读取”是长期问题，作为需处理 badge/smart
-view 保留，不单独占一级导航。
+P0 只有一个“文件工作区”插件入口。内部使用左侧统一文件树和右侧当前文件编辑/查看区；
+快速记事、添加文件、搜索、导入进度、结果和 Trash 都是该工作面中的动作或状态，不增加
+Library、Dashboard、独立快速记事页、文件详情页、安全预览页或 Needs Attention 页面。
 
 ```text
-| 文件库                         + 导入   搜索     |
-|------------------------------------------------|
-| [全部] [处理中] [需处理] [收藏]               |
-|                                                |
-| Q3 Report.pdf      PDF · 37 页      已建立索引 |
-| Budget.xlsx        XLSX · 4 sheets  已建立索引 |
-| Contract.pdf       需要密码         仅可打开   |
-|                                                |
-| 导入任务：128 / 300                    [查看]  |
+DSH Conversation
+-> 打开 File Workspace Product Surface
+   |-- 统一文件树
+   `-- 当前文件编辑区或通用文件信息区
+-> 关闭后返回 DSH Conversation
 ```
 
-导入不先创建正式 FileRecord，而是：
+“快速记事”原子创建一个 managed Markdown 和稳定 FileRecord，然后立即在同一个 Product
+Surface 中打开。它不是 Organizer Note，也不保存第二份正文。快速记事和其他 File Workspace
+文件不属于任何 Session；Session 只提供打开 Product Surface 和使用 `@文件` 的对话上下文。
+新建快速记事的正文必须是空字符串；系统生成的文件名属于 metadata，不能把标题、模板、
+提示或示例文字写进正文。
+
+File Workspace 只有一个工作区状态和一个中央宿主。从产品入口或全局快捷键进入时都打开
+同一个 Product Surface，不注册辅助栏工作面，也不维护 promotion、双宿主同步或两份草稿。
+全局快捷键属于 Core/Desktop；首版不要求 File Workspace 自行控制 DSH 其他侧栏。以后若
+需要专注布局，只能扩展公开 DSH/Hermit seam，不能使用私有 Router、DOM/CSS hack、private
+store 或复制 DSH shell。
+
+- 打开 File Workspace 恢复整个工作区上次打开的 FileRecord；文件树“+”显式创建一条正文
+  为空的新快速记事，不保留第二个“继续上一条”入口；
+- 新文件固定进入根层级唯一的“快速记事”文件夹；不提供修改默认目标的设置；
+- 固定文件夹本身不可重命名、移动、移到 Trash 或永久删除，空时也保留；菜单直接不提供
+  不适用命令，不增加锁图标、提示条或管理页；
+- 其中的文件仍是普通 managed Markdown，可以移动、移到 Trash、恢复和永久删除。移动后
+  保持 FileRecord；首版不提供文件或文件夹重命名、文件夹嵌套或文件夹移动。
+
+#### 6.3.3 添加现有文件
+
+“添加文件”允许一次多选任意普通文件，但 P0 不接受文件夹、不递归扫描目录，也不为未来
+批量迁移预建目录保留和大任务系统。P0 界面只提供 managed copy；external 是长期数据语义，
+用户入口待可信路径、SecretLocator 和写回契约通过资格验证后再增加：
 
 ```text
-选择文件/文件夹和归属方式
--> ImportJob / staging item
--> 检查路径、权限、symlink、类型、大小和安全边界
--> 计算 hash 并展示重复处理选择
--> external 创建私密 locator，managed 原子复制和校验 blob
--> 数据库事务提交正式 FileRecord
--> 隔离解析
--> 分块和 FTS
--> Ready
+选择一个或多个文件
+-> 显示数量、名称和当前目标文件夹
+-> 直接说明“复制到 Hermit”，不显示尚不可用的归属选择
+-> 复制默认进入用户当前所在工作区文件夹，根目录发起则进入根目录
+-> 用户可在同一个确认界面就地更改目标，不强制增加目标选择步骤
+-> 预检来源可读、普通文件身份、可靠元数据、目标有效性、真实容量约束和同名冲突
+-> 不声称已经验证文件安全、格式有效、可解析或可预览
+-> 用户确认后，当前确认框原地切换为进度窗口
+-> 完成后原地显示结果摘要，关闭后定位目标文件夹但不自动打开文件
 ```
 
-- 文件夹先显示文件数、总大小和不支持项，可取消并恢复未完成任务；
-- 默认不跟随 symlink，必须使用 lstat/realpath 和 root containment，明确排除
-  Hermit/DSH 私有状态目录；
-- managed 使用同卷临时文件，流式复制/hash、fsync、核对 size/hash 后原子改名，
-  永不覆盖同名文件；
-- 取消时已完整提交的文件保留，未完成项不留下半个 blob 或坏 FileRecord；
-- 重复项由用户选择跳过、保留两条或替换记录。“替换记录”只更新目标 FileRecord
-  和 revision，绝不覆盖 external 原文件。
+- 同名冲突只提供“替换”和“跳过”，不自动覆盖、跳过、改名或保留两份；替换在现有
+  FileRecord 上写入新 revision，不删除旧记录再新建；
+- 多个冲突逐项处理，可把当前选择应用到其余冲突，并提供“全部跳过”；跳过冲突不取消
+  没有冲突的文件；
+- 用户取消只停止尚未处理的文件，已完整提交的结果保留；单个文件必须完整提交或不产生
+  可见结果，不能留下半个 ManagedBlob、半个 FileRecord 或半个 revision；
+- 结果摘要分别统计完成、跳过、失败和未处理，默认只展开需要关注的项目；只允许重试
+  失败项，不建设后台任务中心或长期导入报告页；
+- “复制到 Hermit”与“保留原位置”都不能绕过 File Workspace 领域服务写任意 path。
 
-#### 6.3.4 P0 支持格式和安全预算
+#### 6.3.4 编辑、保存和操作时状态
 
-完整解析并支持正文搜索：TXT、Markdown、CSV-as-text、HTML、PDF、DOCX、XLSX、
-PPTX。这里只支持无宏的 OOXML，不支持旧 `.doc/.xls/.ppt` 或宏格式。
+P0 接受并管理任意普通文件，但格式能力必须如实区分：Markdown 直接编辑真实原文，格式
+操作只帮助插入 Markdown 语法；没有经过资格验证的 Editor 或 Viewer 的格式只显示名称、
+类型、大小、managed 状态、可靠时间和 projection 可用性，并明确说明当前不能在 Hermit 中
+预览或编辑。当前不扩展 OCR、PDF/Office 全格式解析、富文本副本或复杂 Viewer 体系。
 
-只登记元数据并尽可能生成安全缩略图：JPEG、PNG、WebP、GIF 首帧。SVG P0 只
-登记，不直接内联渲染。
+- 具备编辑能力的 managed 文件输入后自动保存，显示“正在保存 / 已保存 / 保存失败”；保存
+  产生 revision。没有编辑能力的 managed 文件只显示已存入 Hermit，不出现保存状态；
+- managed 保存必须携带稳定 FileRecord 身份和编辑基于的 revision；成功时在同一 FileRecord
+  下创建新的 immutable revision 并建立新的编辑基线，旧基线冲突或持久化失败时不得覆盖
+  当前 revision，也不得丢弃用户尚未保存的正文；
+- external 文件编辑后显示“未保存”，只在用户明确保存且 source fingerprint 未冲突时写回；
+- external 有未保存修改时切换文件或关闭工作面，询问“保存 / 不保存 / 取消”；保存失败
+  或发现外部变化时留在当前文件；
+- external 保存前发现原文件已被其他程序修改，只提供“重新加载原文件 / 留在这里 /
+  复制到 Hermit”，不强制覆盖或自动合并；
+- managed 自动保存失败时离开当前文件，询问“重试保存 / 留在这里 / 放弃修改”；放弃
+  恢复最后一次成功 revision，不把失败内容藏成离开后再恢复的草稿；
+- 当前文件将被 Trash/移除时复用同一离开保护，不能静默丢弃未保存内容；
+- missing、permission denied、password required、unsupported、parse failed、stale 等
+  只在用户执行相关动作时显示原因，不长期占据文件树或单独页面。
 
-只登记、不解析正文：ZIP/7z/TAR、音视频、EML/MSG、EPUB、代码仓库、旧 Office、
-宏 Office、加密/密码 PDF 和未知二进制。密码 PDF 显示“文件已加入，但 Hermit
-不会保存或代填密码，因此不能搜索正文”。P0 不做 OCR。
+#### 6.3.5 本地搜索和 Core Federated Search
 
-首版默认预算如下，经过恶意样本和性能测试后才可调大；超限时登记元数据但不
-偷偷只索引前半段：
+File Workspace 工作面内的搜索只按文件夹名和文件名过滤当前统一文件树；结果临时替换
+左侧树，清空或退出后恢复原树和展开状态。P0 不增加正文搜索栏、独立结果页、第三栏或
+File Workspace 自有正文索引。
 
-| 项目 | 默认上限 |
-|---|---|
-| 单文件登记/managed copy | 2 GiB |
-| TXT/MD/CSV/HTML 正文解析 | 50 MiB |
-| PDF | 200 MiB / 2,000 页 |
-| DOCX/XLSX/PPTX 压缩体 | 100 MiB |
-| OOXML 展开总量/条目数 | 512 MiB / 10,000 |
-| XLSX | 200 sheets / 50 万非空单元格 |
-| PPTX | 1,000 slides |
-| 图片缩略图输入 | 50 MiB / 50 MP |
-| 单文件抽取文本/chunk | 25 MiB / 20,000 |
-| 文件夹深度/单批文件数/总量 | 32 / 10,000 / 20 GiB |
-| 普通/PDF Office 解析时间 | 60 秒 / 120 秒 |
-| parser RSS/硬上限/默认并发 | 512 MiB / 1 GiB / 2 |
+文件正文与跨插件检索由 Core Federated Search 统一查询、排序和聚合。当前 File Workspace
+切片不为此提前实现 parser、chunk、BM25 或全格式 locator；文件正文如何形成安全的可搜索
+材料属于 Federated Search 与 File Workspace 后续契约，未完成前该来源可以不提供正文结果，
+不能用文件名命中冒充正文命中，也不能让 Core 取得 FileRecord 或 ManagedBlob 所有权。
 
-解析器必须运行在独立进程和可验证的 OS 隔离中，Node Worker Thread 不算安全
-隔离。解析进程无网络、不继承 token/credential、输入只读、只能写专用 temp、
-不能启动 shell，并限制 CPU、内存、时间、输出和进程树。宏、DDE、OLE、外部
-relationship、脚本、远程图片/字体、嵌套压缩包一律不执行或抓取。某文件或某类
-parser 连续崩溃时熔断该 parser，不拖垮 File Workspace 或 Core。
+#### 6.3.6 `@文件` 和安全 projection
 
-#### 6.3.5 预览、变化和重新定位
+“在对话中使用”只向当前 DSH Composer 插入一个可移除的 `@文件` 引用，不自动发送，也
+不复制完整正文。File Workspace 文件仍是全局文件，不因引用变成 Session 附件。
 
 ```text
-| Q3 Report.pdf · 第 14 / 37 页       | 文件信息   |
-|--------------------------------------|------------|
-| ... quarterly revenue increased ... | PDF · 8 MB |
-|             ^ 搜索命中               | #财务 #Q3  |
-| [上一页]                   [下一页]  | 季度报告   |
-|                                      | 所在位置 > |
-|                                      | [重新解析] |
+用户选择文件“在对话中使用”
+-> 从最后一次成功保存的 revision 生成一次安全 projection
+-> 未保存修改、正在保存或保存失败的内容不进入 projection，也不触发等待或保存
+-> projection 不可用时不插入，并说明 password required / unsupported / parse failed
+-> 插入携带 projection 身份的可移除 @文件引用
+-> 用户补充问题并发送，Core 才签发本轮只读 grant
+-> 模型显式调用官方 read，读取选择时捕获的 projection
+-> 发送或 read 时不重新读取最新文件
+-> 只有用户移除并重新指定文件，才生成新的 projection
 ```
 
-- HTML 不运行原页面；script、iframe、style、事件、远程资源全部禁用；Markdown
-  raw HTML 默认关闭，所有解析输出转义和安全化；
-- 大文件分页/分段读取，预览不代表模型已经读取；
-- watcher 只是变化提示。真正预览、搜索刷新或 `@` 读取前重新核对 fingerprint/
-  hash，网络盘、云占位文件和平台 watcher 都不能当强一致来源；
-- hash 未变不升 revision；hash 改变则 revision +1，旧解析和索引标 stale；
-- stale 预览可显示但顶部必须写“这是上次解析的内容，原文件已经变化”，旧内容
-  退出当前搜索且不能作为当前 `@` 读取，重新解析后才恢复；
-- 找不到文件时进入 missing/relink required。用户手工选择新位置，系统显示 hash/
-  identity 是否匹配，用户确认后保持原 file ID；不能只因 hash 相同自动绑定别处。
+文件从未成功保存时没有可用 projection，不能退化为空引用、仅文件名引用或 external 原
+文件直传。来源 revision 可用于追溯，但不增加用户可见的“锁定”功能。成功 read 的 durable
+Tool Result 记录模型实际看到的 projection 和 observed revision；之后文件变化不能改写旧
+Session 历史。P0 不向模型开放文件导入、修改、移动、Trash、恢复、永久删除或任意路径操作。
 
-#### 6.3.6 全文搜索/BM25 和定位
+#### 6.3.7 删除、移除和恢复
 
-SQLite FTS5/BM25 是 P0 正式搜索实现，但仍是可重建索引，不是用户原件。
+File Workspace 使用 Hermit 自己的轻量 Trash，不接入 OS Trash。Trash 是统一文件树底部
+的特殊折叠节点，不是独立页面、普通文件夹或添加/移动目标。
 
-- 拉丁文普通查询走 unicode61；
-- CJK 三字及以上可走 trigram；
-- 一至二个汉字使用有范围限制的 literal/LIKE fallback；真实中文语料 benchmark
-  不达标时再增加自研 unigram/bigram 派生索引；
-- 发布前至少用 200 个带人工标准答案的简中、繁中、中英混排、标点、数字日期、
-  一字、二字和三字以上查询做召回与性能门禁。
+- managed 文件使用“移到废纸篓”，不再次确认；保留 FileRecord、ManagedBlob、revision、
+  原名称和原工作区父位置，恢复前不可编辑，也不参与正常树、文件名搜索或新的 `@文件`
+  选择；
+- 普通根层文件夹不进入 Trash；只允许直接删除空文件夹，非空时要求先移动或处理其中的
+  文件。固定“快速记事”文件夹不可删除；
+- 单个 external 文件不进入 Trash，只提供“从工作区移除…”；确认必须写明磁盘原文件不会
+  被修改或删除，确认后永久移除 Hermit FileRecord、工作区关系和自有派生数据；
+- 恢复优先回原工作区父位置；原父位置不存在时回根目录；目标同名时生成带“（已恢复）”
+  的唯一名称，继续冲突再追加数字，不覆盖、不复用导入的替换/跳过对话；
+- Trash 项目提供“永久删除…”，节点提供“清空废纸篓…”，都必须明确确认不可恢复；
+  managed 删除 Hermit 原件和自有派生数据；
+- P0 不做文件夹 Trash、独立 Trash 页面、自动清理、保留期限、后台清理、批量恢复、恢复
+  位置选择、全局 Undo 或 OS Trash 集成。
 
-每个 chunk 保存 file ID、revision、顺序、类型、locator、text hash 和标准化文本。
-定位规则为：文本/Markdown/HTML 到标题、段落或行；PDF 到页码和文本偏移；DOCX
-到段落/标题；XLSX 到 sheet+cell/range；PPTX 到 slide+shape/order。
+固定“快速记事”文件夹本身不适用 Trash；保护只作用于容器，不保护其中的普通文件。
+
+#### 6.3.8 宿主生命周期和首版 vertical slices
+
+File Workspace 只在 `productSurfaceContract === 1` 和 `product.surface` capability 可用时
+进入 ACTIVE。契约缺失或不兼容时不创建 Settings、辅助栏或私有 Router 作为替代入口，但
+Core、Conversation、其他插件及既有 FileRecord/ManagedBlob 继续可用或保留。
+
+停用或卸载 File Workspace 只撤产品入口、工作面、Provider 和能力注册；除非用户明确选择
+删除数据，否则不删除 FileRecord、ManagedBlob 或 revision。
+
+首版按三个可独立验收的切片推进：
 
 ```text
-输入关键词
--> 只查询 current revision 的 FTS chunks
--> Provider 内部 BM25 排序
--> 返回 snippet + locator + revision
--> 打开文件详情
--> 跳到页/段/Sheet+Cell/Slide
--> 用户核对原文
+Slice 1：任意普通文件 managed copy
+-> 多选或拖放普通文件
+-> 创建 FileRecord、ManagedBlob 和首个 revision
+-> 文件树组织、名称搜索、Trash、恢复和永久删除
+-> Markdown 之外的格式显示通用文件信息
+
+Slice 2：managed Markdown 创建、编辑、revision-aware save 和关闭重开
+
+Slice 3：从最后成功 revision 生成安全 projection 并插入 @文件
 ```
 
-PDF P0 至少保证跳到正确页，只有文本层映射可靠时才承诺精确高亮。点击旧 revision
-结果时不能假装 locator 仍对应新正文。
+“支持所有文件”只承诺 Slice 1 的纳管和生命周期，不承诺所有格式都能编辑、预览、解析或
+用于 AI。当前添加入口只展示“复制到 Hermit”，不接受文件夹；“保留原位置”只有在可信
+路径、SecretLocator 和 external 写回契约通过资格验证后才进入界面，但 external 长期语义
+继续保留。
 
-返回搜索结果和执行 `@` read 前都重新核对 FileRecord/source revision。内容不一致
-统一返回 `STALE/REPARSE_REQUIRED`，原文件消失返回 `MISSING/RELINK_REQUIRED`；
-旧 chunk 或 locator 不能在验证失败后继续当当前事实。
+#### 6.3.9 复用和实现前置条件
 
-#### 6.3.7 `@` 文件和 AI 边界
+DSH/Hermit Product Surface 只负责中央工作面宿主和生命周期。logical FileRecord tree、当前
+文件、FileRecord、SecretLocator、ManagedBlob、revision、Trash、添加流程和 projection
+仍由 File Workspace 拥有；不能把宿主 UI state、Session `cwd + path` 或 Product Surface
+metadata 当成长期文件领域模型。
 
-DSH 官方当前 `@file` 主要是 session cwd 下的 path-only 引用，官方 `read` 是有
-行数/字节预算的 UTF-8 文本读取；PDF/Office 并非官方 read 原生能力。因此：
+File Workspace 只消费资格通过的公开 package、typed slot 和 service，不导入 DSH `src/*`、
+内部 store、DOM/CSS 或私有 Host 路由。managed 内容只能通过 File Workspace/Core 的领域
+服务持久化；不得用私有路由、伪造 path、轮询、watcher 或 fallback 掩盖保存边界。
 
-- 直接复用官方 Session、durable Tool Result、file-reference/read 语义；
-- Hermit Core 自研多 Provider Resource Picker 和非文本文件的安全 UTF-8
-  projection bridge；
-- “AI filesystem scope”是 Core-owned capability/broker，由它签发短期只读 path/
-  projection 能力；File Workspace 只是 Provider，不能因此成为 Core 或其他插件的
-  硬依赖；
-- File Workspace 提供当前、已验证、带页/段/Sheet/Slide locator 的只读 projection；
-- 用户本轮重新 `@` 时只绑定稳定 file ID 和本轮读取授权；真正执行 read 前核对
-  当前文件和 projection，Tool Result 记录实际 observed revision；
-- 官方 read 成功并写入 durable Tool Result 后，模型才算真正读到；
-- 历史 `@file_id` 本身不能再次授权或自动读最新版本；旧回答继续使用当时包含
-  observed revision 的 Tool Result。用户新一轮再次 `@` 才读取当前版本；
-- 不为了旧 mention 保存每一版完整文件；已成功的历史 Tool Result 本身继续留在
-  Session。旧 Tool Result 已被单独 purge 时返回 placeholder，不重新物化旧版。
-
-P0 暴露给 AI 的 File Tool 只有：search_files、get_file_metadata、
-update_file_organization。后者只改 tags、collections、favorite，必须带 expected
-revision 且可撤销。
-
-import、reparse、trash、restore、purge、relink、export、open original、路径改名/
-移动、删除外部文件和批量操作都只允许用户从 UI/Host command 发起，不向模型
-暴露。AI 写操作启用前，实际锁定的 DSH build 必须通过跨 Session、跨连接和跨
-调用方审批授权回归；未通过时先开放只读 AI 能力，关闭 mutation Tool。
-
-#### 6.3.8 删除、恢复、停用和重装
-
-- external Trash 只隐藏 Hermit 记录和索引，原文件不动；恢复保持 ID；永久删除
-  只删 Hermit FileRecord、SecretLocator 和派生数据，仍不删原文件；
-- managed Trash 使用逻辑 tombstone，不为 content-addressed blob 物理搬目录；
-  永久删除记录后引用计数减一，只有最后一个引用消失才删 blob；
-- 不自动清空 Trash；
-- Canonical DB 和 managed blobs 位于插件安装目录之外。停用/卸载只撤 UI、
-  Provider 和 Tool，不碰数据；重装后校验 schema、迁移、重开数据并按需重建派生物；
-- “卸载 File Workspace”和“删除我的文件库”必须是两个完全不同的操作。
-
-#### 6.3.9 复用、借鉴和自研
-
-DSH 官方直接复用：Session、durable Tool Result、read/read_image、file-reference
-语义以及 capability/cancellation/fs/approval 模式。统一 Resource Picker、非文本
-projection 和 File Workspace 领域能力由 Hermit 自研。DSH 固定到测试通过的
-commit + 完整 `@deepseek-ai/*` lock + 回归矩阵，不跟 `latest/next` 漂移。
-
-直接复用候选（锁定精确安全版本）：
-
-- SQLite FTS5/BM25/snippet；
-- PDF.js：约 53k 星、Apache-2.0，用于 PDF 解析/渲染；
-- Mammoth.js：约 6k 星、BSD-2-Clause，用于 DOCX 抽取，输出仍按不可信处理；
-- Chokidar：约 12k 星、MIT，只把 watcher 事件作为变化 hint；
-- fflate、react-markdown(raw HTML off)、DOMPurify；
-- file-type 只作 magic-number hint，不作为安全证明，并固定到已修复已知问题的版本。
-
-有条件二开/复用：SheetJS CE 只 vendor 审查过的精确 commit 处理 XLSX，并跑恶意
-样本；Sharp 只有精确版本通过 libvips 安全门才启用，否则图片降级为 metadata-only；
-officeParser 只借鉴 PPTX/XLSX 测试与 API。
-
-只借鉴的 DSH 社区项目：dsh-knowledge-base、dsh-knowledge、
-dsh-session-search-pro 等。目前它们收藏低、出现时间短，部分自带 ctx.llm、RAG、
-embedding 或自己的 KB 数据模型，不满足正式依赖标准。P0 不直接安装任何社区
-File/KB 插件作为运行底座。
-
-自研：FileRecord/SecretLocator、ManagedBlob/refcount、ImportJob 原子提交、parser
-supervisor/OS 隔离、PPTX 窄文本抽取、chunk/locator、CJK query router、文件 UI、
-stale/relink/Trash、Resource adapter 和下节 Federated Search 契约。
+当前阶段不冻结 parser、OCR、Office、云盘、正文索引或复杂文件管理依赖。需要新增能力时
+先回到 File Workspace DESIGN 和对应 Core 契约确认真实场景，再资格验证成熟开源实现，
+不能把早期候选库或社区 File/KB 插件直接写成 P0 运行底座。
 
 ### 6.4 Smart Clipboard
 
 当前方向和模块 6 完整业务闭环：已确认。它是后续可选 Product Plugin。
 
+Smart Clipboard 的功能、页面、交互、用户可调默认值和数据操作细节只由
+[Smart Clipboard DESIGN](../../plugins/smart-clipboard/DESIGN.md)维护。本节只保留
+产品范围、跨域安全、Core 集成、平台能力和验收红线；重复描述若与插件设计冲突，插件
+行为以 DESIGN 为准，Core 红线仍以本文为准。
+
 核心价值：安装后就是一套 Maccy 风格的本地剪贴板管理器。没有 AI、网络、
 Organizer 或 File Workspace 时，捕获、搜索、置顶、预览、复制/粘贴、清理和
 导出仍然完整。
 
-#### 6.4.1 首次启用和捕获范围
+#### 6.4.1 捕获启动和范围
 
-新安装默认不记录。插件 ACTIVE 后 Quick Panel 可以出现“剪贴板”模式，但首次
-只显示隐私说明，用户明确点击后才启动监听：
+插件安装并进入 ACTIVE 后立即开始记录，不再增加首次隐私说明或“开始记录”门槛。
+安装并启用插件本身就是用户选择使用剪贴板历史的动作；用户仍可随时暂停记录，
+或只忽略下一次复制：
 
 ```text
-| 剪贴板                                      |
-|---------------------------------------------|
-| Smart Clipboard 当前没有记录任何内容。      |
-|                                             |
-| 剪贴板可能包含账号、验证码和私人内容。       |
-| 只有你主动开启后才开始记录，AI 默认看不到。 |
-|                                             |
-|          [开始记录剪贴板]                   |
-|                                             |
-| 默认保留：30 天 · 1000 条 · 500 MiB         |
+插件 ACTIVE
+-> 监听当前平台支持的剪贴板变化
+-> 规范化受支持内容并写入本地历史
+-> 用户暂停时停止接收新记录
+-> 用户继续后只记录新的变化，不回补暂停期间内容
 ```
 
-- 手工暂停与系统锁屏是两个独立原因；锁屏立即隐藏面板、暂停捕获，并让尚未读取
-  的 AI 临时引用失效；
-- 解锁后只在用户原本已开启且没有手工暂停时恢复；
-- 停用、锁屏或崩溃期间不记录，也不伪造回补系统已经丢失的剪贴板历史。
+- 暂停、停用或崩溃期间不记录，也不伪造回补系统已经丢失的剪贴板历史；
+- “忽略下一次复制”只消费下一次真实剪贴板变化，不能持续关闭记录；
+- 捕获、存储、索引、搜索和历史管理没有网络能力，不主动上传剪贴板内容；
+- 后续 AI 只有在用户明确选择内容并发起动作后，才通过 DSH 处理所选范围。
 
 P0 Canonical 格式只有 TEXT、IMAGE、FILE_LIST：
 
-- TEXT 保存精确 UTF-8；HTML/RTF 只作为输入来源，转为安全纯文本后丢弃原始
-  富文本，不执行脚本、事件或远程请求；
+- TEXT 保存精确 UTF-8，并可保留实现格式化回放所需的受支持 HTML/RTF 表示；搜索和
+  预览只使用安全纯文本投影，HTML/RTF 不进入 DOM、不执行脚本、事件或远程请求；
+- “无格式粘贴”只写回纯文本，普通复制/粘贴可写回受支持的格式表示；
 - IMAGE 接受 PNG/JPEG/WebP 用户语义及 TIFF/DIB 等系统输入，安全解码、应用
   orientation、去除 metadata 后建议统一存 PNG；
 - FILE_LIST 只保存本机文件引用和安全显示名，不读取、复制或索引文件正文；
@@ -834,22 +947,20 @@ P0 Canonical 格式只有 TEXT、IMAGE、FILE_LIST：
 文件引用以后若要让 AI 读正文，必须重新走 File Workspace 的独立授权，不能
 因为路径曾出现在 Clipboard 就自动扩大权限。
 
-#### 6.4.2 数据、敏感内容和去重
+#### 6.4.2 数据、忽略规则和去重
 
 ClipboardEntry 保存稳定 ID、kind、payload/blob 引用、content hash、创建/最近
 使用时间、稳定 source app ID、来源可信度、输入格式、置顶/删除时间、大小、
-敏感分类和 payload version。source executable path 和 window title 不持久化，
-不进 FTS、日志或 AI。
+payload version。source executable path 和 window title 不持久化，也不进 FTS、
+日志或 AI。
 
-敏感内容不是一个简单 bool：
+Smart Clipboard 不做密码、验证码、身份证或 Secret 的内容启发式分类，也不提供
+`MASKED/Reveal` 状态。忽略规则只来自明确的剪贴板信号和用户配置：
 
-- 系统或密码管理器提供的高可信 transient/concealed/exclusion marker 直接跳过，
-  不创建 Entry、不写 FTS、不把正文落盘；
-- 用户手工标记或低可信启发式只把已有 Entry 设为 MASKED，默认遮挡，不建正文
-  FTS、不显示 snippet；
-- 不承诺识别所有密码、验证码、无痕窗口或来源应用。排除应用列表和暂停捕获仍
-  是用户可控的主要防线；
-- source app 只作 best effort 筛选和显示，不能当安全认证。
+- 系统或来源应用提供的 transient、concealed、auto-generated 或等价 exclusion
+  marker 直接跳过，不创建 Entry；
+- 用户可以暂停、忽略下一次复制，并在后续完整管理阶段配置排除应用或类型；
+- source app 只作 best effort 筛选和显示，不参与内容是否可信的语义判断。
 
 去重规则：
 
@@ -863,24 +974,16 @@ ClipboardEntry 保存稳定 ID、kind、payload/blob 引用、content hash、创
 
 #### 6.4.3 列表、搜索、复制和粘贴
 
-```text
-| Quick Panel · 剪贴板                    [暂停] |
-| [搜索剪贴板...]                                |
-| [全部] [文本] [图片] [文件]                    |
-|------------------------------------------------|
-| * 14:32 TEXT   API response schema...          |
-|   14:28 IMAGE  1280x720                        |
-| ! 14:21 TEXT   [敏感内容，已隐藏]              |
-|   14:03 FILES  report.pdf +2                   |
-|------------------------------------------------|
-| ↑↓ 选择  Enter 粘贴/复制  Ctrl+Enter 只复制   |
-```
-
-- 插件自己的 SQLite/FTS 搜索文本和安全文件显示名；图片按类型、时间、来源筛选，
+- 插件自己的 SQLite/FTS 搜索文本和文件显示名；图片按类型、时间、来源筛选，
   不做 OCR；
-- P0 完全不注册 Core Federated Search Provider，而不是注册后隐藏 snippet，从
-  capability 层消除全局搜索误泄漏正文的路径；
-- Enter 优先粘贴，Ctrl/Cmd+Enter 固定只复制，Esc 关闭；敏感项必须显式 reveal；
+- P0 不注册 Core Federated Search Provider，剪贴板检索留在插件自己的快速取回和
+  完整 History 工作面，不把历史复制到 Core 总索引；
+- Smart Clipboard 通过 Core Shortcut Registry 提交专用快捷键建议；用户确认并注册后，
+  该快捷键直接呼出剪贴板快速取回工作面，不打开 DSH 主窗口或要求切换 Quick Panel 模式；
+- 打开后搜索框立即聚焦；无查询时显示置顶和最近历史，输入后本地实时过滤，键盘选择
+  并执行当前项后关闭浮层、把焦点还给原应用；
+- 目标体验保持输入即搜索、键盘选择、复制、粘贴和无格式粘贴；浮层内部固定组合的动作
+  映射由插件 DESIGN 负责，Core 只负责用户确认的全局唤起快捷键；
 - 可靠的 Canonical 操作只是“把选择项写回系统剪贴板”；
 - 自动粘贴仅在平台支持且用户给了最小辅助功能权限时执行：打开 Panel 前记住
   前台目标，写 clipboard 后验证 generation/marker 未被其他程序覆盖，再恢复焦点
@@ -917,7 +1020,7 @@ expiry、maxReads=1 的 grant；这些运行约束不写进 Ref。成功 Tool Re
 > 只允许当前会话、本轮读取这 1 条。发送后，如果模型读取成功，这条内容会保存
 > 到当前会话历史。以后删除剪贴板记录，不会删除会话里已经保存的内容。
 
-读取前移除 `@`、删除 Entry、锁屏、换 Session 或换 turn 会撤销引用，正文不会
+读取前移除 `@`、删除 Entry、换 Session 或换 turn 会撤销引用，正文不会
 进入 Tool Result。读取成功后只能取消以后继续访问，不能把它称为撤销已经产生的
 Session 内容。删除 ClipboardEntry 和清理 DSH Session 是两个不同的数据域。
 
@@ -930,33 +1033,31 @@ payload，不能把原始自定义 clipboard format 直接交给模型。
 
 #### 6.4.5 保留、删除、导出和静态保护
 
-默认限制哪个先到就执行哪个：30 天、1,000 条、500 MiB；文本/投影文本单条
-2 MiB，图片编码 20 MiB/32 MP/临时解码 128 MiB，单次 256 个文件引用且 manifest
-不超过 1 MiB。
+历史条数、保留期限、总容量、Trash、清空和结构化 ZIP 导出的当前用户规则只在插件
+DESIGN 中维护。Core 仍执行以下不可放宽的技术硬上限：文本/投影文本单条 2 MiB，图片
+编码 20 MiB/32 MP/临时解码 128 MiB，单次 256 个文件引用且 manifest 不超过 1 MiB。
 
-- 自动清理按 last_used 删除最旧未置顶项；置顶计入容量但不自动删除；
-- 如果全是置顶内容且已经占满，停止接收新记录并显示“存储已满”，不能无界增长
-  或偷偷删置顶；
-- 单条先进入 Trash 并可 Undo；永久删除清理 DB、FTS 和无引用 blob；
-- 清空前显示准确条数、容量和置顶数，并提供导出；
-- JSON/纯文本可导出文本，图片导出原格式或 PNG，文件引用只导出引用清单，
-  不复制原文件；导出明确标记为普通未加密文件；
+- 永久删除必须原子清理 DB、FTS 和无引用 blob；
+- 导出文件是用户明确写入本地的普通未加密文件，不得借导出增加网络 capability；
 - 所有删除界面写明：不会删除其他应用中的副本，也不会删除已经进入 DSH Session
   的 Tool Result；
-- 停用/卸载默认保留数据库和 blob；“删除 Smart Clipboard 数据”是独立危险入口。
+- 停用/卸载默认保留数据库和 blob；插件 DESIGN 中的“清空所有剪贴板内容”是独立
+  危险入口，不能与停用或卸载静默绑定。
 
 P0 不自建 SQLCipher/envelope encryption，也不把它称为 Vault；否则会提前引入
 密钥恢复、轮换、FTS 和明文迁移。基础保护为：DB/WAL/SHM/blob/temp 全部在 OS
 用户私有 app-data 并使用严格 ACL/mode；正文不进普通日志、遥测或 crash breadcrumb；
-MASKED 不进 FTS；清理时同时清 FTS/blob 并 checkpoint/truncate WAL。Schema 预留
-未来 `encryption_version/key_id`，但不能宣称 SSD/备份层面的法证擦除。
+清理时同时清 FTS/blob 并 checkpoint/truncate WAL。Schema 预留未来
+`encryption_version/key_id`，但不能宣称 SSD/备份层面的法证擦除。
 
 #### 6.4.6 平台桥接和故障隔离
 
-ClipboardBridge 只有 observe、snapshot、write、sourceIdentity、lockState、
-autoPaste 六类能力；无网络、无任意文件读取、无 shell、无命令执行。平台监听/
-写入/自动粘贴运行在最小权限原生 bridge/isolated principal，UI、DB、FTS 在插件
-Host；bridge 崩溃只停 Clipboard 插件，Core/Conversation 继续。
+ClipboardBridge 只有 observe、snapshot、write、sourceIdentity、autoPaste 五类能力；
+无网络、无任意文件读取、无 shell、无命令执行。平台监听/
+写入/自动粘贴运行在最小权限平台 bridge。当前 macOS bridge 是 Electron 主进程专用的
+Objective-C++ N-API micro-adapter，UI、DB、FTS 和状态编排仍由 TypeScript Core/插件负责；
+业务异常只让 Clipboard 进入 unavailable，native 内存故障仍可能终止 Electron，因此不能
+宣称进程隔离。若真实稳定性证据不足，再评估独立 helper，不为假设风险提前增加第二进程。
 
 - macOS：完整捕获；未授权 Accessibility 时自动粘贴降为 copy-only；
 - Windows：使用官方 change listener/sequence；无法恢复前台或 UIPI 阻止输入时
@@ -968,10 +1069,11 @@ Host；bridge 崩溃只停 Clipboard 插件，Core/Conversation 继续。
 
 #### 6.4.7 复用、二开和自研
 
-Maccy 当前约 21k 星、MIT、持续维护，符合可信候选门槛。只选择性复用/改写其
-macOS NSPasteboard 监听、类型/隐私 marker、generation/changeCount、自写 marker、
-多文件写回、Accessibility 检查、最小 Cmd+V 注入和边角测试，形成 Hermit 自有
-`MacClipboardBridge`；保留 MIT notice 和来源记录。
+Maccy 当前约 21k 星、MIT、持续维护，符合可信行为参考门槛。当前实现依据 Apple 公开
+AppKit/Accessibility contract 和 Maccy 已核实的行为证据，以 Objective-C++ clean-room
+自研 NSPasteboard changeCount、忽略 marker、多文件写回、operation token、目标身份和最小
+Command+V 守卫；没有复制或改写 Maccy 源码。调研保留精确来源链接，但第一方 native 文件
+不冒充 Maccy 衍生代码，也不添加虚假的源码 attribution。
 
 不复用 Maccy 整个 App、CoreData、HistoryItem、Tray、快捷键、UI、设置和更新器，
 避免出现第二套产品 ownership。
@@ -979,7 +1081,7 @@ macOS NSPasteboard 监听、类型/隐私 marker、generation/changeCount、自�
 其他候选：
 
 - Rust arboard：MIT/Apache-2.0、持续维护，适合封装跨平台 text/image/HTML/
-  file-list 基本 get/set；Windows 事件、macOS marker/来源、锁屏、race 和自动粘贴
+  file-list 基本 get/set；Windows 事件、macOS marker/来源、race 和自动粘贴
   仍由平台 adapter 自研；
 - EcoPaste：约 7k 星、Apache-2.0、Tauri/Rust，借鉴/逐文件审计后二开平台 glue、
   SQLite/FTS、retention 和恶意格式测试，不嵌入整套 App；
@@ -993,7 +1095,7 @@ generation-consistent snapshot、Canonical DB/blob/FTS、排除规则、quota、
 Resource、DSH UI、生命周期和崩溃隔离。
 
 P0 明确不做同步、云、共享、Vault、OCR、AI 自动处理、脚本、命令、自动填表、
-原始 HTML/RTF replay 或 clipboard-trigger automation。
+任意 custom clipboard body replay 或 clipboard-trigger automation。
 
 ### 6.5 Federated Search
 
@@ -1003,9 +1105,9 @@ P0 明确不做同步、云、共享、Vault、OCR、AI 自动处理、脚本、
 ```text
 | 搜索 [ quarterly revenue                         ] |
 |----------------------------------------------------|
-| 文件 · 18                                         |
-| Q3 Report.pdf   ...revenue increased...  第 14 页 |
-| Budget.xlsx     ...Revenue / Q3...       B8:F8    |
+| 文件 · 6                                          |
+| Q3 Report.md    ...revenue increased...  第 42 行 |
+| Budget notes.txt ...Revenue / Q3...      第 18 行 |
 |                                   [更多文件结果]  |
 |----------------------------------------------------|
 | 对话 · 7                                          |
@@ -1017,32 +1119,44 @@ P0 明确不做同步、云、共享、Vault、OCR、AI 自动处理、脚本、
 
 - 同一个关键词并行发送给当前 ACTIVE 的 Conversation、Organizer、File 及后续
   Search Provider；未安装的 Provider 整组不出现；
+- File Workspace 自己的工作面搜索只过滤文件夹名和文件名，不参与正文检索。文件正文
+  查询、排序和跨插件聚合只从 Core Federated Search 发起；File Workspace 只按后续确认的
+  契约提供安全的当前材料和打开引用，不因此把 FileRecord、ManagedBlob 或 SecretLocator
+  所有权交给 Core；
+- File Workspace 首条 Markdown 切片未提供正文检索材料时，文件正文结果组可以不出现；
+  不得用文件名命中冒充正文命中，也不得为满足示例提前加入 parser、chunk 或 BM25；
 - 结果协议只有 provider ID、canonical ref、title、snippet、timestamp、type、
   source label、cursor/open action；
-- 按来源分组，每组自己排序和分页。Core 可以固定组顺序，但不比较或暴露不同
-  Provider 的 raw score，不制造虚假的全局相关度；
+- 按来源分组，每组在 Core Federated Search 契约内独立排序和分页；File 组的排序不复用
+  File Workspace 名称过滤逻辑。Core 可以固定组顺序，但不比较或暴露不同 Provider 的
+  raw score，不制造虚假的全局相关度；
 - 每个 Provider 默认硬超时 3 秒、每页最多 50 条，支持 AbortSignal、独立重试；
 - raw query 和 provider result 只在当前搜索请求内瞬时传递，不进入数据库、诊断
   或遥测；请求取消、超时或 query generation 改变后的晚到结果直接丢弃，不能
   重新注入当前页面；
 - 某组崩溃或超时只在该组显示错误，其他结果继续；
-- 点击结果通过 canonical ref 打开对应插件的真实详情；
+- 点击结果通过 canonical ref 打开对应插件的真实工作面并定位对象；不要求插件为搜索
+  结果新增详情页；
+- Provider 进入真实插件工作面后，关闭插件详情不自动返回全局搜索；Core 在当前瞬时导航
+  session 保留 query、Provider 状态和列表位置，只在用户明确返回时恢复，且不得把全局
+  query 自动写入插件本地搜索状态；
 - Core 不复制结果、正文或 query 到一个“总搜索数据库”，也不做 AI query rewrite、
   AI 排序或答案总结；如果以后只统计性能，也只能记录数量/时延，不能记录查询词；
 - 默认不显示外部完整路径、Secret 或 Clipboard 正文；文件 snippet 本身仍可能
-  敏感，锁屏和外围界面不展示，后续可增加单文件“隐藏摘要”隐私设置；
+  敏感，锁屏和外围界面不展示；
 - Conversation 正文搜索是否启用由 Core 自己的索引设置决定，未开启时不能显示
   为全文搜索；
 - File Workspace、Organizer 或任何一个 Provider 停用后，Core 搜索和其他组仍
   正常工作，不留下不可点击的结果。
 
-### 6.6 Unified Quick Panel、Tray 和 Shortcuts
+### 6.6 主窗口、Tray 和开机启动
 
-当前方向和模块 3 桌面入口：已确认。
+当前方向和模块 3 桌面入口：已按 macOS M1 收窄。
 
-DSH 官方目前主要提供 CLI 和 Web，没有可依赖的官方 Tray、全局快捷键、开机
-启动或 Quick Panel 契约。因此这些能力由 Hermit Core Desktop Shell 统一实现，
-并通过少量适配层连接固定版本的 DSH，业务插件不能直接依赖 DSH 私有界面。
+DSH 官方目前主要提供 CLI 和 Web，没有可依赖的官方 Tray 和开机启动契约，因此这两项
+由 Hermit Core Desktop Shell 实现，并通过少量适配层连接固定版本的 DSH。Quick Panel
+及其全局快捷键已移出本节，后续作为独立模块重新确认需求、边界和验收；本文件其他位置
+已有的 Quick Panel 示例只作为待整理的设计输入，不授权当前实现或插件依赖。
 
 #### 6.6.1 主窗口
 
@@ -1100,7 +1214,7 @@ Core-only 时，主窗口就是一款完整的 DSH 桌面 AI：
 - 跨窗口草稿交接必须先对锁定的 DSH 版本做技术验证。若没有稳定公开接口，使用
   Core 一次性交接队列，由主窗口主动领取；仍无法保证时，P0 隐藏该动作，不能
   伪造一条 Session 消息冒充草稿；
-- Personal Organizer 正常运行时可增加第二个明确动作“存到收件箱”，但不能
+- Personal Organizer 正常运行时可增加第二个明确动作“保存为笔记”，但不能
   偷偷改变 Enter 的默认行为；
 - 搜索只查询 Core 和当前正常运行插件的真实数据源，选中结果后在主窗口打开
   Canonical 来源并关闭小窗口；
@@ -1269,16 +1383,20 @@ Mode 只启动 Core、恢复和诊断，不自动启动任何可选业务插件�
   DSH/Cordis Plugin。除非它属于签名 Core release，Product Plugin 不得注册 Model
   Adapter、Approval answerer、另一套 Conversation/Session UI，不能取得 `ctx.llm`
   或未声明的 host/network/filesystem 能力；
-- 可选业务插件只允许硬依赖 Core，不允许硬依赖另一个可选业务插件；
+- 可选业务插件默认只允许硬依赖 Core；File Workspace 使用 Hermit 已资格通过的 Product
+  Surface 公共契约，不形成业务插件之间的硬依赖；
 - 插件之间只能通过 Core 的公开能力做“有就显示、没有就跳过”的可选合作；
 - 不允许直接导入另一个插件的内部代码、数据库表或创建跨插件外键；
+- File Workspace 只能消费 DSH/Hermit 的公开 service、typed slot 和类型，不调用私有 Host
+  路由，也不把 Product Surface metadata 或 Session `cwd + path` 当成 FileRecord 或 managed 数据；
 - 每个插件及其后台进程使用自己的身份和最小权限；
 - DSH/Cordis 同进程插件不是安全沙箱。没有达到官方信任标准的社区代码不能
   进入正式 Core Host，只能放进隔离进程，通过很窄的桥接接口工作；
 - macOS 上各进程分别签名并只申请必需权限，不能为了插件降低主程序权限。
 
-因此，拔掉任意一个业务插件后，其他插件最多少一个可选入口，不会因为找不到
-它而无法启动。
+因此，拔掉任意一个业务插件后，其他插件最多少一个可选入口，不会因为找不到它而无法
+启动。File Workspace 自身退出 ACTIVE 时，Core、其他插件和 File Workspace 已有数据继续
+可用或按保留策略保留。
 
 clean boot 发布门不仅检查页面能打开，还必须确认已移除插件没有残留 Tool、
 Provider、listener、timer、watcher、job、shortcut、Tray action 或数据库句柄。
@@ -1349,32 +1467,28 @@ Result；只有新的读取/写入调用返回 Provider unavailable。
 
 当前方向和模块 7 系统闭环：已确认。
 
-#### 6.8.1 最终运行形态：完全移除 Go
+#### 6.8.1 最终运行形态：Electron + bundled DSH Web（stock 或 Hermit 受控 patch），完全移除 Go
 
 ```text
-Hermit Tauri / Rust Desktop Shell
-|-- WebView
-|   `-- 官方 DSH Web/client + Hermit 可信 UI adapter
-|-- 精确版本 Node sidecar
-|   `-- Hermit Core Host + 固定版本 DSH/Cordis
-|       |-- 真实 Session / Approval / Tools
-|       |-- Settings / Search / Package Registry
-|       `-- 可信 Core adapters
-|-- 隔离 Plugin Runner：Plugin A（需要时）
-|-- 隔离 Plugin Runner：Plugin B（需要时）
-`-- 用户明确调用时才启动的受控 Tool 子进程
+Hermit Electron Desktop Shell
+|-- 主窗口、Quick Panel、Tray、快捷键、开机启动、更新和单实例
+|-- 兼容范围内的 Node + stock DSH Web，或 Hermit 自带的受控 patch generation，监听 127.0.0.1 的 OS 随机端口
+`-- 只监管自己启动的 DSH 进程树
+
+Bundled DSH Web/Runtime
+|-- 官方 Conversation / Session / Settings / Tool / Approval
+|-- Skill / MCP / 插件生命周期
+`-- Hermit Product Plugins
 ```
 
 - Node/TypeScript + DSH/Cordis 是 Core 和插件运行时；
-- 保留现有 Tauri/Rust，只负责窗口、WebView、进程监督、Tray、快捷键、通知、
-  OS 权限/凭据、签名版本选择和最底层恢复；
+- Electron 只负责窗口、WebView、进程监督、Tray、快捷键、通知、OS 桌面能力、更新和
+  单实例；
 - React 直接建立在官方 DSH Web、Conversation、Session、Tool rendering、Settings
   shell 和 client slot 上，不重写第二套聊天前端；
 - Hermit 自己常驻和后台进程树中没有 Go，Go 不再拥有数据、API、后台任务或恢复；
-- 纯 Web 无法承担已确定的桌面能力；改成 Electron 会额外引入一套 Chromium/Node
-  生命周期和更新面。现有 Tauri + 精确 Node sidecar 是更合适的目标；
-- Tauri 使用 Windows WebView2、macOS WKWebView、Linux WebKitGTK，三者必须分别
-  回归，不能因为都叫 WebView 就当表现完全一致。
+- Electron 使用经过兼容性门验证的 Chromium/Node 运行时，减少跨平台 WebView 差异；三平台仍需分别
+  验证窗口、Tray、快捷键、开机启动、剪贴板和更新行为。
 
 #### 6.8.2 Node 和 DSH 版本
 
@@ -1383,13 +1497,14 @@ Hermit 自带 Node，不依赖用户系统安装。用户说的“最新 Node”
 > 当前生产 Active LTS 线上，经过 Hermit 全套验证的最新补丁；不是版本号最大的
 > Current，也不是启动时在线追 `latest`。
 
-截至本次确认，Node 24.19.0 是 Latest/Active LTS，Node 26.7.0 仍是 Current；DSH
-开发契约覆盖 Node 22.19/24/26，主测试以 Node 24 为主。因此首个 Core generation
-优先锁 Node 24.19.0。以后新 LTS 也必须先完整验证，再随新 Core release 切换。
+首个 Core generation 选择 Node 24.x 兼容范围。`.node-version`、`package.json` 和
+lockfile 只记录当前发布候选的机器可追溯事实，不在需求文档追踪“最新”标签；以后新
+LTS 也必须先完整验证，再随新 Core release 切换。
 
-一个 Core release 是不可拆开的签名单元：Tauri 壳、精确 Node binary、固定 DSH
-commit 和完整 `@deepseek-ai/*` 包图、lockfile、Core adapters、Web assets、native
-addons、兼容清单和 SBOM。生产依赖图不得出现 `latest`、`next` 或版本范围解析。
+一个 Core release 是不可拆开的签名单元：Electron 壳、候选 Node binary、固定 DSH
+RC 兼容包和完整 `@deepseek-ai/*` 包图、lockfile、Core adapters、Web assets、兼容
+清单和 SBOM。生产依赖图不得出现 `latest`、`next`；发布时由 frozen lock 将声明范围
+解析为可追溯的候选版本。
 
 #### 6.8.3 设置和 Core 凭据
 
@@ -1407,7 +1522,7 @@ addons、兼容清单和 SBOM。生产依赖图不得出现 `latest`、`next` �
 | 更新                 | 当前/候选/上一版本            |
 | 诊断与恢复           | 检查/备份/Safe Mode           |
 |----------------------|-------------------------------|
-| Core C17 / DSH pinned / Node 24.19.0                |
+| Core C17 / DSH rc.2 / Node 24.x                    |
 ```
 
 - 插件 ACTIVE 时贡献功能设置；卸载后 Core Data Registry 仍记录保留数据的所有者、
@@ -1433,7 +1548,7 @@ Secret、provider stdout/stderr。
 |-----------------------------------------------------|
 | Core       C17                 Healthy              |
 | DSH        pinned commit       Healthy              |
-| Node       24.19.0             Healthy              |
+| Node       24.x                Healthy              |
 | Plugins    4 active / 1 disabled                    |
 | Search     Ready / 100,000 chunks                   |
 | Keychain   Available                                |
@@ -1450,10 +1565,9 @@ Secret、provider stdout/stderr。
 
 Safe Mode 分两层：
 
-1. Tier 0 Native Rescue 完全由 Rust 提供，不依赖 Node/DSH。即使 Node binary、DSH
-   包或主 WebView 坏了，也能校验当前/上一签名 Core、禁用所有业务插件、选择与
-   当前数据兼容的旧 Core、导出 Canonical 目录、查看极简错误、检测凭据后端并
-   启动 Tier 1。
+1. Tier 0 Electron Recovery 使用应用内置的最小本地页面，不依赖 DSH Web。即使
+   Node binary、DSH 包或主页面坏了，也能查看极简错误、选择当前/上一签名 release、
+   禁用 bundled 业务插件并启动 Tier 1；它不读取或修改插件 Canonical 数据。
 2. Tier 1 DSH Safe Profile 只加载 Core、Package Gate、设置、诊断、数据校验、
    导出/恢复、派生索引重建和插件版本回滚。Conversation 历史仅只读；不加载
    社区插件、不调用模型、不自动迁移或“顺手修复”Canonical 数据。
@@ -1561,13 +1675,14 @@ staging 回到旧系统；commit 后就是 DSH，哪怕第一次业务写也不�
 旧 Secret          2 -> 已按用户选择处置
 ```
 
-#### 6.8.9 本地网络和 WebView 边界
+#### 6.8.9 本地网络和 Electron renderer 边界
 
-- 本地 DSH 只监听随机 `127.0.0.1` 端口；
-- 上游 Host/Origin fence 不能当身份认证。每次启动生成 runtime capability token，
-  所有本地 API 都校验；涉及 workspace 的请求再叠 workspace scope；
-- WebView 使用 CSP、导航白名单，任意 `window.open`/外部导航阻断或明确交给系统；
-- Tauri bridge 只开放最小 typed capability；插件不能读 Core Secret 或任意路径；
+- 本地 DSH 只监听随机 `127.0.0.1` 端口；随机端口不是身份认证；
+- DSH Host/Origin/fetch-metadata fence 用于降低跨站利用风险，不替代权限边界；
+- Electron renderer 使用 `nodeIntegration: false`、`contextIsolation: true`、
+  `sandbox: true`、CSP 和导航白名单；任意 `window.open`/外部导航阻断或交给系统；
+- Electron IPC 只开放最小 typed capability 并校验 sender；插件不能读 Core Secret 或
+  任意路径；
 - 更新只走签名渠道；日志/遥测默认本地且脱敏，P0 不上传用户内容。
 
 #### 6.8.10 复用、二开和自研
@@ -1586,112 +1701,37 @@ manifest、restore staging、migration ledger、authority pointer、Legacy Archi
 和 fault-injection recovery journal。
 
 社区 Tauri/DSH Desktop 和 Electron wrapper 只借鉴 sidecar 打包、随机端口、ready
-handshake、退出监督、renderer hardening 和发布测试；不继承其追 upstream latest、
-私有 patch、credential 存储、签名状态或 updater。正式环境不使用 `dsh plugin add`
+handshake、退出监督、renderer hardening 和发布测试；不继承其追 upstream latest、未经审计
+的私有 patch、credential 存储、签名状态或 updater。Hermit 自己携带的 source patch 必须
+由 ADR、许可证/notice、构建摘要、精确版本和双宿主资格单独约束。正式环境不使用 `dsh plugin add`
 作为发布门，也不使用明文 `dsh-credentials-local`。
 
 ### 6.9 UI 组件和 DSH 风格契约
 
-当前方向：已确认。Hermit 不另做一套“模仿 DSH”的设计系统，而是把官方 DSH
-Web/client 作为唯一视觉宿主；业务插件只在官方公开 seam 中补业务内容。
+当前方向：已确认。DSH Web/client 是 Product Plugin 的唯一视觉宿主；Hermit 不 fork
+或复制 App shell、Conversation、Session、Tool、Approval、Settings shell 和主题。若业务
+闭环被 pinned DSH 的公开面阻塞，Hermit 可以在自带 generation 中携带经过审计的最小 source
+patch 来补公开 Product Surface，不把该 patch 变成插件私有运行时依赖。
 
-#### 6.9.1 哪些界面直接交给 DSH
+长期不变量：
 
-以下区域保持官方 feature plugin 挂载，不 fork、不复制内部组件：
+- Product Plugin 只使用 stock 或 Hermit patched pinned DSH 暴露的公开 export、typed slot
+  和正式 Product Surface，不依赖私有源码、React Router、内部 store、DOM 或 CSS selector；
+- Product Plugin 与 DSH Host 共享唯一 React、ReactDOM 和平台模块，不能把第二份运行时
+  打入插件 bundle；
+- 初期只规划一个编译期共享包 `@hermit/ui`。它负责收敛经验证的 DSH 公共 UI 入口和通用
+  组件，不是运行时插件，也不拆成 `ui-patterns`、`ui-desktop` 等包；
+- 领域 UI 保留在各 Product Plugin，Desktop carrier UI 保留在
+  `apps/desktop-vnext`；两者不能借共享之名混入同一运行时边界；
+- DSH-mounted 样式直接使用 DSH semantic token，不复制主题数值、不建立 Hermit
+  ThemeProvider、品牌调色板或全局样式 fallback；
+- DSH 公共组件、图标和 token 只有经过真实 Host、打包、主题、交互和 React identity
+  验证后，才能从 `candidate` 变成业务可依赖的 `allowed` 接口。
 
-- App shell、layout、sidebar 和 navigation；
-- Conversation、Composer、Session/Workspace 列表；
-- Tool frame、call/result pairing 和通用内容渲染；
-- Approval、Model selection、Permission presets；
-- Settings modal、navigation 和 section shell。
-
-Product Plugin 通过官方 additive slot、keyed renderer 和 settings section 贡献内容，
-不能抢占 whole conversation/sidebar/settings owner。当前未确认到稳定的第三方
-top-level route API；如果 Hermit Core 需要 route registry，必须先在最终 pinned
-DSH commit 上做 type/API spike，不能依赖 React Router、私有 DOM 或内部 store。
-
-#### 6.9.2 允许依赖的官方公共面
-
-业务代码只能通过 `hermit/dsh-ui-adapter` 访问锁定 DSH 的公共 root 或 `/client`
-export。当前确认的直接复用候选包括：
-
-- `@deepseek-ai/dsh-client-ui-primitives`：Button、Input、Menu、Tooltip、Modal、Toast、
-  Pill、StateDot、Disclosure、HoverCard、风险确认、连接状态、Markdown/Code/JSON/
-  Diff/Search/Web/Terminal/Read Block、图标等；
-- `@deepseek-ai/dsh-client-ui-theme`：ThemeRuntime、主题变更和 semantic token；
-- `@deepseek-ai/dsh-client-ui-slots`：typed slot composition；
-- layout、sidebar、workspace、conversation、tool、settings、model selection、
-  permission presets 等包的公开 `/client` contract。
-
-禁止跨包 import `@deepseek-ai/**/src/*`、内部 `.tsx`、private CSS Module、class/id、
-store handle、React Router 或查询 DSH 宿主 DOM。即使 package export map 技术上能
-resolve，也不代表是受支持的公共 API。
-
-#### 6.9.3 Hermit 自己补哪些组件
-
-DSH 已公开的 primitive 不写视觉等价物。缺口按以下顺序处理：
-
-```text
-DSH public primitive
--> 原生 semantic HTML
--> 极薄 Hermit wrapper
--> 复杂键盘/focus 行为仍缺失时，按组件引入 Radix primitive
-```
-
-Hermit wrapper/自研范围：Textarea、简单 Select/Checkbox/Switch/Tabs/Popover 缺口，
-业务 List/Table/Toolbar/Search/Filter，Empty/Loading/Error/Permission/Plugin unavailable，
-Reminder editor、Import progress、Clipboard list/preview 和桌面设置页。Table 优先原生
-`<table>`；日期时间优先原生输入。Radix 只提供无视觉行为，藏在 wrapper 后，不
-成为第二套设计系统；React Aria 暂不与 Radix 同时引入。
-
-不引入 MUI、Ant Design、Mantine 或 shadcn 作为 UI foundation。shadcn 最多是
-一次性源码结构参考，不能带入默认视觉、主题变量或 Tailwind 依赖。
-
-#### 6.9.4 样式、主题、图标和 React
-
-- 新 DSH-mounted UI 使用 CSS Modules + `clsx`，消费官方 `--dsw-alias-*` semantic
-  token；不复制 token 数值或维护 Hermit 品牌调色板；
-- 允许一个极薄 token adapter 只做名称隔离，例如把 Hermit 变量映射到 DSH token；
-  不能调用全局 `overrideTokens()` 给 DSH 换肤；
-- 新 Product Plugin UI 不使用 Tailwind，也不能让 Tailwind preflight/global reset
-  进入 DSH document。当前旧 `apps/desktop` 的 Tailwind 代码只作迁移期遗留，按
-  功能替换后退出，不做一次性无关重写；
-- 图标优先使用 DSH primitives 的官方 icon aggregate；只有语义确实缺失时才经
-  `HermitIcon` adapter 使用 Lucide fallback；
-- 不创建 Hermit ThemeProvider 或密度开关；light/dark/system、控件尺寸和交互密度
-  由 DSH host/primitives 决定；
-- Product Plugin 必须共享 DSH Web 提供的唯一 React/ReactDOM identity，不能再
-  打包第二份 React。当前 pinned DSH 使用 React 18.2，Hermit vNext 随宿主使用
-  18.2；以后只随完整 DSH generation 升级。旧 `apps/desktop` 的 React 19 不进入
-  目标 DSH-mounted bundle。
-
-#### 6.9.5 专业组件怎样接入
-
-- 真正需要周/月/拖拽日历时使用 FullCalendar Standard，封装在
-  `HermitCalendar` 后；不用 Premium，不沿用独立视觉主题，toolbar 使用 DSH
-  Button/Menu，局部 CSS 映射 DSH token；
-- PDF 使用 `pdfjs-dist` 的渲染能力，但 toolbar、loading、error、empty 和页面 chrome
-  由 DSH/Hermit wrapper 提供，不照搬 Firefox viewer；
-- 专业库 API 不能散落在业务页面，必须经 adapter；普通提醒表单不为显示日期而
-  加载整个 FullCalendar。
-
-#### 6.9.6 无障碍、升级和验收
-
-- native semantic HTML 优先；复杂控件验证 label/error relationship、Tab/Shift+Tab、
-  Enter/Space、方向键、Escape、outside click、focus placement/return、reduced motion；
-- UI 不依赖 DSH sidebar/column 的固定 DOM 或宽度，使用自己的 flex/grid/minmax/
-  overflow；overlay 单独验证 portal、z-index 和 focus；
-- 每次 DSH bump 先 diff package exports、公开 type import、slot inventory、
-  `exportInspectTokens()`、React identity，再允许视觉 baseline 更新；
-- 建立 DSH Component Inventory 页面，覆盖所有 wrapper 的 default/hover/focus/
-  disabled/loading/error/empty/long-text，在 light/dark/system、200% zoom 和长本地化
-  文案下截图；
-- 自动测试至少覆盖 Chromium/WebKit，正式 release 还必须在 Windows WebView2、
-  macOS WKWebView、Linux WebKitGTK 的真实 Tauri 中通过键盘、IME、drag/drop、
-  overlay 和关键页面 smoke；
-- CI 要求 DSH-mounted Product Plugin 中 React runtime 数量为 1，Tailwind class、
-  `@deepseek-ai/**/src/*`、DSH private selector 依赖均为 0；MUI/AntD/Mantine/shadcn
-  不进入 production dependency tree。
+页面结构、组件归属、样式规则和新组件创建流程以
+[Product Plugin UI 与组件创建规范](../../plugins/ui-guidelines.md)为准；首轮候选、资格拓扑
+和退出条件以 [UI foundation 资格方案](ui-foundation-qualification.md)为准。资格通过前不
+创建空的 `packages/ui/`，也不把候选组件名写成已经稳定的 allowlist。
 
 ## 7. 暂时不做
 
@@ -1793,6 +1833,14 @@ authority pointer 已提交为 DSH + epoch N
 
 ## 9. 页面与状态原型索引
 
+本节负责产品范围和页面覆盖，不作为高频变化的插件交互设计文档。三个 Product Plugin
+的当前信息架构、核心流程、低保真原型和待确认问题分别由
+[Personal Organizer DESIGN](../../plugins/organizer/DESIGN.md)、
+[File Workspace DESIGN](../../plugins/file-workspace/DESIGN.md)和
+[Smart Clipboard DESIGN](../../plugins/smart-clipboard/DESIGN.md)负责。Core 需求负责
+产品范围、数据归属、跨域安全和验收红线；各插件 DESIGN 负责已确认的功能、页面、交互、
+默认设置和插件内数据操作，不在 Core 需求中复制第二套高频变化事实。
+
 ### 9.1 完整页面树
 
 ```text
@@ -1820,23 +1868,21 @@ Hermit Core
 |   |-- 更新
 |   `-- 诊断与恢复
 |-- Tier 1 DSH Safe Profile
-`-- Tier 0 Rust Native Rescue
+`-- Tier 0 Electron Recovery
 
 Personal Organizer（安装后）
-|-- 今天
-|-- 收件箱
-|   `-- 整理为 Note / Todo / Event
-|-- 待办
-|   |-- 列表 / 筛选
-|   |-- 详情 / 编辑 / Checklist
-|   `-- 完成 / 取消 / 恢复
-|-- 日程
-|   |-- 周视图 / 列表视图
-|   `-- 详情 / 编辑 / 取消
-|-- 笔记
-|   |-- 列表 / 搜索
-|   `-- 详情 / 编辑 / 归档
-|-- 提醒中心
+|-- 个人事项（默认工作面）
+|   |-- 近期 Event
+|   |-- 全部未完成 Todo
+|   `-- 最近 Note（默认收起）
+|-- 查看
+|   |-- Items：Note / Todo / Event 列表与筛选
+|   |-- Today：逾期 / 今天待办 / 今天日程 / 今天提醒
+|   `-- Calendar：周视图 / 列表视图
+|-- 右侧抽屉
+|   |-- 详情 / 新建 / 编辑
+|   `-- Note 明确改为 Todo / Event
+|-- 提醒中心（有待处理状态时出现）
 |   |-- 待处理 / 即将到来 / 已处理
 |   `-- 打开 / 稍后 / 忽略
 |-- 搜索
@@ -1847,36 +1893,22 @@ Personal Organizer（安装后）
     `-- JSON / CSV / ICS 导出
 
 File Workspace（安装后）
-|-- 概览
-|   |-- 最近 / 收藏 / 需处理
-|   `-- 全局导入进度
-|-- 文件库
-|   |-- 全部 / 处理中 / 需处理 / 收藏
-|   `-- 文件详情
-|       |-- 安全预览 / locator 跳转
-|       |-- 标签 / 集合 / 收藏
-|       |-- 所在位置（主动展开）
-|       `-- 重新解析 / 打开 / 导出 / 移除
-|-- 集合与标签
-|-- 文件搜索
-|-- 无法读取 / 重新定位 smart view
-|-- 垃圾箱
-|   `-- 恢复 / 永久删除
-`-- 导入
-    |-- 保留原位置 / 复制到 Hermit
-    |-- 批次预检 / 重复处理
-    `-- 进度 / 取消 / 恢复 / 失败报告
+|-- Product Surface 中的单一文件工作区：统一文件树 + 当前文件编辑/查看
+|-- 快速记事 / 新建一条 -> 固定文件夹中的 managed Markdown
+|-- 添加文件：首版任意普通文件 managed copy；external 语义长期保留
+|-- 文件夹名与文件名过滤
+|-- projection-backed @文件
+`-- managed Trash / external 从工作区移除
 
 Smart Clipboard（安装后）
-|-- 首次启用隐私页
 |-- Quick Panel 剪贴板模式
 |-- 完整历史
 |   |-- 最近 / 置顶 / 类型筛选 / 本地搜索
 |   `-- 预览 / 复制 / 粘贴 / 编辑副本 / Trash
 |-- 垃圾箱 / 清空确认
-`-- 隐私与数据设置
-    |-- 记录 / 暂停 / 锁屏
-    |-- 排除应用 / 敏感预览
+`-- 记录与数据设置
+    |-- 记录状态 / 暂停 / 忽略下一次
+    |-- 排除应用 / 类型
     |-- 保留额度
     `-- 导出 / 清空 / 删除插件数据
 
@@ -1907,7 +1939,8 @@ permission denied、plugin unavailable。状态文案不能暴露内部堆栈或
 |                         [重新启用 / 安装]     |
 ```
 
-导入预览和 Trash 使用同一套明确的“影响范围 + 可撤销性”结构：
+导入预览和 Trash 使用同一套明确的“影响范围 + 可撤销性”结构；具体失败是否整批回滚
+由各插件的 Canonical 提交规则决定，File Workspace 按单文件原子提交并保留已完成项：
 
 ```text
 | 导入预览 / 删除确认                           |
@@ -1917,7 +1950,7 @@ permission denied、plugin unavailable。状态文案不能暴露内部堆栈或
 | 不支持         3 条                 [查看]    |
 | 预计占用     48 MB                            |
 |                                               |
-| 失败时：整批不提交 / 已完成文件保持可解释     |
+| 失败时：按当前插件规则回滚或保留已完成项      |
 | [取消]                         [确认并继续]   |
 ```
 
@@ -1929,7 +1962,7 @@ permission denied、plugin unavailable。状态文案不能暴露内部堆栈或
 2. Product Plugin 平台与安装/禁用/卸载；
 3. 主窗口、Quick Panel、Tray 和 Shortcuts；
 4. Personal Organizer；
-5. File Workspace 与全文搜索/BM25；
+5. File Workspace 轻量文件工作面；
 6. Federated Search；
 7. Smart Clipboard；
 8. Settings、权限、Diagnostics、Update 和 Recovery；
@@ -1955,11 +1988,11 @@ Web GPT 原始资料调研
   Settings、插件管理、诊断、更新、备份/恢复和 Safe Mode；
 - Windows/macOS 正式进程树中 Hermit-owned Go process 为 0，安装、启动、恢复、
   Legacy Archive 查看都不依赖 Go runtime；
-- release manifest 能离线验证 Tauri/Rust、Node binary、DSH commit、全部
+- release manifest 能离线验证 Electron、Node binary、DSH commit、全部
   `@deepseek-ai` 包、lockfile、native addon、Web assets、SBOM 和兼容矩阵 hash；
 - 生产解析图中出现 `latest`、`next` 或版本范围则发布失败；
-- 本地服务只监听随机 `127.0.0.1` 端口；缺 runtime capability token、错误 Origin/
-  Host 或错误 workspace scope 的请求全部拒绝；WebView CSP 和导航白名单自动回归；
+- 本地服务只监听随机 `127.0.0.1` 端口；错误 Origin/Host/fetch metadata 的浏览器
+  请求拒绝；随机端口不作为认证；Electron CSP、导航白名单和 IPC sender 自动回归；
 - Core-only 冷启动定义为“无 Hermit 进程到 Conversation composer/Session list
   可交互”，固定基准机每平台至少 30 次，p95 不超过 3 秒、p99 不超过 4 秒；
 - Quick Panel 从全局快捷键事件到首帧可交互，100 次 warm p95 不超过 300ms、
@@ -1989,11 +2022,13 @@ Web GPT 原始资料调研
 
 - Product Plugin 静态扫描不得出现 `ctx.llm`、模型 SDK、模型 Key 或第二套聊天；
 - 没有当前真实 DSH Session/turn 的业务 AI 操作全部拒绝；
-- 本轮 `@` 不自动预读；没有成功 durable Tool Result，模型和 UI 不能声称读过；
+- 本轮 `@` 不自动把正文交给模型；File Workspace 在用户明确选择时准备 projection 也不
+  产生 grant 或 Tool Result。没有成功 durable Tool Result，模型和 UI 不能声称读过；
 - Composer 插入 `@` 但未发送时没有 grant；删除引用、丢弃草稿或切换 Session
   后不能读取，只有真实 user turn 提交才签发本轮 grant；
-- 历史 Ref 不自动刷新；重新 `@` 才能绑定当前版本；Provider 卸载后旧结果仍由
-  Core 通用卡片显示，新读取返回 unavailable；
+- 历史 Ref 不自动刷新；File Workspace 发送/read 使用选择时捕获的 projection，只有移除
+  并重新指定才绑定新的已保存 revision；Provider 卸载后旧结果仍由 Core 通用卡片显示，
+  新读取返回 unavailable；
 - Resource projection 不含 raw internal schema、Secret、绝对路径或未授权正文；
 - Session A/connection A 的 Approval 不能给 Session B/其他连接使用；rejected、
   cancelled、unavailable 全部不执行；
@@ -2008,59 +2043,152 @@ Web GPT 原始资料调研
 
 - 移除所有模型和 File Workspace 后，手工 Note/Todo/Event CRUD、Today、提醒、
   搜索、Trash、导入导出仍完整；
-- Quick Panel 只创建一个 `kind=null、triage_state=inbox` 记录，原文逐字一致；
-  整理为正式类型前后 item ID 不变，原文和转换历史保留；
+- 明确 query 的 Local/Federated Organizer 搜索都能命中所有非 Trash 生命周期状态，终态
+  清楚标记且打开不自动恢复；Trash item 只在 Trash scoped search 中可见，进入/恢复/
+  永久删除后 stale ref 和索引范围按当前 Canonical 状态收敛；
+- Organizer 搜索时间始终带类型语义，终态不抹掉原业务时间，date-only/all-day 不制造
+  00:00；Local 与 Federated 组内默认排序都以文本相关性为主，并以 lifecycle、updated_at
+  和稳定 ID 确定性收敛，最近编辑不得推翻明显的相关性差异；
+- Personal Organizer Skill 能明确识别完成语义时创建 Todo，能明确识别时间占用时
+  创建 Event，其余输入创建 Note；不存在无类型记录或待整理队列；
+- 用户在右侧抽屉把 Note 改为 Todo 或 Event 时 item ID 不变，正文、标签、Reminder、
+  来源、原始输入和类型变更历史保留；Skill 不静默改变已保存事项的类型；
+- Note → Event 不得从正文推断或默认生成时间事实、隐式解除归档或重新解释已有 Reminder；
+  只有 active Note 在用户明确补齐目标 Event 时间形态后才能以同一 ID 原子转换；
+- Note 生命周期与类型转换必须分离：只有 active Note 可转 Todo/Event；archived Note
+  必须先显式恢复，转换不得隐式解除归档或与恢复合成隐藏副作用；
+- Todo 自然语言日期解析必须区分“日期值可解析”和“start/due 角色已表达”。信息不足或
+  日期关系非法不得阻塞已足够明确的 Todo 创建，也不得产生默认日期、非法组合或待补全
+  领域状态；Today 只使用已持久化的日期事实；
+- Todo 相对 Reminder 只有在锚点角色和可调度时刻都唯一时才能持久化；普通“提前 X”在
+  只有一个 start/due 时使用唯一锚点，同时有两个时不得建立隐藏优先级。date-only 不提供
+  隐含钟点；已有相对 Rule 随合法锚点修改原子重算；
+- 一次性相对 Reminder 的去重范围是同一 nominal Occurrence：新的未来 nominal time 可
+  产生新实例，同一已消费 nominal time 不得因改期往返、revision 或重启再次投递；旧
+  fired/dismissed/snoozed 历史不可改写；
+- 显式移除 Reminder 后 Rule 进入不可恢复终态并永久停止生成未来 Occurrence，既有历史
+  保持可解释；重新创建相同 Reminder 必须使用新 Rule 身份，不能复用旧 Rule 或让旧去重
+  历史抑制新的明确用户意图；
+- 同一 item 的 active Reminder Rule 满足确定性的 Canonical exact-duplicate 唯一性；不同
+  调用、user turn 和并发写入不得产生语义完全相同的第二条 active Rule，重复请求不得
+  增加 revision、Occurrence 或系统通知；
+- 同一 item 的不同 Rule 在同一 exact effective fire instant 触发时保留独立 Occurrence，
+  Reminder Center/Today 按渠道显示一个带多个原因的聚合项，同一系统通知渠道只投递一次；
+  聚合动作必须可追溯地更新各自 Occurrence，重启不得重复投递；
+- 同一 repeating Rule 的旧 snooze 等于或越过下一 actual nominal instant 时，由下一正常
+  Occurrence 接替并停止旧实例未来投递；旧历史保持可解释，睡眠/重启跨过 cutoff 后不得
+  补发旧 snooze，也不得改写下一实例或 Rule recurrence；
+- 只有开始时间的 Event 以 `end` 未指定保存并正常进入 Calendar；不得追问、默认时长、
+  写成 `start=end` 或改存 Note，Calendar 展示尺寸不得写回业务数据；
+- 只有日期的明确 Event 以 date-only 保存，不追问、不假设全天或午夜；在 Calendar 和
+  Today 显示但不参与时间段冲突，JSON round-trip 必须保留该时间形态；
+- all-day 只由用户明确的全天时间范围或可信导入语义产生，不根据标题推断；它与 date-only
+  在 Calendar、Today、冲突和导出语义中保持可区分，也不自动产生午夜 Reminder；
+- Event 信息完整、Reminder 缺少可调度时刻的复合指令先保存 Event，并明确反馈部分成功；
+  用户补充前不存在 Reminder Rule、Occurrence、系统通知或待补全领域状态。补充后附着
+  Reminder 失败不得回滚 Event，使用独立幂等键重试时不得重复创建 Rule；
+- date-only 或 all-day Event 的“提前一天”等相对日期表达在缺少具体钟点时仍不能创建
+  Reminder Rule，不得暗中补 00:00、固定默认时刻或不可解释的调度时刻；Today 和 Reminder
+  Center 在用户补全并持久化 Rule 前不得显示对应 Reminder；
+- timed Event 的精确“提前 X”在未限定锚点时统一锚定 start，interval 与 start-only 的
+  结果一致；解析为未来时刻时不追问并只创建一个 Rule，解析结果已经过去时不创建、补偿、
+  立即触发或擅自改变偏移，Event 保持不变；
+- absolute Reminder 在 Event 改期后保持固定；start-relative Reminder 保留相对关系并
+  随 start 重算。Event、Rule、Occurrence 原子提交，锚点失效、重算到过去或 revision
+  conflict 时不得留下部分更新、静默转换、静默删除或立即补发；
+- Today 不得提供一个跨不同业务对象却产生不同 Canonical 副作用的通用动作。Todo/Event
+  的日期变化必须由用户明确编辑时间事实；Reminder snooze 仅作用于当前 Occurrence；
 - Reminder daily/weekly/monthly/weekdays 连续 20 次计算正确；DST 跳时、重复时、
   每月 31 日、换时区、睡眠跨多次触发都符合 6.2.4；
 - 相同 `ruleId + nominalFireAt + timezone` 在重启/唤醒/crash replay 后只产生一个
   Occurrence；主动停用期间不补发，系统睡眠/崩溃按 missed 规则；
 - 通知权限拒绝或投递失败时提醒仍进入应用内中心；重复点击通知动作只执行一次；
 - UI 与 AI 使用旧 revision 写入时返回冲突，不覆盖最新版本；
+- 当前右侧抽屉存在未保存草稿时，任何会销毁该编辑上下文的用户主动动作不得静默丢弃或
+  隐式提交草稿。revision conflict 必须保留本地输入并展示最新安全版本，不自动覆盖、
+  字段级合并或清除草稿；未保存草稿不作为 P0 持久化或崩溃恢复数据；
+- 编辑目标已进入 Trash 或永久删除时，普通保存不得隐式复活、覆盖删除语义或自动创建
+  副本。恢复原 item 和从草稿创建新 item 都必须是用户明确选择的独立写操作；新 item
+  使用新 ID，不继承原 Reminder、revision 历史或身份，也不改写历史 `@Ref`；
 - JSON round-trip 保留 ID、状态、提醒、标签、清单和 opaque ref；ICS 不支持的
   重复语义在预览中拦住；整批导入任一条失败不留下前半批数据。
 
 ### 10.5 File Workspace 和 Federated Search
 
-- external 文件经过导入、打标签、Trash、恢复、重解析、移除、卸载后，原 path/
-  identity/hash/mtime 不被 Hermit 修改；
-- managed copy/hash/fsync/rename/DB commit 各阶段强制崩溃后，不出现可见记录指向
-  半文件，也不覆盖用户同名文件；
-- symlink 指向系统根、用户目录、DSH/Hermit 私有目录时被跳过且不读取；
-- ZIP bomb、traversal、宏/OLE/external relationship、XXE、恶意 PDF/HTML/图片使
-  parser 单文件失败，0 网络、0 宿主越权写、Core 不崩；
-- external 变化后旧 index 不再作为当前结果，preview 明确 stale，当前 `@` 必须
-  重新解析；relink 保持 file ID，hash 不同必须让用户确认；
-- 10 万 chunks + 1 万 Organizer items、本地 warm index/top20，搜索 p95 不超过
-  500ms、p99 不超过 1 秒；中文 200+ 标注查询单独验证一至二字和三字以上路径；
-- 搜索命中能定位正确 PDF 页、DOCX 段、XLSX sheet/range、PPTX slide；
+- File Workspace 缺少、停用或 Product Surface v1 契约不兼容时明确拒绝激活；File Workspace
+  失效不影响 Core 和其他插件，也不删除文件数据；
+- File Workspace 生产包只消费 DSH/Hermit 经过资格验证的公开 package、typed slot 和
+  service，内部 `src/*`、store、DOM/CSS 和私有 Host 路由依赖数量为 0；
+- File Workspace 只呈现一个“统一文件树 + 当前文件编辑/查看”工作面；不存在独立 Library、
+  Dashboard、快速记事页、文件详情、安全预览或 Needs Attention 页面；
+- 快速记事原子创建正文为空的 managed Markdown 和 FileRecord，不插入默认文字；失败不
+  留下空记录或半文件。它不绑定 Session，从任意 Session 关闭后重开仍是同一 FileRecord
+  和正文；
+- 根层级始终只有一个固定“快速记事”文件夹，空时也保留；文件夹本身不能重命名、移动、
+  Trash 或永久删除，其中的普通文件仍可移动、Trash、恢复和永久删除。普通文件夹也只在
+  根层创建，首版不支持重命名、嵌套、移动或文件夹 Trash；
+- 具备编辑能力的 managed 文件输入后自动保存并产生 revision；通用文件信息区不显示保存
+  状态。external 只在用户明确保存时写回，原件已变化时停止保存且不覆盖；未保存内容、
+  保存失败和离开保护符合 6.3.4；
+- 添加文件默认“复制到 Hermit”；首版任意普通文件均可纳管，同批可多选但不接受文件夹
+  或递归扫描，默认目标是当前工作区文件夹并可在确认界面就地更改；external 入口待契约
+  资格通过后再显示；
+- 没有已资格通过 Editor/Viewer 的格式只显示可靠文件信息并说明当前不能预览或编辑；
+  “可添加”不能被解释成所有格式都可编辑、预览、解析或用于 AI；
+- 同名冲突不静默处理，只提供替换或跳过；替换保留现有 FileRecord 并增加 revision。
+  “全部跳过”和“对其余冲突执行相同操作”不影响没有冲突的文件；
+- 单文件复制或 external 登记必须原子提交；取消只停止未处理项，已完成项保留，失败结果
+  可单独重试，不留下半个 ManagedBlob/FileRecord/revision，也不自动打开添加结果；
+- external 文件经过添加、打开、工作区移动、单文件移除、插件停用
+  或卸载后，原 path/identity/hash/mtime 不被 Hermit 修改；只有用户明确保存且无冲突时才写回；
+- File Workspace 工作面内搜索只按文件夹名和文件名过滤，正文不进入插件自有搜索或索引；
+  正文结果只能由 Core Federated Search 工作面提供，未完成安全材料契约前允许文件正文组
+  缺席，不得用名称命中冒充正文命中；
+- 用户选择 `@文件` 时只从最后成功保存的 revision 生成 projection；未保存内容不进入，
+  发送和 read 时不自动刷新。只有移除并重新指定才生成新 projection；projection 不可用时
+  不插入引用，官方 read 成功写入 Tool Result 后才算模型已经读取；
+- missing、permission denied、password required、unsupported、parse failed、stale 等不
+  作为文件树常驻徽标；执行相关动作时才显示准确原因，不能静默 fallback；
+- managed 文件可进入 Hermit Trash；普通文件夹不进入 Trash，只能在为空时直接删除。单个
+  external 只“从工作区移除”，不进入 Trash，任何删除/清空都不触碰磁盘原件；
+- 恢复优先原工作区位置，原父位置不存在则根目录，同名自动生成“（已恢复）”唯一名称且
+  不覆盖；永久删除/清空明确确认，P0 无自动清理、期限、批量恢复、全局 Undo 或 OS Trash；
 - Federated Provider 超过 3 秒只让自己组显示超时，其他组正常；执行前后没有新
   建中央结果/query content 数据库；
-- external Trash/purge 从不删原件，managed 最后一个记录 purge 才删除共享 blob。
+- Core Federated Search 停用或 File Provider 尚未实现正文契约时，不影响 File Workspace
+  浏览、名称过滤、编辑、快速记事、添加、`@文件` 和 Trash 闭环。
 
 ### 10.6 Smart Clipboard
 
-- 用户点“开始记录”前复制 100 次，DB/FTS/blob payload 仍为 0；
-- 锁屏立即关闭 UI、暂停捕获并撤销未读 AI ref；插件停用/崩溃后 Quick Panel
-  模式消失，Core 正常；
-- HTML/RTF 只能产生安全文本且 0 网络，数据库无 raw HTML；畸形/超大图片不
-  造成 Host/UI 崩溃或超额内存；
-- 强隐私 marker 和排除应用连续复制的测试正文在 DB、blob、FTS、诊断日志均为 0；
+- 插件进入 ACTIVE 后复制的受支持内容进入本地历史；暂停、停用或崩溃期间的新内容
+  不进入 DB/FTS/blob，恢复后也不回补；
+- 插件停用/崩溃后专用快速取回入口和后台捕获一起消失，Core 正常；
+- 用户确认的 Smart Clipboard 专用快捷键可以在其他应用上直接呼出快速取回工作面，
+  搜索和执行不要求先打开 DSH 主窗口；插件停用时该快捷键先注销；
+- Windows/macOS 系统锁屏时快速取回浮层关闭且内容不可查看；插件保持原有 ACTIVE/
+  Paused 状态，ACTIVE 捕获继续，解锁后不自动重开浮层；
+- HTML/RTF 可以完成受控格式化回放和无格式粘贴，但预览/搜索只使用安全文本，
+  处理过程 0 网络、0 脚本/事件执行；畸形/超大图片不造成 Host/UI 崩溃或超额内存；
+- transient、concealed、auto-generated 等明确 exclusion marker、排除应用和
+  “忽略下一次”正文在 DB、blob、FTS、诊断日志均为 0；
 - plain/HTML/RTF 的精确同文本最终只有一个 ID，置顶不丢；不同 kind 永不合并；
 - 从历史 Copy/Paste 不生成新记录；读取多格式期间 clipboard 被另一进程改变时
   不产生混合 Entry；
 - 自动粘贴无权限、目标失效、UIPI/Wayland 限制或 clipboard 被覆盖时不提权、
   不发错误按键，退回 copy-only；
 - P0 capability graph 中不存在 Clipboard Federated Search Provider；
+- 捕获、存储、索引、搜索、预览和历史管理链路没有网络 capability，网络观察中
+  clipboard payload 出站为 0；只有用户显式选择内容并发起 AI 动作后才交给 DSH；
 - Clipboard file ref 默认只返回安全元数据；未重新经过 Core filesystem broker/
   File Workspace 授权时正文不可读，File Workspace 缺失不影响 Clipboard 其他能力；
 - 一次性 AI ref 在指定 Session/turn/version 只读一次，换 Session/turn、删除或
   改版本后拒绝；read 前撤销不写正文，read 后删除 Entry 不影响既有 Tool Result；
-- 30 天/1,000 条/500 MiB 任一先到清最旧未置顶；只有置顶内容占满时停止新捕获
-  并提示，不静默删除或无界增长。
+- 历史保留、Trash、清空和导出行为符合插件 DESIGN 的当前规则；置顶内容不能被自动
+  删除，容量无法释放时停止新捕获并提示，不静默删除或无界增长。
 
 ### 10.7 更新、恢复和一次性迁移
 
-- Node/DSH/Core 坏时 Tier 0 Rust Native Rescue 仍可启动；坏 Product Plugin 或
+- Node/DSH/Core 坏时 Tier 0 Electron Recovery 仍可启动；坏 Product Plugin 或
   Tier 1 Safe Profile 不影响 Tier 0；
 - 下载、签名后、备份、schema migration、validation、候选启动、pointer 临时写、
   原子替换、首次启动和首次写入各阶段 fault injection 后，重启恰好有一个可解释
@@ -2085,23 +2213,25 @@ Web GPT 原始资料调研
 
 - Conversation、Composer、Session、Approval、Model、Permission、Settings shell
   没有 Hermit fork/reimplementation；
-- DSH 已有 Button/Input/Menu/Tooltip/Modal/Toast/content renderer 时，Hermit 没有
-  视觉等价物；
+- Product Plugin 只从 `@hermit/ui` 的 `allowed` 公共入口消费经验证的 DSH 能力；业务包
+  没有绕过该入口的私有 DSH import 或视觉等价物；
 - DSH-mounted UI 的 `@deepseek-ai/**/src/*`、private CSS/class/DOM selector、
   Tailwind class/global reset 数量均为 0；
-- Web client 只有一份与 pinned DSH 一致的 React runtime；当前不能把 React 19
-  打入 React 18.2 宿主页；
-- 新颜色和状态全部来自 DSH semantic token；light/dark/system、200% zoom、键盘、
-  长文、空/加载/错误/插件不可用全部进入 Component Inventory；
-- Radix 只在 public DSH primitive 和原生 HTML 都不能完成复杂行为时按组件引入；
-  shadcn、MUI、AntD、Mantine 不在生产依赖；
-- FullCalendar/PDF.js 由 Hermit adapter 隔离，外层控件与状态使用 DSH 风格；
+- Web client 只有一份与 DSH RC 兼容包一致的 React runtime；当前不能把其他 React
+  runtime 打入解析为 18.x 的宿主页；
+- 新颜色和状态全部来自 DSH semantic token；light/dark/system、200% zoom、键盘、长文、
+  empty/loading/error/plugin unavailable 在 Inventory 或真实 Product Plugin 中验收；
+- `@hermit/ui` 只有一个公共入口，领域组件和 Desktop UI 不进入该包；组件新增遵循
+  `candidate -> qualified -> allowed`，不以第二套通用 UI 库作为默认 fallback；
+- Component Inventory 和自动测试验证交互、可访问性、打包边界和 React 单实例，不锁
+  padding、颜色值、README 或大面积 UI snapshot；
 - DSH 更新必须先通过 exports、slot、token、React identity contract diff，再允许
   更新三平台视觉 baseline。
 
 ## 11. 模块确认状态
 
-当前模块：全部完成，终审 PASS。
+当前结论：模块 1 至模块 7 的长期产品边界已确认；最新产品变更后的详细设计和跨模块复核
+尚未完成，当前状态不是终审 `PASS`，也不表示 Product Plugin 已可进入实现。
 
 ### 11.1 已确认
 
@@ -2112,22 +2242,25 @@ Web GPT 原始资料调研
   分组显示；
 - Core 不理解各插件业务 Schema，候选查询和引用解析归对应 Provider；
 - P0 不新增 `@file/@todo/@session` 等硬语法；
-- 业务资源采用 Live Reference，不额外保存 model-step evidence snapshot；
-- 历史 `@Ref` 不允许自动刷新；只有用户在当前消息再次 `@`，才允许读取最新
-  版本；
+- 结构化业务资源默认采用 Live Reference；File Workspace 在选择时捕获最近成功保存
+  revision 的临时 projection，不额外保存 model-step evidence snapshot；
+- 历史 `@Ref` 不允许自动刷新；File Workspace 只有移除并重新指定文件才捕获新的已保存
+  revision，其他 Provider 只有用户在当前消息再次 `@` 才允许读取最新版本；
 - 资源实际读取结果使用 DSH Tool Result 记录，后续源数据变化不修改旧结果；
 - Core 不自动预读 `@Ref`；模型必须按需显式调用读取 Tool，没有成功结果就
   不能声称看过正文；
 - 结构化业务资源统一使用 Core `resource_read(ref)`；Core 只路由和执行通用
   读取边界，Provider 负责权限、查询和 AI-safe projection；
-- File 继续使用官方 `read`；搜索和修改继续使用插件自己的业务 Tool；
+- File 继续使用官方 `read` 读取选择时捕获的 projection；File Workspace 内只做名称过滤，
+  正文和跨插件搜索由 Core Federated Search 发起，文件修改仍不走通用读取 Tool；
 - 业务页面不保存或复制 AI 回答正文；
 - P0 暂不开发 Quick Panel Conversation；
 - 正式环境只能通过 Package Gate 修改，开发环境与正式环境分开；
 - 插件的界面、数据逻辑、Tool、搜索和后台任务作为同一个完整版本切换；
 - 新版本必须先在旁边完整安装并真实试启动，全部成功后才替换旧版本；
 - 版本、来源、完整性和依赖必须精确锁定，不使用 `latest` 或版本范围；
-- 可选业务插件只硬依赖 Core，彼此只能做“有就合作、没有就跳过”的可选集成；
+- 可选业务插件默认只硬依赖 Core；File Workspace 通过已资格通过的 Hermit Product
+  Surface 公共契约进入 DSH，不依赖另一个业务插件；
 - 未达到官方信任标准的社区代码不能直接进入正式 Core Host；
 - 停用先拒绝新调用、撤下入口，再取消任务和停止后台活动；
 - 卸载默认只删除代码和缓存，保留用户业务数据，删除数据必须单独确认；
@@ -2144,9 +2277,10 @@ Web GPT 原始资料调研
   Core 统一注册；
 - 开机启动和后台暂停都由 Core 管理，插件不能各自创建常驻入口；
 - 可选插件不是 Core 启动条件，失效时一次撤掉导航、小窗口、Tray 和快捷键贡献；
-- Personal Organizer 长期内容只有 Note/Todo/Event，Inbox 是暂存态，Reminder
-  是挂在内容上的时间规则；
-- Inbox 整理时保持同一 ID 和原始捕获文本，不复制内容或打断历史引用；
+- Personal Organizer 长期内容只有 Note/Todo/Event，不保留 Inbox 或无类型暂存态；
+  Reminder 是挂在内容上的时间规则；
+- 无法明确判断为 Todo 或 Event 的输入直接成为 Note；用户把 Note 明确改为 Todo 或
+  Event 时保持同一 ID、内容、提醒和历史，不复制内容或打断引用；
 - P0 支持简单重复提醒，不支持重复 Todo/Event、cron 和完整 RRULE；
 - 系统通知失败不丢提醒，启动/唤醒/重启后从 SQLite 恢复调度；
 - 插件没有 AI、网络、File Workspace 或通知权限时仍能手工完整使用；
@@ -2154,41 +2288,52 @@ Web GPT 原始资料调研
 - JSON 是无损格式，CSV/ICS 只作有限互操作，导入必须先预览再整批提交；
 - Personal Organizer 没有可靠的成熟 DSH 社区插件可直接复用；日历、日期和
   SQLite 基础库可复用，领域模型、提醒和 DSH 适配自研；
-- File Workspace 默认只链接和索引外部原文件，用户明确选择后才复制到 Hermit；
-- FileRecord/用户组织数据和 managed blob 是 Canonical，解析文本、缩略图和 FTS
-  索引都可重建；外部绝对路径只进私密 SecretLocator；
-- P0 解析文本、Markdown、HTML、PDF 和无宏 OOXML；图片只做安全缩略图；压缩包、
-  音视频、旧/宏 Office 和密码文件只登记；
-- 所有复杂 parser 进入无网络、限资源的独立进程，单文件失败不影响插件和 Core；
-- File Search P0 使用 FTS5/BM25 并保留页、段、Sheet/Cell、Slide locator，中文
-  一至二字查询必须单独 benchmark；
-- 非文本文件由 File Workspace 生成当前版本的安全 UTF-8 projection，再交给 DSH
-  官方 read；成功 durable Tool Result 前不算 AI 已读取；
-- AI P0 只能搜索、读元数据和修改可撤销的标签/集合/收藏，不得导入、重解析、
-  删除、重新定位、导出或操作任意路径；
-- external Trash/purge 永不删除原文件；managed blob 只有最后一个引用删除时清理；
+- File Workspace 添加现有文件默认“复制到 Hermit”，创建 managed 副本；首版接受任意普通
+  文件但不接受文件夹，external 长期语义继续保留，用户入口待契约资格通过后再显示；
+- FileRecord、ManagedBlob、SecretLocator、revision、projection 和正文搜索派生物各自负责
+  不同事实；外部绝对路径只进入私密 SecretLocator，工作区文件夹不代表磁盘目录；
+- File Workspace 只有一个“统一文件树 + 当前文件编辑/查看”工作面，不建设独立文件库壳、
+  快速记事页、文件详情、安全预览、分类、标签、收藏或 Needs Attention；
+- 快速记事直接创建正文为空的 managed Markdown，不写入标题、模板、提示或示例文字，
+  不建立另一份 Note 正文，也不属于 Session；根层固定“快速记事”文件夹不可重命名、移动
+  或删除，其中的文件仍按普通 managed 文件管理；
+- P0 第一条切片验证任意普通文件的 managed copy、组织和生命周期；Markdown 编辑作为下一
+  条切片单独验收。其他格式没有已资格通过的能力时只显示通用文件信息，不扩展 OCR、
+  PDF/Office 全格式解析、云盘、富文本副本或复杂文件管理；
+- File Workspace 内只按文件夹名和文件名过滤；正文和跨插件检索属于 Core Federated
+  Search，当前切片不预建 File Workspace 正文索引或用名称命中冒充正文结果；
+- 选择 `@文件` 时从最后成功保存的 revision 捕获 projection；未保存内容不进入，发送和
+  read 不自动刷新，只有移除并重新指定才捕获新 revision；成功 Tool Result 前不算 AI 已读；
+- AI P0 不得导入、分类、修改、移动、Trash、恢复、永久删除文件或操作任意路径；
+- managed 文件进入 Hermit Trash 并可恢复；普通文件夹不进入 Trash，单个 external 只从
+  工作区移除；任何删除、清空或插件卸载都不删除或移动 external 磁盘原文件；
 - Federated Search 按来源分组，不复制数据、不比较跨源分数、不使用 AI 总结；
   某个 Provider 超时、崩溃或卸载只影响自己的结果组；
-- 当前 DSH 社区 File/KB 插件均未达到直接依赖门槛；成熟解析/监视基础库可复用，
-  文件领域模型、安全边界、Resource adapter 和联邦搜索自研；
-- Smart Clipboard 新安装默认不捕获，用户明确开启后才开始；锁屏、停用期间不回补；
-- P0 只保存安全纯文本、规范化图片和文件引用，不保存 raw HTML/RTF 或未知对象；
-- 高可信隐私 marker 直接跳过，应用排除和 MASKED 内容不进入正文 FTS；
+- Hermit Product Surface v1 是 File Workspace 的唯一 UI 宿主；它不拥有 FileRecord、
+  managed/external、索引或 Trash。当前不引入社区 File/KB 或辅助栏插件作为运行时依赖；
+- Smart Clipboard 安装并进入 ACTIVE 后默认捕获；暂停、停用或崩溃期间不记录，
+  恢复后不回补；
+- P0 保存精确纯文本、受控 HTML/RTF 格式表示、规范化图片和文件引用，不保存未知对象；
+- transient、concealed、auto-generated 等明确 exclusion marker 直接跳过；插件不做
+  内容敏感度启发式分类或 `MASKED/Reveal`；
 - 自动粘贴是可降级便利能力，失败时可靠退回“已复制，请手动粘贴”；
 - P0 不注册 Clipboard Federated Search Provider，AI 不能列出或搜索完整历史；
 - AI 只能读取用户明确选择的单条、当前 Session/本轮一次性引用；成功 Tool Result
   留在会话后，删除 ClipboardEntry 不会删除会话历史；
-- 默认 30 天/1,000 条/500 MiB，置顶不自动删；全是置顶且满额时停止捕获并提示；
+- 捕获、索引、搜索和历史管理没有网络能力；只有用户显式发起 AI 动作时，所选内容
+  才能交给 DSH；
+- 历史保留、Trash、清空和导出采用 Smart Clipboard DESIGN 的当前规则；置顶不自动
+  删除，容量无法释放时停止捕获并提示；
 - P0 使用 OS 私有数据目录和严格权限，不自建静态加密或宣称 Vault；
 - Maccy 仅选择性复用 macOS 原生桥接逻辑，不复用数据库、UI、Tray、快捷键或
   更新器；arboard/EcoPaste 可有限复用/二开，Canonical 数据和 DSH 边界自研；
-- 最终架构保留 Tauri/Rust 薄桌面壳，Node/TypeScript + DSH/Cordis 是 Core 和
-  插件运行时，目标进程树完全移除 Go；
-- Node 使用 Active LTS 线上经过全套验证的精确最新补丁，首个候选为 24.19.0，
-  与 DSH、lock、native addons 作为同一个签名 Core generation；
+- 最终架构采用 Electron 薄桌面壳，Node/TypeScript + DSH/Cordis 是 Core 和插件
+  运行时，目标进程树完全移除 Go；
+- Node 使用 Active LTS 线上经过全套验证的 24.x 兼容范围，与 DSH、lock、native addons
+  作为同一个签名 Core generation；
 - 正式凭据通过 OS Keychain/Credential Manager/Secret Service，禁用明文 local
   credential provider，Linux 凭据后端缺失时 fail closed；
-- Safe Mode 分为不依赖 Node/DSH 的 Rust Native Rescue 和 DSH Safe Profile；
+- Safe Mode 分为不依赖 Node/DSH 的 Electron recovery screen 和 DSH Safe Profile；
 - 代码 generation 与数据 generation 成对切换，不可逆 schema 产生新写入后不
   自动恢复旧 snapshot 或单独降级代码；
 - 迁移 rehearsal 可重复但不改旧权威；最终 authority pointer 只切一次，切换前
@@ -2199,15 +2344,39 @@ Web GPT 原始资料调研
   isolation capability 降级。
 - UI 采用 DSH 官方优先混合路线：官方 shell/Conversation/Settings/primitives/token
   直接复用，Hermit 只补业务 wrapper；新目标 UI 使用 CSS Modules，不使用 Tailwind；
-  React identity 随 pinned DSH，当前为 18.2。
+  React identity 随 DSH RC 兼容包，当前 compatibility lock 位于 18.x 范围。
 
-### 11.2 最终审查状态
+### 11.2 当前审查状态
 
-模块 1 至模块 7 已逐项完成，没有产品级分歧。跨模块终审发现的问题已经全部
-修订；最后一轮验收结果为 `PASS`、`PRODUCT_DECISION_NEEDED: NONE`、
-`REMAINING_BLOCKERS: NONE`、`REQUIRED_DOC_FIXES: NONE`。Core、Organizer、
-File、Clipboard 和任意插件拔除均为 PASS。本文档可以冻结，作为下一阶段原型、
-工程详细设计和迁移字段映射的唯一主需求。
+模块 1 至模块 7 在上一轮规则下完成过跨模块终审，历史结果为 `PASS`。2026-08-27 至
+2026-08-28 用户随后确认了新的产品方向：
+
+- Smart Clipboard 改为 ACTIVE 即捕获，删除额外隐私 onboarding 和内容敏感度启发式；
+- File Workspace 当时曾采用辅助栏宿主，并收敛为统一文件树和当前文件
+  编辑/查看的单一工作面；增加 managed Markdown 快速记事，添加文件默认 managed copy，
+  插件内只做名称过滤，正文归 Core Federated Search；`@文件` 选择时捕获最近成功 revision
+  的 projection，managed 使用轻量 Trash，external 单文件只从工作区移除；
+- Product Plugin UI 收敛为未来唯一共享包 `@hermit/ui`，具体 DSH 公共组件仍需通过
+  `candidate -> qualified -> allowed` 资格验证。
+
+这些方向已经写入当前需求，但改变了上一轮终审的前提，因此历史 `PASS` 不再代表当前
+审查结果。Personal Organizer 的 `DESIGN.md` 目前为 `DISCOVERY`；File Workspace 的产品
+设计已达到 `READY_FOR_IMPLEMENTATION`；此前的辅助栏宿主资格验证只保留为历史研究，
+当前实现已改用完成资格验证的 Hermit Product Surface v1，不再以辅助栏或双宿主布局作为
+实现 gate；Smart
+Clipboard 已为 `FUNCTIONAL_SCOPE_FROZEN`，M1/M2 领域、SQLite/FTS、桌面工作面、完整 History
+和 macOS 原生 micro-adapter 已实现并通过未签名成品 E2E；
+Hermit Product Surface v1 已按 ADR-0003 落地并通过同一插件 artifact 的 stock/Hermit 双宿主
+资格。当前无人值守资格不触碰用户 General Pasteboard，真实写回/自动粘贴/物理快捷键、
+签名发行和 Windows/Linux 原生切片仍未完成，因此不能
+宣称跨平台发布就绪。UI foundation 当前为 `PARTIAL`：Product Surface 和 Smart Clipboard
+实际使用的导航 Button/图标已 qualified，其余候选与 `@hermit/ui` 尚未执行。
+
+恢复终审 `PASS` 必须同时满足：三个 Product Plugin 的关键流程、状态、边界和首条纵切
+达到 `READY_FOR_IMPLEMENTATION`；UI 公共面资格结论与插件设计一致；再按更新后的依赖、
+权限、生命周期和卸载规则完成一次跨模块复核。在此之前，可以继续 M1 底座资格、详细设计
+和已经达到 slice-local readiness 的切片；不能把单条切片 READY 冒充整个 Product Plugin
+或全产品已经实现就绪。
 
 ### 11.3 下一阶段非阻塞详细设计
 
@@ -2217,6 +2386,11 @@ File、Clipboard 和任意插件拔除均为 PASS。本文档可以冻结，作�
 - candidate generation 切换和 crash recovery 状态机；
 - Approval + callId mutation 去重的事务边界与结果保留策略；
 - File/Clipboard broker 的 token/path 生命周期、图片规范化和大小上限；
+- File Workspace 真实 Core managed read/save transport、revision 持久化事务和冲突结果契约；
+- Core Federated Search 与 File Workspace 之间的正文安全材料、查询、排序和打开引用契约；
+  该契约完成前不实现插件内正文索引，也不把名称过滤冒充正文搜索；
+- Smart Clipboard 完整 History、快捷键唤起后的快速取回交互、保留额度、格式化回放
+  和显式 AI 入口；
 - Reminder occurrence/snooze 状态机；
 - authority epoch/lease 的启动、迁移和故障恢复协议；
 - 旧 Item/File/Reminder/AI/Vault 字段到新数据模型的逐字段 Migration Mapping；
@@ -2227,4 +2401,5 @@ File、Clipboard 和任意插件拔除均为 PASS。本文档可以冻结，作�
 项目仓库、工具链、PR0、第一条 Core-only vertical slice、GitHub/CI 和社区插件
 开放顺序见 `start-readiness.md`。已确认 Day-1 只新建 Private
 `pgw10086/hermit-vnext`，公开门通过后以 Apache-2.0 开放；本地仓库位于
-`D:\codes\hermit-vnext`，不在旧仓库内创建嵌套 vNext 仓库。
+独立 checkout，当前 Mac 路径为 `/Users/pgw/Developer/codes/hermit-vnext`，不在旧仓库内
+创建嵌套 vNext 仓库。checkout 的绝对路径只是机器事实，不属于产品兼容契约。

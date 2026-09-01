@@ -3,19 +3,45 @@
   "version": "0.0.0-private",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@11.7.0",
   "engines": {
-    "node": "24.19.0"
+    "node": ">=22.13.0 <23 || >=24.0.0 <27",
+    "pnpm": ">=10.0.0 <13"
   },
   "scripts": {
+    "doctor": "node scripts/check-environment.mjs",
+    "verify:toolchain": "node scripts/check-environment.mjs --require qualification",
+    "test:toolchain": "node --test scripts/toolchain-policy.test.mjs scripts/prepare-macos-release-assets.test.mjs",
+    "build:desktop": "corepack pnpm --filter @hermit/desktop build",
+    "test:desktop": "corepack pnpm --filter @hermit/desktop test",
+    "prepare:desktop-runtime": "corepack pnpm --filter @hermit/desktop prepare:runtime",
+    "package:desktop:dir": "corepack pnpm --filter @hermit/desktop package:dir",
+    "dist:desktop:mac:smoke": "corepack pnpm --filter @hermit/desktop dist:mac:smoke",
+    "dist:desktop:mac": "corepack pnpm --filter @hermit/desktop dist:mac",
+    "release:desktop:mac:assets": "node scripts/prepare-macos-release-assets.mjs",
+    "dist:desktop:win": "corepack pnpm --filter @hermit/desktop dist:win",
+    "verify:desktop:packaged-runtime": "corepack pnpm --filter @hermit/desktop verify:packaged-runtime",
+    "qualification:desktop:mac-login:status": "corepack pnpm --filter @hermit/desktop qualification:mac-login:status",
+    "qualification:desktop:mac-login:prepare": "corepack pnpm --filter @hermit/desktop qualification:mac-login:prepare",
+    "qualification:desktop:mac-login:verify": "corepack pnpm --filter @hermit/desktop qualification:mac-login:verify",
+    "test:m1:desktop:packaged": "corepack pnpm --filter @hermit/desktop test:m1:desktop:packaged",
+    "test:m1:replay:packaged": "corepack pnpm --filter @hermit/desktop test:m1:replay:packaged",
+    "test:file-workspace:product-surface": "corepack pnpm --filter @hermit/desktop test:file-workspace:product-surface",
+    "test:organizer:product-surface": "corepack pnpm --filter @hermit/desktop test:organizer:product-surface",
+    "test:smart-clipboard:product-surface": "corepack pnpm --filter @hermit/desktop test:smart-clipboard:product-surface",
+    "test:smart-clipboard:packaged-ui": "corepack pnpm --filter @hermit/desktop test:smart-clipboard:packaged-ui",
+    "test:smart-clipboard:native": "corepack pnpm --filter @hermit/macos-clipboard-bridge test",
     "verify:agent-contracts": "node scripts/verify-agent-contracts.mjs",
-    "verify:peers": "corepack pnpm peers check",
+    "verify:document-governance": "node scripts/check-document-governance.mjs",
+    "verify:plugin-manifests": "node scripts/verify-plugin-manifests.mjs",
+    "verify:dsh-upstream": "node scripts/verify-dsh-upstream-snapshot.mjs",
+    "verify:peers": "corepack pnpm install --lockfile-only --frozen-lockfile --ignore-scripts --strict-peer-dependencies",
     "qualification:public-contracts": "corepack pnpm run qualification:typecheck && node scripts/qualification/verify-public-contracts.mjs",
     "qualification:client-module-host": "node scripts/qualification/verify-client-module-host.mjs",
+    "qualification:product-surface": "node scripts/qualification/verify-product-surface.mjs",
     "qualification:install": "node scripts/qualification/verify-clean-install.mjs",
     "qualification:typecheck": "node node_modules/typescript/bin/tsc -p scripts/qualification/tsconfig.json",
     "test:qualification": "node --test scripts/qualification/qualification.test.mjs",
-    "test": "node scripts/verify-agent-contracts.mjs && corepack pnpm peers check && corepack pnpm run qualification:public-contracts && node --test scripts/qualification/qualification.test.mjs"
+    "test": "corepack pnpm run verify:toolchain && corepack pnpm run test:toolchain && node scripts/verify-agent-contracts.mjs && node scripts/check-document-governance.mjs && node scripts/verify-plugin-manifests.mjs && node scripts/verify-dsh-upstream-snapshot.mjs && corepack pnpm run verify:peers && corepack pnpm run qualification:public-contracts && node --test scripts/qualification/qualification.test.mjs && corepack pnpm --filter @hermit/desktop test"
   },
   "devDependencies": {
     "@deepseek-ai/dsh": "0.1.1-rc.2",
@@ -27,9 +53,9 @@
     "@deepseek-ai/dsh-host-webserver": "0.1.1-rc.2",
     "@deepseek-ai/dsh-web-app": "0.1.1-rc.2",
     "@deepseek-ai/dsh-web-frontend": "0.1.1-rc.2",
-    "react": "18.3.1",
-    "react-dom": "18.3.1",
-    "typescript": "6.0.3",
-    "yaml": "2.9.0"
+    "react": ">=18.3.0 <19",
+    "react-dom": ">=18.3.0 <19",
+    "typescript": ">=6.0.0 <7",
+    "yaml": ">=2.9.0 <3"
   }
 }

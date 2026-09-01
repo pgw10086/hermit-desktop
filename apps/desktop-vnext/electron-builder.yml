@@ -1,0 +1,76 @@
+appId: io.github.pgw10086.hermit
+asar: true
+npmRebuild: false
+afterPack: ./scripts/after-pack.mjs
+afterSign: ./scripts/after-sign.mjs
+files:
+  - lib/**
+  - package.json
+  - '!node_modules/**'
+  # 桌面主进程的 SQLite/动作逻辑静态引用 Smart Clipboard 的 host 包。
+  # 来源必须是已验证的 DSH runtime 闭包，而不是 workspace 源目录，保证
+  # app.asar 与 DSH profile 消费同一份构建字节。
+  - from: ../../.hermit/runtime/dsh/node_modules/@hermit/smart-clipboard
+    to: node_modules/@hermit/smart-clipboard
+    filter:
+      - package.json
+      - cordis.patch.yml
+      - lib/**/*.js
+      - lib/**/*.d.ts
+  - from: ../../.hermit/runtime/dsh/node_modules/@hermit/organizer
+    to: node_modules/@hermit/organizer
+    filter:
+      - package.json
+      - cordis.patch.yml
+      - lib/**/*.js
+      - lib/**/*.d.ts
+extraResources:
+  - from: ../../.hermit/runtime/node
+    to: runtime/generations/bundled/node
+  - from: ../../LICENSE
+    to: licenses/Hermit-Apache-2.0.txt
+  - from: ../../THIRD_PARTY_NOTICES.md
+    to: THIRD_PARTY_NOTICES.md
+  - from: lib/runtime/dsh-carrier.js
+    to: runtime/carrier/dsh-carrier.js
+  - from: ../../native/macos-clipboard-bridge/build/package
+    to: runtime/native
+directories:
+  output: dist
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+linux:
+  target:
+    - dir
+mac:
+  target:
+    - dir
+  category: public.app-category.productivity
+  icon: build/icon.icns
+  hardenedRuntime: true
+  notarize: true
+  extendInfo:
+    CFBundleAllowMixedLocalizations: true
+    CFBundleDevelopmentRegion: zh_CN
+    CFBundleLocalizations:
+      - zh_CN
+      - en
+dmg:
+  title: "${productName} ${version}"
+  artifactName: "Hermit-${version}-${arch}.${ext}"
+  contents:
+    - x: 160
+      y: 220
+    - x: 430
+      y: 220
+      type: link
+      path: /Applications

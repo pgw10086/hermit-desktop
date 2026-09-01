@@ -1,0 +1,206 @@
+.settingsView {
+  min-height: 0;
+  flex: 1;
+  overflow: auto;
+  padding: 18px 24px 48px;
+  color: var(--dsw-alias-label-primary);
+  scrollbar-color: var(--dsw-alias-scrollbar-bg-l2) transparent;
+}
+
+.settingsIntro {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  max-width: 960px;
+  margin: 0 auto 16px;
+}
+
+.settingsIntro h2 {
+  margin: 0;
+  font-size: 18px;
+  letter-spacing: 0;
+}
+
+.settingsIntro p {
+  margin: 4px 0 0;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.settingsView > section {
+  max-width: 960px;
+  margin: 0 auto;
+  border-top: 1px solid var(--dsw-alias-border-l2);
+}
+
+.settingsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  padding: 8px 0 18px 32px;
+}
+
+.settingField {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+}
+
+.settingField small {
+  line-height: 1.45;
+}
+
+.nativeControl,
+.textarea {
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 6px;
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-bg-base);
+  font: inherit;
+}
+
+.nativeControl {
+  min-height: 34px;
+  padding: 0 30px 0 10px;
+}
+
+.nativeControl:focus,
+.textarea:focus {
+  border-color: var(--dsw-alias-brand-primary);
+  outline: 2px solid var(--dsw-alias-state-business-primary);
+  outline-offset: 1px;
+}
+
+.mappingGrid,
+.exclusionFields,
+.dataActions {
+  display: grid;
+  gap: 12px;
+  padding: 8px 0 18px 32px;
+}
+
+.mappingGrid {
+  max-width: 560px;
+}
+
+.mappingRow {
+  display: grid;
+  grid-template-columns: 130px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+
+.mappingRow kbd {
+  color: var(--dsw-alias-label-secondary);
+  font: var(--dsw-font-xs-13);
+}
+
+.validationError {
+  margin: 0;
+  color: var(--dsw-alias-state-error-primary);
+  font-size: 12px;
+}
+
+.exclusionFields fieldset {
+  display: flex;
+  gap: 18px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.exclusionFields legend {
+  margin-bottom: 8px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+}
+
+.checkField {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.checkField input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--dsw-alias-brand-primary);
+}
+
+.textarea {
+  width: min(100%, 640px);
+  min-height: 104px;
+  padding: 9px 10px;
+  resize: vertical;
+}
+
+.dataActionRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--dsw-alias-border-l3);
+}
+
+.dataActionRow strong {
+  font-size: 13px;
+}
+
+.dataActionRow p {
+  margin: 3px 0 0;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.dataActionRow[data-danger='true'] strong {
+  color: var(--dsw-alias-state-error-primary);
+}
+
+.inlineActions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 8px;
+}
+
+@container (max-width: 860px) {
+  .settingsGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@container (max-width: 620px) {
+  .settingsView {
+    padding: 14px 14px 36px;
+  }
+
+  .settingsIntro {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .dataActionRow {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
+  .mappingRow {
+    grid-template-columns: 1fr;
+    gap: 5px;
+  }
+
+  .inlineActions {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

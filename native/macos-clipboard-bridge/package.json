@@ -1,0 +1,19 @@
+{
+  "name": "@hermit/macos-clipboard-bridge",
+  "version": "0.1.0",
+  "description": "Main-process-only macOS pasteboard correctness bridge for Smart Clipboard",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node scripts/test.mjs"
+  },
+  "engines": {
+    "node": ">=24.0.0 <27"
+  },
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "electron": ">=43.0.0 <44",
+    "node-gyp": ">=11.5.0 <12"
+  }
+}

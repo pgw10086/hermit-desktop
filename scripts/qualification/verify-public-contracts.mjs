@@ -8,10 +8,16 @@ import { parse as parseYaml } from "yaml";
 
 const require = createRequire(import.meta.url);
 const EXPECTED_VERSION = "0.1.1-rc.2";
-const EXPECTED_NODE = "v24.19.0";
-const EXPECTED_PNPM = "11.7.0";
-const EXPECTED_REACT = "18.3.1";
-const EXPECTED_LOCK_SHA256 = "1d69a486fdd19457cdbbdaad62bacb8b431fdc0981f21f9765a1de5542800a45";
+const QUALIFIED_REACT_VERSION = "18.3.1";
+const EXPECTED_NODE_SPEC = ">=22.13.0 <23 || >=24.0.0 <27";
+const EXPECTED_PNPM_SPEC = ">=10.0.0 <13";
+const EXPECTED_REACT_SPEC = ">=18.3.0 <19";
+const EXPECTED_PNPM_RANGE_SPEC = ">=11.0.0 <12";
+const EXPECTED_ELECTRON_SPEC = ">=43.0.0 <44";
+const EXPECTED_ELECTRON_BUILDER_SPEC = ">=26.0.0 <27";
+const EXPECTED_TYPESCRIPT_SPEC = ">=6.0.0 <7";
+const EXPECTED_NODE_TYPES_SPEC = ">=24.0.0 <25";
+const EXPECTED_DSH_CLOSURE_SHA256 = "7afbcc4845573a1745dde5f3ed0f99380ae105f664f80d310a94961ba6419fa4";
 const EXPECTED_DSH_PACKAGE_COUNT = 189;
 
 const PACKAGES = [
@@ -40,12 +46,81 @@ function parseDshPackageKey(key) {
   return match === null ? undefined : { name: match[1], version: match[2] };
 }
 
+function parsePackageCoordinate(key) {
+  const match = /^(@[^/]+\/[^@]+|[^@]+)@([^()]+)(?:\(|$)/u.exec(key);
+  return match === null ? undefined : `${match[1]}@${match[2]}`;
+}
+
+function dependencySnapshotKey(name, descriptor) {
+  const version = typeof descriptor === "string" ? descriptor : descriptor?.version;
+  assert.equal(typeof version, "string", `lockfile dependency ${name} has no version`);
+  return `${name}@${version}`;
+}
+
+function reachablePackageCoordinates(lock, dependencies) {
+  const pending = Object.entries(dependencies).map(([name, descriptor]) =>
+    dependencySnapshotKey(name, descriptor),
+  );
+  const visited = new Set();
+  const coordinates = new Set();
+
+  while (pending.length > 0) {
+    const key = pending.pop();
+    if (visited.has(key)) continue;
+    visited.add(key);
+
+    const coordinate = parsePackageCoordinate(key);
+    assert.notEqual(coordinate, undefined, `invalid lockfile snapshot key: ${key}`);
+    coordinates.add(coordinate);
+
+    const snapshot = lock.snapshots?.[key];
+    assert.notEqual(snapshot, undefined, `lockfile snapshot is missing: ${key}`);
+    for (const section of [snapshot.dependencies, snapshot.optionalDependencies]) {
+      for (const [name, descriptor] of Object.entries(section ?? {})) {
+        pending.push(dependencySnapshotKey(name, descriptor));
+      }
+    }
+  }
+
+  return coordinates;
+}
+
+function normalizedDependency(name, descriptor) {
+  assert.equal(typeof descriptor?.specifier, "string", `lockfile dependency ${name} has no specifier`);
+  const coordinate = parsePackageCoordinate(dependencySnapshotKey(name, descriptor));
+  assert.notEqual(coordinate, undefined, `invalid lockfile dependency coordinate: ${name}`);
+  return {
+    specifier: descriptor.specifier,
+    version: coordinate.slice(`${name}@`.length),
+  };
+}
+
 async function verifyLockfile() {
   const lockPath = path.resolve("pnpm-lock.yaml");
   const source = await readFile(lockPath, "utf8");
   const lock = parseYaml(source);
-  const packageEntries = Object.entries(lock.packages ?? {});
+  const rootImporter = lock.importers?.["."];
+  assert.notEqual(rootImporter, undefined, "root lockfile importer is missing");
+  const qualificationImporterDependencies = Object.fromEntries(
+    [...PACKAGES, "react", "react-dom"].sort().map((name) => [
+      name,
+      rootImporter.devDependencies?.[name],
+    ]),
+  );
+  const qualificationDependencies = Object.fromEntries(
+    Object.entries(qualificationImporterDependencies).map(([name, descriptor]) => [
+      name,
+      normalizedDependency(name, descriptor),
+    ]),
+  );
+  const reachableCoordinates = reachablePackageCoordinates(lock, qualificationImporterDependencies);
+  // workspace 中其他插件可以拥有自己的 DSH 依赖，根资格证据只统计根 importer 的可达闭包。
+  const packageEntries = Object.entries(lock.packages ?? {}).filter(([key]) => {
+    const coordinate = parsePackageCoordinate(key);
+    return coordinate !== undefined && reachableCoordinates.has(coordinate);
+  });
   const dshPackages = [];
+  const closurePackages = [];
   const reactVersions = new Set();
   const reactDomVersions = new Set();
 
@@ -59,6 +134,7 @@ async function verifyLockfile() {
         `${dsh.name} has no valid SHA-512 integrity`,
       );
       dshPackages.push(dsh.name);
+      closurePackages.push({ key, integrity: value.resolution.integrity });
     }
     const react = /^react@([^()]+)(?:\(|$)/u.exec(key)?.[1];
     const reactDom = /^react-dom@([^()]+)(?:\(|$)/u.exec(key)?.[1];
@@ -67,14 +143,24 @@ async function verifyLockfile() {
   }
 
   assert.equal(dshPackages.length, EXPECTED_DSH_PACKAGE_COUNT, "DSH closure package count drifted");
-  assert.deepEqual([...reactVersions], [EXPECTED_REACT]);
-  assert.deepEqual([...reactDomVersions], [EXPECTED_REACT]);
+  assert.deepEqual([...reactVersions], [QUALIFIED_REACT_VERSION]);
+  assert.deepEqual([...reactDomVersions], [QUALIFIED_REACT_VERSION]);
 
-  const sha256 = createHash("sha256").update(source).digest("hex");
-  assert.equal(sha256, EXPECTED_LOCK_SHA256, "qualification lockfile drifted");
+  const closureSource = JSON.stringify({
+    qualificationDependencies,
+    packages: closurePackages.sort((left, right) => left.key.localeCompare(right.key)),
+    reactVersions: [...reactVersions].sort(),
+    reactDomVersions: [...reactDomVersions].sort(),
+  });
+  const closureSha256 = createHash("sha256").update(closureSource).digest("hex");
+  assert.equal(
+    closureSha256,
+    EXPECTED_DSH_CLOSURE_SHA256,
+    "qualified DSH/React closure drifted",
+  );
 
   return {
-    sha256,
+    closureSha256,
     dshPackageCount: dshPackages.length,
     reactVersions: [...reactVersions],
     reactDomVersions: [...reactDomVersions],
@@ -82,12 +168,10 @@ async function verifyLockfile() {
 }
 
 export async function verifyPublicContracts() {
-  assert.equal(process.version, EXPECTED_NODE, "qualification must use the pinned Node runtime");
   const pnpmVersion = /pnpm\/([^\s]+)/u.exec(process.env.npm_config_user_agent ?? "")?.[1];
-  assert.equal(pnpmVersion, EXPECTED_PNPM, "qualification must use the pinned pnpm runtime");
   const workspaceManifest = JSON.parse(await readFile(path.resolve("package.json"), "utf8"));
-  assert.equal(workspaceManifest.packageManager, `pnpm@${EXPECTED_PNPM}`);
-  assert.equal(workspaceManifest.engines?.node, EXPECTED_NODE.slice(1));
+  assert.equal(workspaceManifest.engines?.node, EXPECTED_NODE_SPEC);
+  assert.equal(workspaceManifest.engines?.pnpm, EXPECTED_PNPM_SPEC);
   for (const packageName of PACKAGES) {
     assert.equal(
       workspaceManifest.devDependencies?.[packageName],
@@ -95,8 +179,18 @@ export async function verifyPublicContracts() {
       `${packageName} must be an exact direct qualification dependency`,
     );
   }
-  assert.equal(workspaceManifest.devDependencies?.react, EXPECTED_REACT);
-  assert.equal(workspaceManifest.devDependencies?.["react-dom"], EXPECTED_REACT);
+  assert.equal(workspaceManifest.devDependencies?.react, EXPECTED_REACT_SPEC);
+  assert.equal(workspaceManifest.devDependencies?.["react-dom"], EXPECTED_REACT_SPEC);
+
+  const desktopManifest = JSON.parse(
+    await readFile(path.resolve("apps/desktop-vnext/package.json"), "utf8"),
+  );
+  assert.equal(desktopManifest.dependencies?.["@deepseek-ai/dsh"], EXPECTED_VERSION);
+  assert.equal(desktopManifest.dependencies?.pnpm, EXPECTED_PNPM_RANGE_SPEC);
+  assert.equal(desktopManifest.devDependencies?.electron, EXPECTED_ELECTRON_SPEC);
+  assert.equal(desktopManifest.devDependencies?.["electron-builder"], EXPECTED_ELECTRON_BUILDER_SPEC);
+  assert.equal(desktopManifest.devDependencies?.typescript, EXPECTED_TYPESCRIPT_SPEC);
+  assert.equal(desktopManifest.devDependencies?.["@types/node"], EXPECTED_NODE_TYPES_SPEC);
 
   const versions = {};
   for (const packageName of PACKAGES) {
@@ -122,8 +216,8 @@ export async function verifyPublicContracts() {
   assert.equal(typeof apiProxyClient.InProcessApiClient, "function");
   assert.equal(typeof webServer.WebServer, "function");
   assert.equal(typeof webServer.renderIndexInjections, "function");
-  assert.equal(react.version, EXPECTED_REACT);
-  assert.equal(reactDom.version, EXPECTED_REACT);
+  assert.equal(react.version, QUALIFIED_REACT_VERSION);
+  assert.equal(reactDom.version, QUALIFIED_REACT_VERSION);
 
   const lockfile = await verifyLockfile();
 

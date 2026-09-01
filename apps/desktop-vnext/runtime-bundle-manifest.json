@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "productSurfacePackage": {
+    "packageName": "@deepseek-ai/dsh-client-ui-layout",
+    "source": "packages/dsh-client-ui-layout",
+    "hashPaths": ["package.json", "LICENSE", "lib"]
+  },
+  "bundledPackages": [
+    {
+      "packageName": "@hermit/organizer",
+      "source": "plugins/organizer",
+      "hashPaths": ["package.json", "cordis.patch.yml", "lib"]
+    },
+    {
+      "packageName": "@hermit/smart-clipboard",
+      "source": "plugins/smart-clipboard",
+      "hashPaths": ["package.json", "cordis.patch.yml", "lib"]
+    },
+    {
+      "packageName": "@hermit/file-workspace",
+      "source": "plugins/file-workspace",
+      "hashPaths": ["package.json", "cordis.patch.yml", "lib"]
+    }
+  ]
+}

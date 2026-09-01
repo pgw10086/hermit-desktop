@@ -37,7 +37,9 @@ const allowedTopLevel = new Set([
   "pnpm-lock.yaml",
   "pnpm-workspace.yaml",
   "README.md",
+  "DEEPSEEK-HARNESS-UPSTREAM.md",
   "SECURITY.md",
+  "THIRD_PARTY_NOTICES.md",
   "apps",
   "docs",
   "migration",
@@ -57,6 +59,11 @@ const ignoredDirectories = new Set([
   ".idea",
   ".vscode",
   "node_modules",
+  "dist",
+  "lib",
+  "build",
+  "out",
+  "coverage",
   "target",
 ]);
 
@@ -91,6 +98,11 @@ function isCurrentMarkdown(rel) {
   if (rel.startsWith("migration/") || rel.startsWith("specs/")) return false;
   if (rel.startsWith("docs/provenance/")) return false;
   return true;
+}
+
+function isProductPluginRuntimeSource(rel) {
+  // 构建器和测试可以读取仓库文件；权限红线约束的是会随插件运行的源码。
+  return /^plugins\/[^/]+\/src\//u.test(rel);
 }
 
 function walk(directory, visitor) {
@@ -158,6 +170,7 @@ walk(root, (fullPath, entry) => {
 
   if (entry.isFile() && path.extname(entry.name).toLowerCase() === ".md") {
     const text = fs.readFileSync(fullPath, "utf8");
+    if (rel.startsWith("docs/provenance/deepseek-harness/snapshots/")) return;
     const fenceCount = (text.match(/^```/gmu) ?? []).length;
     if (fenceCount % 2 !== 0) fail(`Markdown code fence 未成对闭合: ${rel}`);
 
@@ -189,7 +202,10 @@ walk(root, (fullPath, entry) => {
     if (/['"]@deepseek-ai\/[^'"]+\/src\//u.test(text)) {
       fail(`DSH private source import: ${rel}`);
     }
-    if (rel.startsWith("plugins/") && /(?:node:)?(?:fs|net|http|https|tls|dns|dgram|child_process)|ctx\.llm|@tauri-apps\/api/u.test(text)) {
+    if (
+      isProductPluginRuntimeSource(rel) &&
+      /(?:\b(?:from|import|require)\s*(?:\(\s*)?['"](?:node:)?(?:fs|net|http|https|tls|dns|dgram|child_process|electron)['"]|\b(?:fs|net|http|https|tls|dns|dgram|child_process)\s*\.|\bctx\.llm\b|@tauri-apps\/api|\belectron\b|\bipcRenderer\b|\bwindow\.hermit\b)/u.test(text)
+    ) {
       fail(`Product Plugin ambient authority import/use: ${rel}`);
     }
   }

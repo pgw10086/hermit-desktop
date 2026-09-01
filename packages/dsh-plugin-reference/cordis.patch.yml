@@ -1,0 +1,3 @@
+- insert:
+    - id: hermit-reference-plugin
+      name: '@hermit/dsh-plugin-reference'

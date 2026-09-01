@@ -22,3 +22,29 @@ imports:
     modifications: repository-identity-bootstrap-status-and-confirmed-document-governance
     reviewedBy: pgw10086
     importedAt: 2026-08-25
+  - target: docs/provenance/deepseek-harness/snapshots/0.1.1-rc.2__b150a551
+    sourceRepository: https://github.com/deepseek-ai/deepseek-harness
+    sourcePath: docs/**, apps/cli/reference/**, packages/*/README*, README*, package.json, LICENSE, THIRD_PARTY_NOTICES.md
+    sourceContextCommit: b150a551b8d465e31e418e1b2eaf5e79bbb7d28e
+    sourceTag: dsh-v0.1.1-rc.2
+    sourcePackageVersion: 0.1.1-rc.2
+    sourceSha256: 0b295e1ff88eb443c5fd16cb3e9b23938606706d4377a2d94f45c1bdff08af25
+    sourceState: upstream-immutable-active-snapshot
+    sourceLicense: MIT
+    sanitization: excluded-upstream-agent-instructions-only
+    modifications: none-to-retained-files
+    reviewedBy: pgw10086
+    importedAt: 2026-09-01
+  - target: docs/provenance/deepseek-harness/snapshots/0.1.2-alpha.3__dd6322d
+    sourceRepository: https://github.com/deepseek-ai/deepseek-harness
+    sourcePath: docs/**, apps/cli/reference/**, packages/*/README*, README*, package.json, LICENSE, THIRD_PARTY_NOTICES.md
+    sourceContextCommit: dd6322d604e00eec1ba5e0c8541159906a21094a
+    sourceTag: dsh-v0.1.2-alpha.3
+    sourcePackageVersion: 0.1.2-alpha.3
+    sourceSha256: 2c29cdbca9daa684a49e5b98cdf931b544853f51d18cd01c1824cc243ea76752
+    sourceState: upstream-immutable-candidate-snapshot
+    sourceLicense: MIT
+    sanitization: excluded-upstream-agent-instructions-only
+    modifications: none-to-retained-files
+    reviewedBy: pgw10086
+    importedAt: 2026-09-01

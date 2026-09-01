@@ -1,0 +1,9 @@
+{
+  "repository": "https://github.com/deepseek-ai/deepseek-harness",
+  "commit": "b150a551b8d465e31e418e1b2eaf5e79bbb7d28e",
+  "sourcePath": "apps/web/tests/snapshots/approval-composer/session.jsonl",
+  "sha256": "0bc5b7b0294f4b03939031c00b014d3e7b7d93e445400b8e931758cc9b892eac",
+  "replayPackage": "@deepseek-ai/dsh-llm-replay",
+  "replayVersion": "0.1.1-rc.2",
+  "replayIntegrity": "sha512-QyWiC3zOGIc6DRzM7vgMyZWS3hhQpi0vI0ZSh1Bg6+BSJR4gJPvfJtiZnoUOtkAP7mFKl/kL+WImijBGc6Mm6w=="
+}

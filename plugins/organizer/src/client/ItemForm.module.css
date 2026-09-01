@@ -1,0 +1,97 @@
+.form,
+.section,
+.stack,
+.field {
+  display: grid;
+}
+
+.form { gap: 20px; }
+.section { gap: 12px; padding-top: 16px; border-top: 1px solid var(--dsw-alias-border-l2); }
+.stack { gap: 8px; }
+.field { gap: 6px; min-width: 0; }
+
+.sectionTitle,
+.fieldLabel,
+.hint {
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+}
+
+.sectionTitle { margin: 0; font-weight: 650; }
+.hint { margin: 0; line-height: 1.45; }
+.readonlyValue { margin: 0; color: var(--dsw-alias-label-primary); font-size: 13px; }
+
+.choiceRow,
+.inline,
+.tagList,
+.checklistRow,
+.reminderHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.choiceRow,
+.tagList { flex-wrap: wrap; }
+.inline > * { min-width: 0; flex: 1; }
+.reminderHeader { justify-content: space-between; }
+
+.relativeRule { min-width: 0; }
+.sentenceText { flex: 0 0 auto; color: var(--dsw-alias-label-secondary); font-size: 13px; }
+
+.native,
+.textarea {
+  width: 100%;
+  min-height: 34px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 6px;
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-bg-base);
+  font: inherit;
+}
+
+.native { padding: 0 9px; }
+.textarea { min-height: 112px; padding: 9px 10px; resize: vertical; line-height: 1.55; }
+.native:focus,
+.textarea:focus { border-color: var(--dsw-alias-brand-primary); outline: 2px solid var(--dsw-alias-state-business-primary); outline-offset: 1px; }
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 26px;
+  padding: 0 4px 0 8px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 4px;
+  background: var(--dsw-alias-bg-layer-1);
+  font-size: 12px;
+}
+
+.tag button {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  color: var(--dsw-alias-label-secondary);
+  background: transparent;
+  cursor: pointer;
+}
+
+.checklistRow > input[type='checkbox'] { flex: 0 0 auto; width: 16px; height: 16px; accent-color: var(--dsw-alias-brand-primary); }
+.checklistRow > :nth-child(2) { flex: 1; min-width: 0; }
+
+.rule {
+  display: grid;
+  gap: 10px;
+  padding: 11px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 6px;
+  background: var(--dsw-alias-bg-layer-1);
+}
+
+.checkboxLabel { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.checkboxLabel input { width: 16px; height: 16px; accent-color: var(--dsw-alias-brand-primary); }
+
+@media (max-width: 420px) {
+  .inline { align-items: stretch; flex-direction: column; }
+}

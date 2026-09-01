@@ -9,15 +9,14 @@ mkdirSync(tempParent, { recursive: true });
 const workspace = mkdtempSync(path.join(tempParent, "qualification-install-"));
 const corepack = "corepack";
 
-for (const file of ["package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml", ".npmrc"]) {
+for (const file of ["package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml"]) {
   copyFileSync(path.join(root, file), path.join(workspace, file));
 }
 
 let failure;
 try {
   for (const args of [
-    ["pnpm", "install", "--frozen-lockfile", "--ignore-scripts"],
-    ["pnpm", "peers", "check"],
+    ["pnpm", "install", "--frozen-lockfile", "--ignore-scripts", "--strict-peer-dependencies"],
   ]) {
     const windows = process.platform === "win32";
     const command = windows ? `${corepack} ${args.join(" ")}` : corepack;

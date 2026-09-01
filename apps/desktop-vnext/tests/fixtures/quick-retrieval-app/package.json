@@ -1,0 +1,6 @@
+{
+  "name": "hermit-quick-retrieval-qualification",
+  "private": true,
+  "type": "module",
+  "main": "main.mjs"
+}
