@@ -62,3 +62,17 @@ test("Electron 主进程 host 包从已准备的 DSH runtime 闭包取同一份�
   assert.match(builder, /from: \.\.\/\.\.\/\.hermit\/runtime\/dsh\/node_modules\/@hermit\/organizer/u);
   assert.doesNotMatch(builder, /from: \.\.\/\.\.\/plugins\/(?:smart-clipboard|organizer)/u);
 });
+
+test("桌面打包使用已确认的 Hermit App Icon 资产", () => {
+  const builder = fs.readFileSync(path.join(appRoot, "electron-builder.yml"), "utf8");
+  assert.match(builder, /icon: build\/icon\.icns/u);
+  assert.match(builder, /icon: assets\/brand\/hermit\/previews\/hermit-app-icon-256\.png/u);
+  assert.equal(
+    fs.existsSync(path.join(appRoot, "build", "icon.icns")),
+    true,
+  );
+  assert.equal(
+    fs.existsSync(path.join(appRoot, "assets", "brand", "hermit", "previews", "hermit-app-icon-256.png")),
+    true,
+  );
+});

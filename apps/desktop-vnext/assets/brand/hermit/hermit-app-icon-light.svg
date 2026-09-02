@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title">
+  <title id="title">Hermit app icon light</title>
+  <rect width="128" height="128" rx="28" fill="#f7f8f8"/>
+  <path fill="#121417" d="M36 16h56a20 20 0 0 1 20 20v56c0 3-1.7 4.9-4.1 3.5L80 76V44a8 8 0 0 0-8-8H56a8 8 0 0 0-8 8v32l40 36H24a8 8 0 0 1-8-8V36a20 20 0 0 1 20-20Z"/>
+</svg>

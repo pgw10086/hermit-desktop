@@ -98,7 +98,9 @@ function parseKind(value: unknown): 'TEXT' | 'IMAGE' | 'FILE_LIST' {
 
 /** 解析快捷操作类型。 */
 function parseAction(value: unknown): ClipboardAction {
-  if (value === 'use' || value === 'copy' || value === 'plain-text') return value
+  if (value === 'paste' || value === 'copy' || value === 'plain-text') return value
+  // 兼容旧 Renderer 已提交的动作请求；新代码只发送 paste。
+  if (value === 'use') return 'paste'
   throw new Error('Clipboard action 无效')
 }
 

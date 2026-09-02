@@ -32,7 +32,7 @@ export class ElectronClipboardBridge implements ClipboardPlatformBridge {
     this.#macosNative = macosNative
   }
 
-  /** 记录触发复制动作前的前台应用，供 use 动作恢复焦点并粘贴。 */
+  /** 记录打开 Quick Panel 前的前台应用，供用户明确的 paste 动作恢复焦点。 */
   rememberPasteTarget(): void {
     this.#pasteTarget = this.#macosNative?.captureFrontmostApplication()
   }
@@ -60,10 +60,10 @@ export class ElectronClipboardBridge implements ClipboardPlatformBridge {
     }
   }
 
-  /** 在复制成功后尝试恢复原应用并发送粘贴；失败时明确降级为只复制。 */
+  /** 在用户明确请求 paste 后恢复原应用并发送粘贴；失败时降级为只复制。 */
   async autoPaste(): Promise<{ status: 'pasted' | 'copy-only'; reason: string }> {
     if (this.#macosNative === undefined) {
-      return this.#finishCopyOnly('当前平台自动粘贴发送器尚未通过资格')
+      return this.#finishCopyOnly('当前平台显式粘贴发送器尚未通过资格')
     }
     const target = this.#pasteTarget
     const pending = this.#pendingMacWrite
@@ -146,7 +146,7 @@ export class ElectronClipboardBridge implements ClipboardPlatformBridge {
     return { status: 'written' }
   }
 
-  /** 清理一次性粘贴上下文并返回只复制结果。 */
+  /** 清理一次性显式粘贴上下文并返回只复制结果。 */
   #finishCopyOnly(reason: string): { status: 'copy-only'; reason: string } {
     this.discardPasteTarget()
     return { status: 'copy-only', reason }
@@ -258,7 +258,7 @@ function decodeOptionalText(value: string | undefined): string | undefined {
   return value === undefined ? undefined : Buffer.from(value, 'base64').toString('utf8')
 }
 
-/** 把原生失败码转换为用户可理解的自动粘贴原因。 */
+/** 把原生失败码转换为用户可理解的显式粘贴原因。 */
 function macReason(reason: string): string {
   const messages: Record<string, string> = {
     'target-gone': '原目标应用已经退出',
@@ -266,14 +266,14 @@ function macReason(reason: string): string {
     'activation-rejected': '系统拒绝恢复原目标应用',
     'target-not-frontmost': '原目标应用未获得焦点',
     'accessibility-denied': 'macOS 辅助功能权限未开启',
-    'clipboard-changed': '自动粘贴前系统剪贴板已被其他应用更新',
-    'operation-mismatch': '自动粘贴前剪贴板操作标记已变化',
+    'clipboard-changed': '显式粘贴前系统剪贴板已被其他应用更新',
+    'operation-mismatch': '显式粘贴前剪贴板操作标记已变化',
     'event-create-failed': '系统无法创建粘贴按键事件',
   }
-  return messages[reason] ?? `自动粘贴不可用：${reason}`
+  return messages[reason] ?? `显式粘贴不可用：${reason}`
 }
 
-/** 在轮询自动粘贴窗口内短暂等待，避免忙等。 */
+/** 在轮询显式粘贴窗口内短暂等待，避免忙等。 */
 function delay(milliseconds: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, milliseconds))
 }

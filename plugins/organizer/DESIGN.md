@@ -2,7 +2,7 @@
 
 状态：`SLICE_2_IMPLEMENTED`
 
-更新时间：2026-09-01
+更新时间：2026-09-02
 
 本文是 Personal Organizer 当前功能、信息架构、交互流程和低保真原型的权威来源。
 业务规则与验收仍以[核心需求 6.2](../../specs/2026-08-24-hermit-dsh-vnext/core-requirements.md#62-personal-organizer)
@@ -12,21 +12,26 @@
 
 - 插件共用规则：[Product Plugin 开发规范](../development-guidelines.md)。
 - DSH/桌面能力边界：[Desktop Core 开发规范](../../docs/development/desktop-core-development.md)。
-- 本插件只使用 DSH Host/Client、Product Surface、Connection RPC 和 Organizer 自己的业务服务，
-  不声明 Desktop Core capability。
+- 本插件的业务规则、Canonical 数据和 Reminder 调度仍由 Organizer 自己负责；后续 Reminder
+  vertical slice 只通过公开的 `getDesktopDeadlineClient()` / `getDesktopNotificationClient()`
+  使用 Desktop Core，不直接导入 Electron 或 IPC。当前已实现切片尚未接入系统通知调度。
 - 本文只看产品范围、业务规则、页面流程和验收；不要在这里新增 Electron、DSH 内部 API 或通用 UI 规则。
 
 当前实现进度：前两条 vertical slice 已接入正式 DSH Host/Client。唯一的
 `personal-organizer` Skill 根据明确类型分别调用 `organizer_create_todo` 或
-`organizer_create_note`，写入同一个 `personal_organizer` Canonical domain；Note 默认进入
+`organizer_create_note`，写入同一个 `personal_organizer` Canonical domain；同时提供
+`organizer_list_today` 只读摘要 Tool，创建类 Tool 通过 DSH `tools/pre-execute` 返回一次性
+`ask`，由 Core 审批服务决定是否继续。Note 默认进入
 active 状态和“最近便签”投影，用户可在同一个右侧单实例抽屉中把 active Note 草稿改为 Todo，
 保留同一 `itemId`、正文、标签、提醒、来源和原始输入，置顶不带入并记录在类型历史中。两种
-创建都使用 `callId` 幂等映射、`revision` 冲突检查和稳定 `itemId`。Product Surface 通过公开
-`product.surface`、`sidebar.footer.action`、`ClientConnectionRpc` 和右侧单实例抽屉提供查看、
+创建都使用 `callId` 幂等映射、`revision` 冲突检查和稳定 `itemId`；创建 Tool 已支持结构化
+`todoStart`、`todoDue` 和绝对 `reminders`，因此“明天 8 点提醒我做 X”会在一次写入中形成
+带 `todoStart` 和 Reminder 的 Todo。Product Surface 通过公开
+`product.surface`、Core-owned Product Navigation、`ClientConnectionRpc` 和右侧单实例抽屉提供查看、
 编辑、完成、类型纠正和重启恢复。插件已用同一 `.tgz` 通过 stock DSH capability 缺失检查以及
 Hermit bundled DSH 的入口、Todo/Note 创建、Note -> Todo、详情读取和重启持久化资格测试。
-Host 集成测试还直接验证了 `apply -> Skill/Tool 注册 -> Tool.execute -> Canonical`；模型凭据
-下的真实 Conversation 调用尚未纳入当前资格。当前 pinned DSH RC 的通用 Tool Card 没有
+Host 集成测试还直接验证了 `apply -> Skill/Tool 注册 -> Tool.execute -> Canonical`，以及摘要
+投影和审批门。模型凭据下的真实 Conversation 调用尚未纳入当前资格。当前 pinned DSH RC 的通用 Tool Card 没有
 “打开 Product Surface 并定位 item”的公开动作契约，Tool Result 先返回稳定 `itemId` 和明确
 的“打开：个人事项”提示；交互式打开仍是 DSH typed contract gate，当前不能宣称完整 P0 已完成。
 
@@ -80,25 +85,28 @@ Host 集成测试还直接验证了 `apply -> Skill/Tool 注册 -> Tool.execute 
   数据的不同工作投影，不能复制业务对象或各自维护一套状态。
 - 当前行动优先于完整历史，但未来事项、无日期待办和长期笔记不能因不在 Today 而消失；
   完整内容通过 Items、Calendar 和 Search 到达。
-- DSH 是唯一 AI 入口，Organizer 不创建自己的聊天、模型调用或审批。
+- DSH 是唯一 AI 入口，Organizer 不创建自己的聊天、模型调用或审批服务；写入 Tool 只声明
+  需要 DSH 审批的业务动作。
 - AI 侧只提供一个 Personal Organizer Skill，不为 Note、Todo、Event 或 Reminder
   分别创建 Skill 或 Agent。它们都是同一件“个人事项”的不同结果或附着能力。
 - Conversation 或被允许的其他 Agent 通过这个 Skill 表达记录、安排、完成或修改事项的
   意图。能够明确识别完成语义或时间占用时形成 Todo 或 Event；其余无法明确判断的内容
   一律形成 Note，不再保留无类型的临时状态或待整理队列。
 - “是否需要存储”和“存成什么类型”是两个连续判断。用户说出“待办”“帮我记录”
-  “记一下”“添加日程”等具有明确保存意图的指令时，Skill 才发起创建；普通讨论、分析、
-  建议或提问不能因为提到了某件事就自动存储。“待办”同时确定类型为 Todo，“日程”同时
-  确定类型为 Event；“帮我记录”“记一下”只确定需要存储，没有其他类型线索时形成 Note。
-  这些词是明确语义的例子，不是由本地关键词表代替 Skill 理解用户意图。
+  “记一下”“添加日程”或明确说“提醒我”且目标内容清楚时，Skill 才发起创建；普通讨论、
+  分析、建议或提问不能因为提到了某件事就自动存储。“待办”同时确定类型为 Todo，“日程”
+  同时确定类型为 Event；“帮我记录”“记一下”只确定需要存储，没有其他类型线索时形成 Note。
+  “提醒我做 X”在 X 是可执行动作时形成 Todo，“提醒我记住/保存一条信息”形成 Note 并附加
+  Reminder。这些词是明确语义的例子，不是由本地关键词表代替 Skill 理解用户意图。
 - 创建 Todo 时，Skill 从原话中提炼简洁的主要行动作为标题，把用户明确说出的补充信息
   放入详情，并完整保留原始输入。只有一个短行动时详情可以为空。提炼可以删除“帮我记录”
   “创建待办”等对业务内容无用的指令词，但不能改写或遗漏用户事实，也不能凭空补充日期、
   Reminder、优先级、标签或执行步骤。
 - Todo 的 start/due 角色必须由用户明确表达，不能根据标题、动词或“裸日期通常是截止”
   的习惯猜测。“开始/从……开始”映射 start，“截止/最晚/……前完成或提交”映射 due；
-  只有日期而没有角色时，先创建无日期 Todo 并在同一 Conversation 追问。自然语言日期值
-  可以使用当前本地日期、locale 和 IANA 时区解析，但不能默认最近星期、工作时间或钟点。
+  但“在某时提醒我做 X”且 X 是可执行动作时，该时刻同时映射 Todo 的 `todoStart` 和
+  Reminder。只有日期而没有角色时，先创建无日期 Todo 并在同一 Conversation 追问。自然语言
+  日期值可以使用当前本地日期、locale 和 IANA 时区解析，但不能默认最近星期、工作时间或钟点。
 - 创建多少条事项由用户明确表达决定。用户说“一个待办”或没有要求拆分时，只创建一条，
   其余行动保留在同一事项的详情中；只有用户明确说“分别记录”“创建三条待办”等拆分意图
   时，才创建对应数量的事项。Skill 不按标点或行动词数量擅自拆分，也不把多条静默合并。
@@ -336,7 +344,7 @@ Canonical 存储、右侧抽屉、完成和重启持久化的最小闭环；待�
 ### 当前可复用前端原型
 
 `plugins/organizer/src/client/` 已按正式 Product Plugin 形状实现 Organizer
-Product Surface，并通过 DSH 公开 `product.surface`、`sidebar.footer.action` 和
+Product Surface，并通过 DSH 公开 `product.surface`、Product Navigation v1 和
 `ctx.layout.openProductSurface/closeProductSurface` 挂入 Hermit bundled DSH。页面、
 内部 View、列表、右侧单实例抽屉、草稿保护和状态表达都是后续可保留的代码，
 不是 Settings tab 或独立 Vite 页面。
@@ -375,12 +383,10 @@ empty 和 loading，partial、permission denied、plugin unavailable 的真实�
 不再增加独立的“完整异常矩阵原型”。每个看起来可操作的控件都必须产生可观察的命令结果，
 或者明确 disabled，不能用空按钮和假成功代替尚未实现的流程。
 
-正式接入真实 adapter 前仍有一项 DSH 技术 gate：Product Surface v1 能处理
-Organizer 自己发起的关闭和内部导航，但当其他产品入口直接调用
-`openProductSurface(otherId)` 时，当前公开契约还没有 before-leave guard 和可观测的
-active surface ID。须先用 Organizer + Smart Clipboard 双 surface 真实资格证明影响；
-若会丢失 dirty draft 或无法表达 active 入口，再对 DSH layout patch 增加最小公开
-typed contract，不在 Organizer 内使用私有 store、DOM 或 Router 绕过。
+正式接入真实 adapter 前仍有一项 DSH 技术 gate：Product Navigation v1 已提供统一 active
+surface 观察和入口注销，但当前还没有 before-leave dirty guard。若 Organizer 与其他产品
+切换确实会丢失 dirty draft，下一小切片只在 layout transition choke point 增加统一布尔
+guard，不在 Organizer 内使用私有 store、DOM 或 Router 绕过。
 
 ## 核心交互
 
@@ -735,12 +741,18 @@ all-day 表达日期范围占用，date-only 不表达时间占用。两者都�
 ### Todo 日期完整性
 
 ```text
-“今天开始整理资料” -> start=今天的本地 date-only，due 未指定
-“明天截止提交报销” -> due=明天的本地 date-only，start 未指定
-“明天买牛奶”       -> 先创建无日期 Todo，追问明天是开始还是截止
-“周五开始，周四截止” -> 先创建 Todo，冲突中的 start/due 都不写，要求更正
-“下班前提交”       -> due 角色明确但值不完整，不写 due，追问具体日期或时间
+“待办：今天开始整理资料” -> start=今天的本地 date-only，due 未指定
+“待办：明天截止提交报销” -> due=明天的本地 date-only，start 未指定
+“帮我记个待办：明天买牛奶” -> 先创建无日期 Todo，追问明天是开始还是截止
+“待办：周五开始，周四截止” -> 先创建 Todo，冲突中的 start/due 都不写，要求更正
+“待办：下班前提交” -> due 角色明确但值不完整，不写 due，追问具体日期或时间
+“明天上午 8 点提醒我吃饭” -> Todo 的 todoStart=明天 08:00，同时创建同一时刻的 Reminder
 ```
+
+“明天上午 8 点提醒我吃饭”中的“吃饭”是可执行动作，“提醒我”是明确保存意图；因此不先建
+Note，也不把“明天”只显示成日期。Tool 成功后，列表和右侧抽屉都应显示“明天 08:00”，
+Reminder Center 以同一条 Reminder 事实处理提醒；这里没有 `todoDue`，因为用户没有表达截止
+或最晚完成。
 
 Todo 内容足以创建时，日期问题不阻塞 Todo 本身。时间部分只持久化角色明确、值可唯一解析
 且彼此一致的事实：一个合法 start 不因 due 信息不足而丢失；若明确 start/due 形成
@@ -2168,8 +2180,8 @@ active Note -> 右侧抽屉编辑 -> 选择 Event
 第十条切片验证 Todo 日期自然语言与部分成功：
 
 ```text
-“明天截止提交报销” -> Todo + date-only due
-“明天买牛奶” -> 无日期 Todo -> 追问 -> “截止” -> 同一 ID 补 due
+“待办：明天截止提交报销” -> Todo + date-only due
+“帮我记个待办：明天买牛奶” -> 无日期 Todo -> 追问 -> “截止” -> 同一 ID 补 due
 明确 start > due -> Todo 创建但冲突日期都不写 -> 要求修正
 ```
 

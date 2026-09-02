@@ -14,6 +14,8 @@
 Electron Desktop Shell
 |-- 主窗口、Tray、开机启动、更新、单实例
 |-- 通过 Hermit carrier 启动并监管自带、经过兼容性验证的 Node/DSH 运行时
+|-- Desktop Surface Manager：受控窗口、定位、焦点、置顶和平台降级
+|-- Desktop deadline / notification facade：绝对时刻等待和系统投递
 |-- Smart Clipboard 桌面运行单元与主进程专用 macOS native micro-adapter
 `-- 通过 127.0.0.1 + OS 随机端口加载 DSH Web
 
@@ -35,9 +37,11 @@ stock DSH 是插件 artifact 的兼容基线；Hermit bundled DSH generation 可
 Hermit carrier 是 Electron 与 DSH 之间的一次性生命周期载体。它只转发输出、监听父进程
 管道并回收一个 DSH 进程树；不读取 DSH 配置或 Session，不解释协议，也不拥有重启策略。
 
-通用 AI Quick Panel 及其全局快捷键仍不属于 M1 桌面底座，也没有进入当前产品运行路径。
-Smart Clipboard 的快速取回是插件专属桌面工作面：Electron/Core 拥有窗口、快捷键和窄 IPC
-facade，插件领域服务仍拥有数据和动作语义。两者不能因为都使用浮层而合并成第二套对话入口。
+Quick Panel 现在按独立模块设计为 Desktop Surface 能力，仍不属于 M1 已完成的资格范围。
+Desktop Core 提供统一的 Surface Manager 和 typed contract；第一条产品闭环是
+`conversation.quick`，它通过正常 DSH Session 承载对话，不创建第二套 AI runtime。Smart
+Clipboard 的快速取回和未来 Product Plugin 小窗复用窗口宿主，但继续拥有自己的数据、领域
+服务和动作语义，不能因为都使用浮层而合并业务状态。
 
 ## 责任边界
 
@@ -53,8 +57,16 @@ facade，插件领域服务仍拥有数据和动作语义。两者不能因为�
   登录项或关机的控制入口，也不能替代真实系统级验收；
 - 携带通过兼容性资格检查的 Node、pnpm、DSH 组合，并负责启动、就绪探测、退出、崩溃恢复和进程树清理；
 - 创建受限 renderer，加载经过允许的 DSH loopback origin；
-- 为 Smart Clipboard 创建鼠标附近的受限快速取回窗口，并持有其全局快捷键、焦点恢复和
-  copy-only 通知；该窗口只调用 Smart Clipboard 窄 facade，不承载其他插件或 AI Session；
+- 提供 Desktop Surface Manager，统一创建、定位、显示、隐藏、焦点、置顶、窗口状态和
+  renderer 清理；Surface 内容和业务状态由 DSH 或对应 Product Plugin 提供；
+- 为使用 Surface 的插件提供经过 sender/schema 校验的窄 facade；Smart Clipboard 的快速
+  取回只调用自己的业务 facade，`conversation.quick` 只绑定 DSH Session；
+- 为 Reminder 等真实桌面流程提供经过 sender/schema 校验的 `desktop.deadlines` 和
+  `desktop.notifications` facade；Core 只执行绝对时刻等待和系统投递，不保存 Rule、Occurrence、
+  重复、时区或业务正文，事件只回发给 owner window；
+- 通过 Core `ShortcutRegistry` 统一管理插件快捷键、内部重复和系统注册结果；快捷键被占用
+  时只撤下对应命令，不回滚 Smart Clipboard 的捕获、History 或 IPC；DSH bundled layout 的
+  快捷键中心通过独立的只读列表/更新/恢复 facade 消费这些状态；
 - 在 macOS 主进程加载唯一、精确 ABI 的 Objective-C++ N-API micro-adapter；它只提供稳定
   pasteboard 快照/写回、应用身份和守卫后的粘贴按键，不获得网络、shell、凭据或任意文件
   正文读取能力。native 内存故障仍可能终止 Electron，因此签名产物和 disposable 平台资格
@@ -62,7 +74,7 @@ facade，插件领域服务仍拥有数据和动作语义。两者不能因为�
 - 不保存 DSH Session、插件业务数据、模型凭据或插件权限状态；
 - 不向插件暴露 Electron API、Node ambient authority、`ipcRenderer` 或私有 preload 接口；
   必须由 renderer 承载的 Core 能力只能以经过 sender/schema 校验的最小公开 facade 暴露，
-  例如 Smart Clipboard 的 `hermitSmartClipboard`，不能因此获得通用桌面权限。
+  不能因此获得未声明的通用桌面权限。
 
 ### DSH
 
@@ -70,6 +82,7 @@ facade，插件领域服务仍拥有数据和动作语义。两者不能因为�
 - 是产品 AI 的唯一入口，所有业务 AI 操作都回到真实 DSH Session；
 - 拥有 DSH profile/home 中的运行时配置和官方数据格式；
 - 通过公开 package root、client seam、slot 和 service 接受外部组合；
+- bundled DSH 通过 Hermit layout patch 承载 Core-owned 产品入口和“设置 -> 快捷键”页面；
 - 负责插件的激活、停用、卸载和生命周期资源清理。
 
 ### Product Plugin
@@ -78,12 +91,14 @@ facade，插件领域服务仍拥有数据和动作语义。两者不能因为�
 - 只能使用公开 DSH/Hermit plugin contract 和声明的 capability；
 - 不依赖 Electron、`ipcRenderer`、私有 preload、`window.hermit`、另一个插件的内部文件或
   DSH `src/*`；仅可使用自身 manifest 明确声明、由 Core 提供的最小公开能力 facade；
+- 不在业务插件中绘制或保存全局快捷键中心；快捷键命令由 Desktop Core 注册，统一页面负责
+  展示和修改；
 - 被卸载或停用后，Core 和其他插件仍可正常运行，已有数据按插件契约保留或导出。
 
-Smart Clipboard 是当前唯一需要桌面运行单元的 Product Plugin。Electron 每次 DSH ready
-都重新读取受管 web profile：ACTIVE 时幂等启动该单元；停用、卸载、DSH crash 或不可用时
-先撤快捷键，再停止捕获、IPC、浮层和数据库连接。当前 Client 停用仍使用明确 DSH 重启边界，
-不宣称进程内热卸载。
+Smart Clipboard 当前仍需要桌面运行单元。Electron 每次 DSH ready 都重新读取受管 web profile：
+ACTIVE 时幂等启动该单元；停用、卸载、DSH crash 或不可用时先撤快捷键，再停止捕获、IPC、
+Surface 实例和数据库连接。当前 Client 停用仍使用明确 DSH 重启边界，不宣称进程内热卸载。
+快捷键或某项 Surface 偏好不可用是该能力内部的部分不可用状态，不等于 DSH 或插件资格失败。
 
 ## 依赖方向
 
@@ -95,8 +110,10 @@ Product Plugin -/-> another Product Plugin internals
 ```
 
 跨插件协作通过 DSH/Hermit public service、resource、tool 或 domain event 完成。任何需要
-桌面特权的动作都经过 DSH/Hermit
-capability contract，不由插件直接访问文件系统、网络、进程或凭据。
+桌面特权的动作都经过 DSH/Hermit capability contract，不由插件直接访问文件系统、网络、
+进程或凭据。Reminder 的推荐链路是 Organizer 先算出绝对时刻，再调用 deadline facade；
+收到 fire 后由 Organizer 幂等认领 Occurrence，再调用 notification facade。Core 重启后不恢复
+Reminder 业务状态，Organizer 必须重新 reconcile。
 
 ## 运行和恢复模型
 

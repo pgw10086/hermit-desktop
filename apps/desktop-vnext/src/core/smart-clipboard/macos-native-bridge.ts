@@ -49,7 +49,7 @@ export type MacActivateResult =
   | { readonly status: 'requested' }
   | { readonly status: 'copy-only'; readonly reason: 'target-gone' | 'target-identity-mismatch' | 'activation-rejected' }
 
-/** 带目标身份和操作身份校验的自动粘贴结果。 */
+/** 带目标身份和操作身份校验的显式粘贴结果。 */
 export type MacPostPasteResult =
   | { readonly status: 'posted'; readonly clipboardAfter: 'unchanged' | 'changed' }
   | {

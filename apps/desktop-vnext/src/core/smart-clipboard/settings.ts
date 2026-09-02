@@ -79,7 +79,7 @@ function parseSettings(value: unknown): SmartClipboardPersistedSettings {
   if (typeof record.paused !== 'boolean') throw new Error('暂停设置无效')
   const actionMapping = record.actionMapping
   if (typeof actionMapping !== 'object' || actionMapping === null) throw new Error('动作映射设置无效')
-  const mapping = actionMapping as ActionMapping
+  const mapping = migrateActionMapping(actionMapping)
   const validation = validateActionMapping(mapping)
   if (!validation.valid) throw new Error('动作映射设置无效')
   const excludedApplications = parseApplicationExclusions(record.excludedApplications)
@@ -92,6 +92,17 @@ function parseSettings(value: unknown): SmartClipboardPersistedSettings {
     actionMapping: validation.mapping,
     excludedApplications,
     excludedKinds,
+  }
+}
+
+/** 将早期把显式粘贴称为 use 的设置迁移到当前 vocabulary，不改变其他用户选择。 */
+function migrateActionMapping(value: object): ActionMapping {
+  const raw = value as Record<string, unknown>
+  const normalize = (action: unknown): unknown => action === 'use' ? 'paste' : action
+  return {
+    Enter: normalize(raw.Enter) as ActionMapping['Enter'],
+    'Mod+Enter': normalize(raw['Mod+Enter']) as ActionMapping['Mod+Enter'],
+    'Shift+Enter': normalize(raw['Shift+Enter']) as ActionMapping['Shift+Enter'],
   }
 }
 

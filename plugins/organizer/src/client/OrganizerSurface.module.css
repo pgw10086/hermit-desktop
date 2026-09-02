@@ -439,11 +439,17 @@
 }
 
 .itemTime {
+  display: grid;
   max-width: 190px;
   color: var(--dsw-alias-label-secondary);
   font-size: 12px;
   line-height: 1.4;
   text-align: right;
+}
+
+.itemReminder {
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
 }
 
 .todoCheck {

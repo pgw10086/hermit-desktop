@@ -1,6 +1,8 @@
 import { randomUUID } from 'node:crypto'
 import path from 'node:path'
-import { globalShortcut, powerMonitor, type BrowserWindow, type IpcMain } from 'electron'
+import { powerMonitor, type BrowserWindow, type IpcMain } from 'electron'
+import type { ShortcutRegistry } from '../core/shortcut-registry.js'
+import type { DesktopSurfaceManager } from '../core/desktop-surface-manager.js'
 import { ElectronClipboardBridge } from '../core/smart-clipboard/electron-bridge.js'
 import { registerSmartClipboardIpc } from '../core/smart-clipboard/ipc.js'
 import {
@@ -13,11 +15,10 @@ import { SqliteClipboardRepository } from '../core/smart-clipboard/sqlite-reposi
 import type { NavigationActions } from './window-policy.js'
 import {
   configureSmartClipboardQuickPanel,
-  createSmartClipboardQuickPanel,
-  showSmartClipboardQuickPanel,
+  createSmartClipboardQuickPanelSurface,
+  SMART_CLIPBOARD_SURFACE_ID,
 } from './smart-clipboard-quick-panel.js'
-
-const SHORTCUT = 'CommandOrControl+Shift+Space'
+import { QUICK_PANEL_SHORTCUT } from './system-integration.js'
 
 interface SmartClipboardDesktopRuntimeOptions {
   readonly userData: string
@@ -27,8 +28,10 @@ interface SmartClipboardDesktopRuntimeOptions {
   readonly isPackaged: boolean
   readonly resourcesPath: string
   readonly appPath: string
-  /** 快速面板抢占前台时，桌面壳不能把主窗口作为 activate 的副作用带到前台。 */
-  readonly onQuickPanelVisibilityChanged?: (visible: boolean) => void
+  /** Desktop Core 的唯一快捷键注册入口。 */
+  readonly shortcutRegistry: ShortcutRegistry
+  /** Desktop Core 的统一 Surface 宿主。 */
+  readonly surfaceManager: DesktopSurfaceManager
 }
 
 /**
@@ -43,7 +46,7 @@ export class SmartClipboardDesktopRuntime {
     this.#options = options
   }
 
-  /** 当前是否已持有捕获、IPC、快捷键和 Quick Panel 资源。 */
+  /** 当前是否已持有捕获、IPC 和 Quick Panel 资源。快捷键冲突不影响该状态。 */
   get active(): boolean { return this.#stop !== undefined }
 
   /** 原子启动 Smart Clipboard 资源；任一步失败都会回收已创建资源。 */
@@ -52,8 +55,10 @@ export class SmartClipboardDesktopRuntime {
     let repository: SqliteClipboardRepository | undefined
     let disposeIpc: (() => void) | undefined
     let quickPanel: BrowserWindow | undefined
+    let disposeSurface: (() => void) | undefined
     let service: ClipboardCoreService | undefined
     let onLockScreen: (() => void) | undefined
+    let disposeShortcut: (() => void) | undefined
     try {
       const platform = new ElectronClipboardBridge(
         process.platform === 'darwin'
@@ -73,26 +78,36 @@ export class SmartClipboardDesktopRuntime {
       })
       settings.write(service.settings())
       service.start()
-      const panel = createSmartClipboardQuickPanel(this.#options.actions)
+      const surface = createSmartClipboardQuickPanelSurface(this.#options.actions)
+      disposeSurface = this.#options.surfaceManager.register(surface.definition, surface.host)
+      const panel = this.#options.surfaceManager.windowFor(SMART_CLIPBOARD_SURFACE_ID)
       quickPanel = panel
-      panel.on('show', () => this.#options.onQuickPanelVisibilityChanged?.(true))
-      panel.on('hide', () => this.#options.onQuickPanelVisibilityChanged?.(false))
       disposeIpc = registerSmartClipboardIpc({
         ipcMain: this.#options.ipcMain,
         service,
         mainWindow: this.#options.mainWindow,
         quickPanel: panel,
+        closeQuickPanel: () => this.#options.surfaceManager.close(SMART_CLIPBOARD_SURFACE_ID),
+        openQuickPanel: async () => { await this.#options.surfaceManager.open(SMART_CLIPBOARD_SURFACE_ID) },
         quickPanelLayout: (input) => configureSmartClipboardQuickPanel(panel, input),
       })
-      const shortcutRegistered = globalShortcut.register(SHORTCUT, () => {
-        // 先标记再 show，避免 macOS 在 focus 过程中先发 activate，导致主窗口被显示。
-        this.#options.onQuickPanelVisibilityChanged?.(true)
-        platform.rememberPasteTarget()
-        if (quickPanel !== undefined) showSmartClipboardQuickPanel(quickPanel)
+      const shortcut = this.#options.shortcutRegistry.register({
+        id: 'smart-clipboard.open',
+        pluginId: 'smart-clipboard',
+        pluginName: 'Smart Clipboard',
+        commandName: '打开剪贴板快速取回',
+        defaultAccelerator: QUICK_PANEL_SHORTCUT,
+        onTrigger: () => {
+          // 只为用户随后明确选择的 paste 保留原应用；普通 copy 会在 Core 中清理它。
+          platform.rememberPasteTarget()
+          void this.#options.surfaceManager.open(SMART_CLIPBOARD_SURFACE_ID).catch((cause: unknown) => {
+            console.error(`Smart Clipboard 快速取回 Surface 打开失败: ${errorMessage(cause)}`)
+          })
+        },
       })
-      if (!shortcutRegistered) throw new Error(`Smart Clipboard 快捷键注册失败：${SHORTCUT}`)
+      disposeShortcut = shortcut.dispose
       onLockScreen = () => {
-        quickPanel?.hide()
+        void this.#options.surfaceManager.close(SMART_CLIPBOARD_SURFACE_ID).catch(() => undefined)
         this.#options.mainWindow.hide()
       }
       powerMonitor.on('lock-screen', onLockScreen)
@@ -101,21 +116,19 @@ export class SmartClipboardDesktopRuntime {
       this.#stop = () => {
         if (stopped) return
         stopped = true
+        disposeShortcut?.()
         service?.stop()
         disposeIpc?.()
         if (onLockScreen !== undefined) powerMonitor.removeListener('lock-screen', onLockScreen)
-        if (globalShortcut.isRegistered(SHORTCUT)) globalShortcut.unregister(SHORTCUT)
-        if (quickPanel !== undefined && !quickPanel.isDestroyed()) quickPanel.destroy()
-        this.#options.onQuickPanelVisibilityChanged?.(false)
+        disposeSurface?.()
         repository?.close()
       }
     } catch (cause) {
       service?.stop()
+      disposeShortcut?.()
       disposeIpc?.()
       if (onLockScreen !== undefined) powerMonitor.removeListener('lock-screen', onLockScreen)
-      if (globalShortcut.isRegistered(SHORTCUT)) globalShortcut.unregister(SHORTCUT)
-      if (quickPanel !== undefined && !quickPanel.isDestroyed()) quickPanel.destroy()
-      this.#options.onQuickPanelVisibilityChanged?.(false)
+      disposeSurface?.()
       repository?.close()
       throw cause
     }
@@ -127,4 +140,8 @@ export class SmartClipboardDesktopRuntime {
     this.#stop = undefined
     stop?.()
   }
+}
+
+function errorMessage(cause: unknown): string {
+  return cause instanceof Error ? cause.message : String(cause)
 }

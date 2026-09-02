@@ -4,7 +4,7 @@
 
 本文是 Smart Clipboard 后续版本更新时的专属执行清单。共同的插件 package、runtime、
 双宿主、Product Surface 和制品证据规则以[DSH Product Plugin 开发与打包标准](dsh-plugin-development-and-packaging.md)
-为准；本文只补充 Smart Clipboard 的桌面 native、快捷键和 DMG 步骤。
+为准；本文只补充 Smart Clipboard 的桌面 native、快捷键中心和 DMG 步骤。
 
 ## 先理解三类制品
 
@@ -26,6 +26,11 @@ Smart Clipboard 不是把一个页面复制进桌面包。一次完整交付包�
 
 两处必须来自同一版本、同一构建闭包，不能再次从 `plugins/` workspace 源目录取文件。只把插件放进 DSH runtime，桌面主进程仍可能在
 安装后的 DMG 中报 `ERR_MODULE_NOT_FOUND`。
+
+`package:desktop:dir` 只用于本机测试。它会在包内写入 `hermitBuildVariant=test`，启动前将
+userData 切到 `~/Library/Application Support/Hermit Test`，因此不会被已安装的
+`/Applications/Hermit.app` 单实例锁接管，也不会混用正式包的 DSH profile、数据库或会话。
+`mac-smoke` 和 `mac-release` 保持正式 `Hermit` 身份。
 
 ## 前置条件
 
@@ -89,7 +94,7 @@ corepack pnpm run verify:desktop:packaged-runtime
 ```
 
 `package:desktop:dir` 会自动准备 bundled Node、DSH runtime、native bridge、renderer 和
-app-dir。`test:smart-clipboard:packaged-ui` 覆盖 History、暂停/继续、设置、停用/重新启用
+app-dir。`test:smart-clipboard:packaged-ui` 覆盖快捷键中心、History、暂停/继续、设置、停用/重新启用
 生命周期；`verify:desktop:packaged-runtime` 覆盖 runtime closure、Product Surface patch
 和 DSH clean boot。
 
@@ -136,8 +141,11 @@ smoke 只用于日常打包检查。需要发布 GitHub Release 时，继续执�
 
 - 复制 TEXT、IMAGE、FILE_LIST 后，等待历史记录出现，关闭再启动仍可恢复；
 - 全局快捷键呼出紧凑面板，输入即过滤，方向键选择；
-- `Enter` 执行当前映射，`Mod+Enter` 只复制，`Shift+Enter` 只对 TEXT 做纯文本使用；
-- 自动粘贴被系统拒绝时，界面保留“已复制，请手工粘贴”的降级反馈；
+- 在 DSH“设置 -> 快捷键”中确认当前组合和注册状态；用另一个已被占用的组合验证只提示
+  冲突，History 仍能打开、后台捕获仍继续；修改为可用组合后快速取回恢复；
+- `Enter` 默认只复制，`Mod+Enter` 默认执行明确粘贴，`Shift+Enter` 只对 TEXT 做纯文本复制；
+- 用户按住 Option/Alt 点击时执行 Mod+Enter 映射；右键只打开已有类型预览，不执行复制或粘贴；
+- 显式粘贴被系统拒绝时，界面保留“已复制，请手工粘贴”的降级反馈；
 - History 列表、三类详情预览、置顶、删除、Trash、恢复/永久删除、暂停、导出和清空；
 - 文件引用失效、存储上限、插件停用和重新启用时，界面显示对应明确状态；
 - 从快捷面板、侧栏、命令和插件详情都能回到完整 History；
@@ -188,6 +196,6 @@ smoke 只用于日常打包检查。需要发布 GitHub Release 时，继续执�
 ## 当前仍未闭合的资格
 
 当前代码和 smoke DMG 已证明插件、桌面、DSH runtime、Product Surface、app.asar 依赖和
-DMG 冷启动闭环。真实 General Pasteboard 的复制/自动粘贴、辅助功能授权、物理快捷键、
+DMG 冷启动闭环。真实 General Pasteboard 的复制/显式粘贴、辅助功能授权、物理快捷键、
 签名、公证、Gatekeeper 和真实重启仍是独立证据，不因 smoke DMG 通过而自动视为完成；
 其中发布步骤是否为必做，以统一发布流程和当次选择为准。

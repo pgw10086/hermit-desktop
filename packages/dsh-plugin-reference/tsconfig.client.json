@@ -8,6 +8,11 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "outDir": "lib/types/client",
+    "paths": {
+      "@deepseek-ai/dsh-client-ui-layout/client": [
+        "../../packages/dsh-client-ui-layout/lib/types/client/index.d.ts"
+      ]
+    },
     "rootDir": "src/client",
     "skipLibCheck": true,
     "strict": true,

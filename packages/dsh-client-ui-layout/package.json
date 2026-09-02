@@ -1,6 +1,6 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-layout",
-  "description": "Hermit-patched DSH shell layout with a public Product Surface contract",
+  "description": "Hermit-patched DSH shell layout with public Product Surface, Desktop Surface, Shortcut Center and desktop capability contracts",
   "version": "0.1.1-rc.2",
   "private": true,
   "type": "module",
@@ -25,14 +25,15 @@
     "client": {
       "inject": [
         "@deepseek-ai/dsh-client-runtime",
-        "@deepseek-ai/dsh-client-ui-theme"
+        "@deepseek-ai/dsh-client-ui-theme",
+        "@deepseek-ai/dsh-client-ui-primitives"
       ],
       "platform": "web"
     }
   },
   "hermitPatch": {
-    "contractVersion": 1,
-    "name": "product-surface",
+    "contractVersion": 6,
+    "name": "product-navigation-shortcut-center-desktop-surface-and-primary-workspace",
     "upstreamRepository": "https://github.com/deepseek-ai/deepseek-harness.git",
     "upstreamTag": "dsh-v0.1.1-rc.2",
     "upstreamCommit": "b150a551b8d465e31e418e1b2eaf5e79bbb7d28e"
@@ -57,6 +58,7 @@
   "peerDependencies": {
     "@deepseek-ai/cordis": ">=4.0.1 <5",
     "@deepseek-ai/dsh-client-runtime": "0.1.1-rc.2",
+    "@deepseek-ai/dsh-client-ui-primitives": "0.1.1-rc.2",
     "@deepseek-ai/dsh-client-ui-theme": "0.1.1-rc.2",
     "@deepseek-ai/dsh-invariants": "0.1.1-rc.2",
     "react": ">=18.3.0 <19"
@@ -64,6 +66,9 @@
   "devDependencies": {
     "@deepseek-ai/cordis": ">=4.0.1 <5",
     "@deepseek-ai/dsh-client-runtime": "0.1.1-rc.2",
+    "@deepseek-ai/dsh-client-ui-primitives": "0.1.1-rc.2",
+    "@deepseek-ai/dsh-client-ui-sidebar": "0.1.1-rc.2",
+    "@deepseek-ai/dsh-client-ui-settings": "0.1.1-rc.2",
     "@deepseek-ai/dsh-client-ui-slots": "0.1.1-rc.2",
     "@deepseek-ai/dsh-client-ui-theme": "0.1.1-rc.2",
     "@deepseek-ai/dsh-invariants": "0.1.1-rc.2",

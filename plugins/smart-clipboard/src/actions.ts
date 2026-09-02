@@ -1,7 +1,7 @@
 import type { ClipboardEntry, ClipboardKind } from './full-history.js'
 
-/** 快捷操作类型；use 会在复制后尝试自动粘贴。 */
-export type ClipboardAction = 'use' | 'copy' | 'plain-text'
+/** 快捷操作类型；paste 只表示用户明确请求复制后尝试粘贴。 */
+export type ClipboardAction = 'paste' | 'copy' | 'plain-text'
 /** 支持配置的三个快捷键身份。 */
 export type ActionShortcut = 'Enter' | 'Mod+Enter' | 'Shift+Enter'
 
@@ -14,10 +14,10 @@ export interface ActionMapping {
   readonly 'Shift+Enter': ClipboardAction
 }
 
-/** 默认动作映射；三个快捷键必须分别占用不同动作。 */
+/** 默认动作映射；普通回车复制，修饰键回车显式粘贴。 */
 export const DEFAULT_ACTION_MAPPING: ActionMapping = {
-  Enter: 'use',
-  'Mod+Enter': 'copy',
+  Enter: 'copy',
+  'Mod+Enter': 'paste',
   'Shift+Enter': 'plain-text',
 }
 
@@ -48,9 +48,9 @@ export function actionAvailable(action: ClipboardAction, kind: ClipboardKind): b
 /** 将动作转换为用户可见标签。 */
 export function actionLabel(action: ClipboardAction): string {
   switch (action) {
-    case 'use': return '使用当前项'
-    case 'copy': return '只复制'
-    case 'plain-text': return '纯文本使用'
+    case 'paste': return '粘贴'
+    case 'copy': return '复制'
+    case 'plain-text': return '纯文本复制'
   }
 }
 
@@ -61,7 +61,7 @@ export interface ActionExecutionPlan {
   readonly entryId: string
   /** 是否保留文本的富文本表示。 */
   readonly copyFormatted: boolean
-  /** 是否在复制后尝试自动粘贴。 */
+  /** 是否在复制后尝试显式粘贴。 */
   readonly autoPaste: boolean
 }
 
@@ -72,10 +72,10 @@ export function planAction(action: ClipboardAction, entry: ClipboardEntry): Acti
     action,
     entryId: entry.id,
     copyFormatted: action !== 'plain-text' && entry.kind === 'TEXT',
-    autoPaste: action === 'use',
+    autoPaste: action === 'paste',
   }
 }
 
 function isClipboardAction(value: unknown): value is ClipboardAction {
-  return value === 'use' || value === 'copy' || value === 'plain-text'
+  return value === 'paste' || value === 'copy' || value === 'plain-text'
 }

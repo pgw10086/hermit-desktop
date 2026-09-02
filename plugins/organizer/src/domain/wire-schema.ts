@@ -5,7 +5,7 @@ const temporalPoint = z.object({ date: z.string(), time: z.string() })
 /** Client 清单项形状；与领域记录共用稳定 id。 */
 const checklist = z.object({ id: z.string().min(1), text: z.string(), completed: z.boolean() })
 /** Client 提醒规则形状；由领域层在提交时解释相对锚点。 */
-const reminder = z.object({ id: z.string().min(1), mode: z.union([z.literal('absolute'), z.literal('relative')]), anchor: z.union([z.literal(''), z.literal('todo-start'), z.literal('todo-due'), z.literal('event-start')]), date: z.string(), time: z.string(), relation: z.union([z.literal('before'), z.literal('after')]), amount: z.number().int().positive(), unit: z.union([z.literal('minute'), z.literal('hour'), z.literal('day')]) })
+const reminder = z.object({ id: z.string().min(1), mode: z.union([z.literal('absolute'), z.literal('relative')]), anchor: z.union([z.literal(''), z.literal('todo-start'), z.literal('todo-due'), z.literal('event-start')]), date: z.string(), time: z.string(), relation: z.union([z.literal('before'), z.literal('after')]), amount: z.number().int().nonnegative(), unit: z.union([z.literal('minute'), z.literal('hour'), z.literal('day')]), sourceText: z.string().optional(), timeZone: z.string().optional(), referenceAt: z.number().int().nonnegative().optional() }).superRefine((value, ctx) => { if (value.mode === 'relative' && value.amount === 0) ctx.addIssue({ code: 'custom', path: ['amount'], message: '相对提醒数量必须大于 0' }) })
 /** Client 事件时间形状；mode 是 UI 与领域之间的明确契约。 */
 const eventTime = z.object({ mode: z.union([z.literal('date-only'), z.literal('all-day'), z.literal('timed')]), startDate: z.string(), startTime: z.string(), endDate: z.string(), endTime: z.string(), hasEnd: z.boolean() })
 

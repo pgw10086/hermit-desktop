@@ -307,8 +307,8 @@ Hermit Product Surface v1 已提供公开的打开、关闭和生命周期契约
   行为；File Workspace 只拥有文件树、当前文件区域和文件操作内容，不复制宿主外壳；
 - 统一文件树和当前文件编辑区使用连续 surface 与细分隔线，文件行、工具栏和搜索保持紧凑，
   选中态使用轻量平面填充，不使用厚描边、左侧装饰条或大阴影；
-- 颜色、排版、滚动条和明暗偏好跟随宿主 DSH theme alias。原型可以用局部 fallback 验证层级，
-  但不能把 fallback 数值写成 Hermit 产品 token，也不能自行建立全局 ThemeProvider；
+- 颜色、排版、滚动条和明暗偏好跟随宿主 DSH theme alias。原型和正式实现都不得用自建颜色
+  fallback 或产品调色板；主题变量缺失时应先修正 DSH 公开契约，而不是静默使用备用颜色；
 - DSH public primitives（例如 Button、Input、Menu、Modal）只有在当前锁定制品完成
   `candidate -> qualified -> allowed` 后才能成为正式实现依赖。DSH 的 `src/*`、CSS class、
   private store、Router 和 DOM 结构永远不是契约；

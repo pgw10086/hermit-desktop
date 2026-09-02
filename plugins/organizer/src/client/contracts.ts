@@ -45,6 +45,12 @@ export interface ReminderRuleDraft {
   readonly amount: number
   /** 相对提醒数量的单位。 */
   readonly unit: 'minute' | 'hour' | 'day'
+  /** 用户原始表达，供详情和问题定位使用。 */
+  readonly sourceText?: string
+  /** 创建时采用的 IANA 时区；旧数据缺失时保持兼容。 */
+  readonly timeZone?: string
+  /** 相对日期解析所依据的用户消息时间。 */
+  readonly referenceAt?: number
 }
 
 export interface EventTimeDraft {

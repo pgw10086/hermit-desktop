@@ -23,7 +23,7 @@ export interface ClipboardSourceIdentity {
 }
 
 export interface AutoPasteResult {
-  /** 自动粘贴是否完成；copy-only 表示只保证复制成功。 */
+  /** 显式粘贴是否完成；copy-only 表示只保证复制成功。 */
   readonly status: "pasted" | "copy-only";
   /** copy-only 时的可观察原因。 */
   readonly reason?: string;
@@ -38,7 +38,7 @@ export interface ClipboardQualificationPort {
   write(text: string): Promise<ClipboardWriteResult>;
   /** 读取当前前台应用身份。 */
   sourceIdentity(): Promise<ClipboardSourceIdentity>;
-  /** 请求自动粘贴并返回平台能力结果。 */
+  /** 请求显式粘贴并返回平台能力结果。 */
   autoPaste(): Promise<AutoPasteResult>;
 }
 

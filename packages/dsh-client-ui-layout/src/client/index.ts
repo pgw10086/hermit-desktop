@@ -3,14 +3,21 @@
  * the runtime's built-in 'root' slot and, in the same breath, declares the
  * five child slots (declaration = exclusive render authority), seats the
  * layout store (panel geometry), and wires the panel-action service face.
- * ctx.layout is the cross-plugin panel-action contract; navigation state lives
- * with the runtime sessions service. A second effect seats the theme
- * presenter, which projects ctx.theme snapshots onto document.body.
+ * ctx.layout is the cross-plugin panel-action contract; the primary workspace
+ * destination lives in this layout while the selected Session remains owned
+ * by the runtime sessions service. A second effect seats the theme presenter,
+ * which projects ctx.theme snapshots onto document.body.
  */
-import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
+import type { ClientContext, SessionId } from '@deepseek-ai/dsh-client-runtime/client'
+import type {} from '@deepseek-ai/dsh-client-runtime/client'
 import type {} from '@deepseek-ai/dsh-client-ui-theme/client'
+import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
+import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
+import { type ProductSurfaceOwnerProps } from './contract.ts'
 import type { PanelActions } from './service.ts'
 import { AppFrame } from './AppFrame.tsx'
+import { ProductNavigation } from './ProductNavigation.tsx'
+import { ShortcutCenter } from './ShortcutCenter.tsx'
 import { createLayoutStore } from './stores.ts'
 import { LayoutController } from './service.ts'
 import { ThemePresenter } from './theme-presenter.ts'
@@ -21,12 +28,39 @@ import { ThemePresenter } from './theme-presenter.ts'
 // OwnerShare contracts below are the render-side halves registrants compose
 // against; the frame components and the store factory are package-internal.
 export { LayoutController } from './service.ts'
-export type { ILayout } from './service.ts'
+export {
+  getDesktopSurfaceClient,
+  type DesktopSurfaceCapabilities,
+  type DesktopSurfaceClient,
+  type DesktopMainSessionResult,
+  type DesktopSurfaceOpenOptions,
+  type DesktopSurfaceResult,
+  type ILayout,
+  type ProductEntry,
+  type ProductEntryIcon,
+  type ProductNavigationState,
+  type ProductSurfaceOwnerProps,
+} from './contract.ts'
+export {
+  getDesktopDeadlineClient,
+  getDesktopNotificationClient,
+  type DesktopCapabilityErrorCode,
+  type DesktopDeadlineClient,
+  type DesktopDeadlineFiredEvent,
+  type DesktopDeadlineInput,
+  type DesktopDeadlineResult,
+  type DesktopNotificationActionInput,
+  type DesktopNotificationClient,
+  type DesktopNotificationEvent,
+  type DesktopNotificationInput,
+  type DesktopNotificationResult,
+  type DesktopNotificationStatus,
+} from './desktop-capabilities.ts'
 
 declare module '@deepseek-ai/cordis' {
   interface Context {
     /** The outward face only; the concrete service stays inside this plugin. */
-    layout: import('./service.ts').ILayout
+    layout: import('./contract.ts').ILayout
   }
 }
 
@@ -110,12 +144,9 @@ export interface ConvOwnerProps {}
 /** Details owner share: empty — sessionId arrives as a framework-standard prop. */
 export interface DetailsOwnerProps {}
 
-/** Product Surface owner share: navigation is owned by the registrant. */
-export interface ProductSurfaceOwnerProps {}
-
 /** Required services (cordis fiber inject — the loader passes all module exports as an object plugin). */
 /** 布局插件需要的 slot 注册和主题快照服务。 */
-export const inject = ['slots', 'theme']
+export const inject = ['slots', 'theme', 'sessions']
 
 /**
  * Client plugin body: provide ctx.layout, then one register() call — AppFrame
@@ -146,12 +177,64 @@ export function apply(ctx: ClientContext): void {
         return {}
       },
     }, AppFrame)
+    const disposeProductNavigation = ctx.slots.inject('sidebar.footer.action', () => ctx.slots.register({
+      name: 'sidebar.footer.action',
+      id: 'hermit-product-navigation',
+      order: -100,
+      inject: () => ({ layout }),
+    }, ProductNavigation))
+    const disposeShortcutCenter = ctx.slots.inject('settings.section', () => ctx.slots.register({
+      name: 'settings.section',
+      id: 'shortcut-center',
+      order: 80,
+      label: () => '快捷键',
+    }, ShortcutCenter))
+    const disposeSessionNavigation = subscribeSessionNavigation(ctx, layout)
     return () => {
+      disposeSessionNavigation()
+      disposeShortcutCenter()
+      disposeProductNavigation()
       disposeRegistration()
       // provide()'s disposer settles asynchronously; teardown is synchronous fire-and-forget.
       void disposeService()
     }
   }, 'ui-layout: service + root registration')
+
+  // A Quick Conversation surface may carry an existing Session id in its URL.
+  // The selection remains client-local; the Session log and stream stay in DSH.
+  const requestedSessionId = new URLSearchParams(window.location.search).get('sessionId')?.trim() as SessionId | undefined
+  if (requestedSessionId !== undefined && requestedSessionId !== '') {
+    ctx.effect(() => {
+      let live = true
+      const reconcile = (): void => {
+        if (!live) return
+        const sessions = ctx.sessions.list.getSnapshot()
+        if (sessions.current === requestedSessionId) {
+          live = false
+          off()
+          return
+        }
+        if (sessions.byId[requestedSessionId] === undefined) return
+        ctx.sessions.open(requestedSessionId)
+      }
+      const off = ctx.sessions.list.subscribe(reconcile)
+      reconcile()
+      return () => {
+        live = false
+        off()
+      }
+    }, 'ui-layout: requested Surface Session')
+  }
+
+  // A Quick Conversation fresh-open is an explicit no-session request. Clear
+  // only this renderer's current selection through the official DSH service;
+  // the Core never creates or mirrors a Session to implement this behavior.
+  if (new URLSearchParams(window.location.search).get('hermitNewSession') === '1') {
+    ctx.effect(() => {
+      ctx.sessions.clear()
+      return () => undefined
+    }, 'ui-layout: fresh Surface Session')
+  }
 
   // Theme presentation: pure DOM writes from resolved snapshots — initial
   // state through the getter once, then event-driven only; no React path.
@@ -164,4 +247,21 @@ export function apply(ctx: ClientContext): void {
       presenter.dispose()
     }
   }, 'ui-layout: theme presenter')
+}
+
+/**
+ * 让所有通过 DSH sessions 服务完成的前台会话切换回到会话主工作区。
+ * 同一会话的重复打开由 bundled DSH 的 Workspace adapter 直接通知；这里
+ * 负责处理真正改变 current 的其他公开路径，不能把 sessionId 复制进布局状态。
+ */
+function subscribeSessionNavigation(ctx: ClientContext, layout: LayoutController): () => void {
+  let previous = ctx.sessions.list.getSnapshot().current
+  return ctx.sessions.list.subscribe(() => {
+    const next = ctx.sessions.list.getSnapshot().current
+    if (next === previous) return
+    previous = next
+    if (layout.getProductNavigationState().activeProductSurfaceId !== null) {
+      layout.closeProductSurface()
+    }
+  })
 }

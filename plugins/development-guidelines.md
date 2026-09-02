@@ -80,6 +80,8 @@ Desktop Core 的能力边界、API 形式和打包后的桌面验证见[Desktop 
 
 页面直接挂在 DSH 提供的 Product Surface、slot 或公开 route 中，复用 DSH 的公开组件、
 图标和语义 token。插件自己的列表、编辑器和领域状态留在插件内，不复制一套 DSH shell。
+持久产品入口只注册 layout 的 `ProductEntry` metadata；入口排列、active、收起表现和
+导航切换由 Core 统一负责，插件不注册自己的 sidebar navigation React 组件。
 
 具体布局、键盘、响应式和截图验收规则见[前端 UI 设计规范](../docs/development/frontend-ui-design.md)
 和[Product Plugin UI 规范](ui-guidelines.md)。

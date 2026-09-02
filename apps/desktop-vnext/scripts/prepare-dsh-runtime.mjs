@@ -10,6 +10,10 @@ import {
   validateProductSurfacePatch,
   validateRuntimeClosure,
 } from './after-pack.mjs';
+import {
+  installForegroundSessionNavigationPatch,
+  validateForegroundSessionNavigationPatch,
+} from './dsh-foreground-session-navigation-patch.mjs';
 import { readDshUpstreamRegistry } from '../../../scripts/dsh-upstream.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
@@ -30,11 +34,19 @@ const runtimeBundleManifest = readRuntimeBundleManifest(runtimeBundleManifestPat
 const dshUpstreamRegistryPath = path.join(repositoryRoot, 'DEEPSEEK-HARNESS-UPSTREAM.md');
 const dshUpstream = readDshUpstreamRegistry(repositoryRoot);
 const runtimeArtifactMode = 'packed-tarball-v1';
+const foregroundSessionNavigationPatchScriptPath = path.join(
+  scriptDir,
+  'dsh-foreground-session-navigation-patch.mjs',
+);
 const productSurfaceSource = resolveManifestSource(runtimeBundleManifest.productSurfacePackage);
 const bundledPackages = runtimeBundleManifest.bundledPackages.map((spec) => ({
   spec,
   source: resolveManifestSource(spec),
 }));
+const runtimeBuildConfigs = [
+  path.join(productSurfaceSource, 'tsdown.config.ts'),
+  ...bundledPackages.map(({ source }) => path.join(source, 'tsdown.config.ts')),
+];
 const bundledNode = path.join(
   runtimeParent,
   'node',
@@ -97,11 +109,21 @@ hashInput(
 hashInput('runtime-bundle-manifest', fs.readFileSync(runtimeBundleManifestPath));
 hashInput('dsh-upstream-registry', fs.readFileSync(dshUpstreamRegistryPath));
 hashInput('runtime-artifact-mode', Buffer.from(runtimeArtifactMode));
+hashInput(
+  'dsh-foreground-session-navigation-patch-script',
+  fs.readFileSync(foregroundSessionNavigationPatchScriptPath),
+);
+for (const buildConfig of runtimeBuildConfigs) {
+  hashInput(
+    `runtime-build-config:${path.relative(repositoryRoot, buildConfig)}`,
+    fs.readFileSync(buildConfig),
+  );
+}
 hashPackage(runtimeBundleManifest.productSurfacePackage, productSurfaceSource);
 for (const { spec, source } of bundledPackages) hashPackage(spec, source);
 const runtimePackageEvidence = [
   {
-    role: 'product-surface',
+    role: 'product-navigation-shortcut-center-desktop-surface-and-primary-workspace',
     packageName: runtimeBundleManifest.productSurfacePackage.packageName,
     version: readPackageVersion(productSurfaceSource),
     packageContentSha256: packageDigest(runtimeBundleManifest.productSurfacePackage, productSurfaceSource),
@@ -158,6 +180,7 @@ if (!reusable) {
     // patch source 固定来自已经 materialize 的 Product Surface package，避免再次从 workspace
     // 覆盖 tarball 内容。
     installProductSurfacePatch(target);
+    const foregroundSessionNavigationPatch = installForegroundSessionNavigationPatch(target);
     validateRuntimeClosure(target, { allowLinks: true });
     assertRuntimePackageContents(target);
     const productSurfacePatch = validateProductSurfacePatch(target);
@@ -178,6 +201,7 @@ if (!reusable) {
           packedArtifactSha256: sha256File(packedArtifacts.get(entry.packageName)),
         })),
         productSurfacePatch,
+        foregroundSessionNavigationPatch,
       }, null, 2) + '\n',
     );
   } finally {
@@ -227,7 +251,7 @@ console.log((reusable ? 'Reused' : 'Prepared') + ' DSH runtime closure at ' + ta
 
 function isReusableClosure() {
   const manifestPath = path.join(target, 'hermit-runtime.json');
-  if (!fs.existsSync(manifestPath)) return false;
+  if (!fs.existsSync(manifestPath)) return rejectReuse('manifest missing');
   try {
     const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
     if (
@@ -241,21 +265,35 @@ function isReusableClosure() {
       manifest.architecture !== process.arch ||
       manifest.inputSha256 !== inputSha256
     ) {
-      return false;
+      return rejectReuse('static manifest evidence mismatch');
     }
     validateRuntimeClosure(target, { allowLinks: true });
     const productSurfacePatch = validateProductSurfacePatch(target);
     if (JSON.stringify(manifest.productSurfacePatch) !== JSON.stringify(productSurfacePatch)) {
-      return false;
+      return rejectReuse('Product Surface patch evidence mismatch');
+    }
+    const foregroundSessionNavigationPatch = validateForegroundSessionNavigationPatch(target);
+    if (
+      JSON.stringify(manifest.foregroundSessionNavigationPatch) !==
+      JSON.stringify(foregroundSessionNavigationPatch)
+    ) {
+      return rejectReuse('foreground session navigation patch evidence mismatch');
     }
     const packageContentEvidence = manifest.runtimePackages.map(({ packedArtifactSha256: _packed, ...entry }) => entry);
     if (JSON.stringify(packageContentEvidence) !== JSON.stringify(runtimePackageEvidence)) {
-      return false;
+      return rejectReuse('runtime package evidence mismatch');
     }
     return true;
-  } catch {
-    return false;
+  } catch (error) {
+    return rejectReuse(error instanceof Error ? error.message : String(error));
   }
+}
+
+function rejectReuse(reason) {
+  if (process.env.HERMIT_DSH_RUNTIME_DEBUG === '1') {
+    console.error(`[dsh-runtime] rebuild required: ${reason}`);
+  }
+  return false;
 }
 
 function packRuntimePackages(packages, artifactDirectory) {

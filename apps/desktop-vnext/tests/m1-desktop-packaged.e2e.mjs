@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { _electron as electron } from "playwright-core";
+import { packagedElectronTestEnvironment } from "./packaged-electron-harness.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const appRoot = path.resolve(scriptDir, "..");
@@ -29,10 +30,27 @@ try {
     executablePath,
     args: [`--user-data-dir=${userData}`, "--lang=zh-CN"],
     cwd: root,
-    env: { ...process.env, HERMIT_EVIDENCE_FILE: evidenceFile },
+    env: packagedElectronTestEnvironment({ HERMIT_EVIDENCE_FILE: evidenceFile }),
     timeout: 60_000,
   });
-  await waitForMainWindow(application);
+  const mainPage = await waitForMainWindow(application);
+  const desktopCapabilities = await mainPage.evaluate(async () => {
+    const deadlineInput = { id: "qualification-deadline", fireAt: "2099-01-01T00:00:00.000Z" };
+    const armed = await window.hermitDesktopDeadlines.arm(deadlineInput);
+    const canceled = await window.hermitDesktopDeadlines.cancel(deadlineInput.id);
+    return {
+      deadlineBridge: typeof window.hermitDesktopDeadlines,
+      deadlineArm: armed.status,
+      deadlineCancel: canceled.status,
+      notificationBridge: typeof window.hermitDesktopNotifications,
+      notificationStatus: await window.hermitDesktopNotifications.status(),
+    };
+  });
+  assert.equal(desktopCapabilities.deadlineBridge, "object");
+  assert.equal(desktopCapabilities.deadlineArm, "armed");
+  assert.equal(desktopCapabilities.deadlineCancel, "canceled");
+  assert.equal(desktopCapabilities.notificationBridge, "object");
+  assert.equal(typeof desktopCapabilities.notificationStatus.supported, "boolean");
 
   const nativeState = await application.evaluate(({ app, BrowserWindow }) => {
     return {
@@ -155,7 +173,7 @@ async function waitForMainWindow(target) {
       /^http:\/\/127\.0\.0\.1:\d+/u.test(candidate.url()));
     if (page !== undefined) {
       await page.locator("body").waitFor({ timeout: 30_000 });
-      return;
+      return page;
     }
     await new Promise((resolve) => setTimeout(resolve, 100));
   }

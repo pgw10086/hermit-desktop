@@ -11,8 +11,9 @@ const reminderSchema = z.object({
   id: z.string().min(1), mode: z.union([z.literal('absolute'), z.literal('relative')]),
   anchor: z.union([z.literal(''), z.literal('todo-start'), z.literal('todo-due'), z.literal('event-start')]),
   date: z.string(), time: z.string(), relation: z.union([z.literal('before'), z.literal('after')]),
-  amount: z.number().int().positive(), unit: z.union([z.literal('minute'), z.literal('hour'), z.literal('day')]),
-})
+  amount: z.number().int().nonnegative(), unit: z.union([z.literal('minute'), z.literal('hour'), z.literal('day')]),
+  sourceText: z.string().optional(), timeZone: z.string().optional(), referenceAt: z.number().int().nonnegative().optional(),
+}).superRefine((value, ctx) => { if (value.mode === 'relative' && value.amount === 0) ctx.addIssue({ code: 'custom', path: ['amount'], message: '相对提醒数量必须大于 0' }) })
 /** 日历事件时间校验；mode 区分日期、全天和精确时间，避免用隐含约定解释空字段。 */
 const eventTimeSchema = z.object({
   mode: z.union([z.literal('date-only'), z.literal('all-day'), z.literal('timed')]),

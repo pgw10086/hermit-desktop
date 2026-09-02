@@ -13,8 +13,10 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { PropsRenderSlots, PropsRuntime, PropsStore } from '@deepseek-ai/dsh-client-ui-slots'
+import { Button, IconNewChatOutline16, IconRightUpOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
 import { computeColumns, SIDEBAR_AUTO_COLLAPSE, SIDEBAR_DEFAULT } from './columns.ts'
 import type { createLayoutStore } from './stores.ts'
+import { getDesktopSurfaceClient } from './contract.ts'
 import css from './AppFrame.module.css'
 
 /** Full composed props: runtime share + child-slot render share + store share. */
@@ -90,12 +92,17 @@ export function AppFrame({
   actions,
   renderSlot,
 }: AppFrameProps) {
+  const quickSurface = new URLSearchParams(window.location.search).get('hermitSurface') === 'conversation.quick'
   const panels = useStore(s => s)
-  const productSurfaceId = panels.productSurfaceId
+  const primaryView = panels.primaryView
+  const productSurfaceId = primaryView.kind === 'product-surface' ? primaryView.surfaceId : null
+  const showingProductSurface = primaryView.kind === 'product-surface'
   const detailsSession = useSessions((s) => {
     const current = s.current
     return current !== undefined && s.byId[current]?.blank === false ? current : undefined
   })
+  const quickState = detailsSession === undefined ? 'composer' : 'chat'
+  const desktopSurface = quickSurface ? getDesktopSurfaceClient() : undefined
   const frameRef = useRef<HTMLDivElement | null>(null)
   const [viewport, setViewport] = useState(() => window.innerWidth)
 
@@ -107,6 +114,43 @@ export function AppFrame({
     }
     lastSession.current = detailsSession
   }, [actions, detailsSession])
+
+  // The compact surface is one DSH tree in two presentation states. The host
+  // owns the real window, while the public bridge applies the state-specific
+  // size without reloading the current Session.
+  useEffect(() => {
+    if (!quickSurface || desktopSurface === undefined) return
+    void desktopSurface.resize('conversation.quick', quickState === 'composer'
+      ? { width: 720, height: 200 }
+      : { width: 720, height: 620 })
+  }, [desktopSurface, quickState, quickSurface])
+
+  useEffect(() => {
+    if (!quickSurface || desktopSurface === undefined) return
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key !== 'Escape' || event.isComposing) return
+      event.preventDefault()
+      void desktopSurface.close('conversation.quick')
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [desktopSurface, quickSurface])
+
+  const startNewQuickConversation = useCallback(() => {
+    if (desktopSurface === undefined) return
+    void desktopSurface.open('conversation.quick', {
+      preferredSize: { width: 720, height: 200 },
+      session: { type: 'new-on-submit' },
+    })
+  }, [desktopSurface])
+
+  const openMainConversation = useCallback(() => {
+    if (desktopSurface === undefined || detailsSession === undefined) return
+    void desktopSurface.openMainSession(detailsSession).then((result) => {
+      if (result.status === 'opened') void desktopSurface.close('conversation.quick')
+      else console.error(`打开主窗口失败: ${result.reason}`)
+    })
+  }, [desktopSurface, detailsSession])
 
   // Track the frame's own box (not the window): rAF-throttled ResizeObserver.
   useEffect(() => {
@@ -140,11 +184,13 @@ export function AppFrame({
   const sidebarPreference = sidebarCollapsed
     ? 0
     : panels.sidebar === 0 ? SIDEBAR_DEFAULT : panels.sidebar
-  const cols = computeColumns(
-    viewport,
-    sidebarPreference,
-    productSurfaceId !== null || detailsSession === undefined ? 0 : panels.details,
-  )
+  const cols = quickSurface
+    ? { sidebar: 0, center: viewport, details: 0 }
+    : computeColumns(
+      viewport,
+      sidebarPreference,
+      showingProductSurface || detailsSession === undefined ? 0 : panels.details,
+    )
   const colsRef = useRef(cols)
   colsRef.current = cols
 
@@ -170,10 +216,15 @@ export function AppFrame({
     <div
       ref={frameRef}
       className={css.frame}
-      style={{ gridTemplateColumns: `${cols.sidebar}px minmax(0, 1fr) ${cols.details}px` }}
+      // 隐藏的 Electron 窗口在预加载阶段可能报告 innerWidth=0。Quick Surface
+      // 没有侧栏和详情栏，交给 CSS 让中心轨道跟随宿主尺寸，避免冻结为 0 宽。
+      style={{ gridTemplateColumns: quickSurface ? '0 minmax(0, 1fr) 0' : `${cols.sidebar}px minmax(0, 1fr) ${cols.details}px` }}
       data-sidebar-collapsed={sidebarCollapsed || undefined}
       data-details-collapsed={cols.details === 0 || undefined}
+      data-primary-view={primaryView.kind}
       data-product-surface={productSurfaceId ?? undefined}
+      data-hermit-surface={quickSurface ? 'conversation.quick' : undefined}
+      data-hermit-quick-state={quickSurface ? quickState : undefined}
       data-dragging={dragging || undefined}
     >
       <div className={css.sidebarCol}>
@@ -194,18 +245,42 @@ export function AppFrame({
             is session-maybe; the strict details entry naturally renders
             empty while no session is current. */}
         <CenterColumn>
-          {productSurfaceId === null
+          {primaryView.kind === 'conversation'
             ? renderSlot('conversation', {})
-            : renderSlot('product.surface', {}, { only: productSurfaceId })}
+            : renderSlot('product.surface', {}, { only: primaryView.surfaceId })}
         </CenterColumn>
-        <DetailsColumn>{productSurfaceId === null && renderSlot('details', {})}</DetailsColumn>
+        <DetailsColumn>{!showingProductSurface && renderSlot('details', {})}</DetailsColumn>
       </>
+      {quickSurface && quickState === 'chat' && (
+        <div className={css.quickControls} data-quick-controls>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            icon={<IconNewChatOutline16 size={18} />}
+            aria-label="新建对话"
+            title="新建对话"
+            data-quick-new-chat
+            onClick={startNewQuickConversation}
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            icon={<IconRightUpOutline16 size={18} />}
+            aria-label="打开主窗口"
+            title="打开主窗口"
+            data-quick-open-main
+            onClick={openMainConversation}
+          />
+        </div>
+      )}
       <div className={css.overlayLayer} data-shell-overlay>
         {renderSlot('shell.overlay', {})}
       </div>
       {/* The collapsed rail is fixed-width: no resize handle while closed. */}
-      {!sidebarCollapsed && <DragHandle side="sidebar" left={cols.sidebar} onStart={onSidebarStart} onDrag={onSidebarDrag} onEnd={onDragEnd} />}
-      {cols.details > 0 && <DragHandle side="details" left={viewport - cols.details} onStart={onDetailsStart} onDrag={onDetailsDrag} onEnd={onDragEnd} />}
+      {!quickSurface && !sidebarCollapsed && <DragHandle side="sidebar" left={cols.sidebar} onStart={onSidebarStart} onDrag={onSidebarDrag} onEnd={onDragEnd} />}
+      {!quickSurface && cols.details > 0 && <DragHandle side="details" left={viewport - cols.details} onStart={onDetailsStart} onDrag={onDetailsDrag} onEnd={onDragEnd} />}
     </div>
   )
 }

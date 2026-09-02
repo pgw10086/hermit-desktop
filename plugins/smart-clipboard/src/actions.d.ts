@@ -1,6 +1,6 @@
 import type { ClipboardEntry, ClipboardKind } from './full-history.js';
-/** 快捷操作类型；use 会在复制后尝试自动粘贴。 */
-export type ClipboardAction = 'use' | 'copy' | 'plain-text';
+/** 快捷操作类型；paste 只表示用户明确请求复制后尝试粘贴。 */
+export type ClipboardAction = 'paste' | 'copy' | 'plain-text';
 /** 支持配置的快捷键身份。 */
 export type ActionShortcut = 'Enter' | 'Mod+Enter' | 'Shift+Enter';
 export interface ActionMapping {
@@ -35,7 +35,7 @@ export interface ActionExecutionPlan {
     readonly entryId: string;
     /** 是否保留文本的富文本表示。 */
     readonly copyFormatted: boolean;
-    /** 是否在复制后尝试自动粘贴。 */
+    /** 是否在复制后尝试显式粘贴。 */
     readonly autoPaste: boolean;
 }
 /** 将动作和记录转换为平台执行计划；不支持的组合返回 undefined。 */

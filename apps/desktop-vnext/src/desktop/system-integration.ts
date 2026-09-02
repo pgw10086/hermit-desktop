@@ -18,13 +18,6 @@ export interface LoginItemPort {
   write(openAtLogin: boolean): void;
 }
 
-export interface GlobalShortcutPort {
-  /** 注册全局快捷键。 */
-  register(accelerator: string, callback: () => void): boolean;
-  /** 确认快捷键当前确实由本应用占用。 */
-  isRegistered(accelerator: string): boolean;
-}
-
 export interface TrayMenuState {
   /** DSH 当前状态展示文本。 */
   readonly dshStatus: string;
@@ -43,25 +36,6 @@ export interface TrayMenuActions {
   readonly quit: () => void;
   /** 记录托盘命令，供诊断使用。 */
   readonly recordCommand: (command: string) => void;
-}
-
-/** 注册 Quick Panel 快捷键，并记录系统接受与实际占用结果。 */
-export function registerQuickPanelShortcut(
-  port: GlobalShortcutPort,
-  toggleQuickPanel: () => void,
-  evidence: EvidenceSink,
-): string {
-  const accepted = port.register(QUICK_PANEL_SHORTCUT, () => {
-    evidence.record("desktop.shortcut-triggered", { accelerator: QUICK_PANEL_SHORTCUT });
-    toggleQuickPanel();
-  });
-  const registered = accepted && port.isRegistered(QUICK_PANEL_SHORTCUT);
-  evidence.record("desktop.shortcut-registration", {
-    accelerator: QUICK_PANEL_SHORTCUT,
-    accepted,
-    registered,
-  });
-  return registered ? "已注册" : "被占用或系统拒绝";
 }
 
 /** 写入登录项设置并回读系统最终状态。 */

@@ -36,7 +36,7 @@ test('Core SQLite repository 重启后保留三类记录，service 统一执行 
       kind: 'FILE_LIST', sourceApplication: 'Finder',
       items: [{ displayName: 'a.txt', path: '/tmp/a.txt', itemType: 'file', exists: true }],
     }).status, 'recorded')
-    const result = await service.execute('core-1', 'use')
+    const result = await service.execute('core-1', 'paste')
     assert.deepEqual(result, { status: 'copy-only', reason: 'fixture' })
     assert.equal(platform.writes.length, 1)
     assert.deepEqual(service.list({ query: 'ell' }).map((entry) => entry.kind), ['TEXT'])
@@ -139,7 +139,7 @@ test('复制和不可用动作都会丢弃快捷面板记录的目标应用', as
   try {
     service.store.capture({ kind: 'TEXT', text: 'copy me', sourceApplication: null })
     assert.deepEqual(await service.execute('target-1', 'copy'), { status: 'copied' })
-    assert.deepEqual(await service.execute('missing', 'use'), { status: 'unavailable', reason: '历史记录不存在' })
+    assert.deepEqual(await service.execute('missing', 'paste'), { status: 'unavailable', reason: '历史记录不存在' })
     assert.equal(discarded, 2)
   } finally {
     repository.close()
@@ -214,7 +214,7 @@ test('FILE_LIST 在展示和使用前刷新文件状态，已删除引用不会�
     fs.rmSync(file)
     assert.equal(service.list()[0].kind, 'FILE_LIST')
     assert.equal(service.list()[0].items[0].exists, false)
-    assert.deepEqual(await service.execute('file-state-1', 'use'), {
+    assert.deepEqual(await service.execute('file-state-1', 'paste'), {
       status: 'unavailable', reason: '文件列表包含已不存在的引用',
     })
     assert.equal(platform.writes.length, 0)

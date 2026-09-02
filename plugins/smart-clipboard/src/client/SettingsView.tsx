@@ -53,7 +53,7 @@ export function SettingsView(props: SettingsViewProps): ReactNode {
       <div className={css.settingsIntro}>
         <div>
           <h2>记录与数据</h2>
-          <p>设置只影响新的记录和本地保留；不会修改系统剪贴板或 Core 全局快捷键。</p>
+          <p>设置只影响新的记录和本地保留。</p>
         </div>
         <Button type="button" variant="primary" disabled={!dirty || !mappingValidation.valid} onClick={props.onSave}>保存设置</Button>
       </div>
@@ -103,7 +103,7 @@ export function SettingsView(props: SettingsViewProps): ReactNode {
             <label className={css.mappingRow} key={shortcut}>
               <kbd>{shortcut}</kbd>
               <select className={css.nativeControl} value={props.draft.actionMapping[shortcut]} onChange={(event) => updateMapping(shortcut, event.currentTarget.value as ClipboardAction)}>
-                <option value="use">{actionLabel('use')}</option>
+                <option value="paste">{actionLabel('paste')}</option>
                 <option value="copy">{actionLabel('copy')}</option>
                 <option value="plain-text">{actionLabel('plain-text')}</option>
               </select>

@@ -6,6 +6,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { _electron as electron } from "playwright-core";
+import { packagedElectronTestEnvironment } from "./packaged-electron-harness.mjs";
 import { validateRuntimeClosure } from "../scripts/after-pack.mjs";
 import {
   bundledGenerationRoot,
@@ -260,7 +261,7 @@ async function launchPackagedApp() {
     cwd: workspaceParent,
     // DSH 的公开 auto picker 合同在 SSH 场景选择浏览器内 picker，避免 E2E
     // 依赖 Playwright 无法控制的 macOS 原生对话框。
-    env: { ...process.env, SSH_TTY: "hermit-m1-replay" },
+    env: packagedElectronTestEnvironment({ SSH_TTY: "hermit-m1-replay" }),
     timeout: 60_000,
   });
   const actualUserData = await application.evaluate(({ app }) => app.getPath("userData"));

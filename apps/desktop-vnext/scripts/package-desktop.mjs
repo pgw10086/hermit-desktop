@@ -76,7 +76,19 @@ function packageDesktop(selectedMode) {
   run(bundledNode, [copyDesktopAssetsScript], appRoot, buildEnvironment);
 
   if (selectedMode === "dir") {
-    run(bundledNode, [builderCli, "--dir", "--publish", "never"], appRoot, buildEnvironment);
+    // 目录包用于本机测试，必须和已安装的 Hermit 隔离单实例锁与 userData。
+    run(
+      bundledNode,
+      [
+        builderCli,
+        "--dir",
+        "--publish",
+        "never",
+        "--config.extraMetadata.hermitBuildVariant=test",
+      ],
+      appRoot,
+      buildEnvironment,
+    );
     return;
   }
 

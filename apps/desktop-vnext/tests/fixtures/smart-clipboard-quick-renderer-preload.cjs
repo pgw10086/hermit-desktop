@@ -32,7 +32,7 @@ const api = {
     totalBytes: 1024 * 1024 * 1024,
     retention: 'forever',
     paused: false,
-    actionMapping: { Enter: 'use', 'Mod+Enter': 'copy', 'Shift+Enter': 'plain-text' },
+    actionMapping: { Enter: 'copy', 'Mod+Enter': 'paste', 'Shift+Enter': 'plain-text' },
     excludedApplications: [],
     excludedKinds: [],
   }),

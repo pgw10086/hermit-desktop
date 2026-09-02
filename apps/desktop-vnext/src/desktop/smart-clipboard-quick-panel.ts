@@ -1,8 +1,12 @@
 import { BrowserWindow, screen } from 'electron'
 import { fileURLToPath } from 'node:url'
+import type { DesktopSurfaceHostDefinition } from '../core/desktop-surface-manager.js'
+import type { DesktopSurfaceDefinition } from '../core/desktop-surface-contract.js'
 import type { NavigationActions } from './window-policy.js'
 import { installNavigationPolicy } from './window-policy.js'
 import { hardenedWebPreferences } from './window-options.js'
+
+export const SMART_CLIPBOARD_SURFACE_ID = 'smart-clipboard.quick-retrieval'
 
 /** Quick Panel 主列表固定宽度，预览面板在此基础上向一侧扩展。 */
 const MAIN_PANEL_WIDTH = 480
@@ -41,38 +45,59 @@ interface QuickPanelState {
 
 const states = new WeakMap<BrowserWindow, QuickPanelState>()
 
-/** 创建无边框 Quick Panel 窗口，并安装导航安全策略。 */
-export function createSmartClipboardQuickPanel(actions: NavigationActions): BrowserWindow {
-  const window = new BrowserWindow({
-    title: 'Smart Clipboard',
-    width: MAIN_PANEL_WIDTH,
-    height: panelHeight(MAX_ROWS),
-    minWidth: MAIN_PANEL_WIDTH,
-    minHeight: panelHeight(MIN_ROWS),
-    maxWidth: MAIN_PANEL_WIDTH + PREVIEW_WIDTH,
-    maxHeight: panelHeight(MAX_ROWS),
-    show: false,
-    skipTaskbar: true,
-    alwaysOnTop: true,
-    frame: false,
-    resizable: false,
-    backgroundColor: '#202124',
-    webPreferences: {
-      ...hardenedWebPreferences(),
-      preload: fileURLToPath(new URL('./smart-clipboard-preload.cjs', import.meta.url)),
+/** Desktop Surface 注册描述；Core 统一创建和管理窗口实例。 */
+export function createSmartClipboardQuickPanelSurface(actions: NavigationActions): {
+  readonly definition: DesktopSurfaceDefinition
+  readonly host: DesktopSurfaceHostDefinition
+} {
+  return {
+    definition: {
+      id: SMART_CLIPBOARD_SURFACE_ID,
+      kind: 'clipboard.quick-retrieval',
+      content: { type: 'plugin-view', viewId: 'smart-clipboard.quick-retrieval', contract: 1 },
+      window: {
+        anchor: 'cursor',
+        placement: 'adjacent',
+        preferredSize: { width: MAIN_PANEL_WIDTH, height: panelHeight(MAX_ROWS) },
+        focus: 'activate',
+        topmost: true,
+      },
     },
-  })
-  installNavigationPolicy(window, actions)
-  window.on('blur', () => window.hide())
-  const renderer = fileURLToPath(new URL('../quick-retrieval/index.html', import.meta.url))
-  void window.loadFile(renderer).catch((cause: unknown) => {
-    console.error(`Smart Clipboard 快速浮层加载失败: ${cause instanceof Error ? cause.message : String(cause)}`)
-  })
-  return window
+    host: {
+      window: {
+        title: 'Smart Clipboard',
+        width: MAIN_PANEL_WIDTH,
+        height: panelHeight(MAX_ROWS),
+        minWidth: MAIN_PANEL_WIDTH,
+        minHeight: panelHeight(MIN_ROWS),
+        maxWidth: MAIN_PANEL_WIDTH + PREVIEW_WIDTH,
+        maxHeight: panelHeight(MAX_ROWS),
+        show: false,
+        skipTaskbar: true,
+        alwaysOnTop: true,
+        frame: false,
+        resizable: false,
+        backgroundColor: '#202124',
+        webPreferences: {
+          ...hardenedWebPreferences(),
+          preload: fileURLToPath(new URL('./smart-clipboard-preload.cjs', import.meta.url)),
+        },
+      },
+      eagerLoad: true,
+      hideOnBlur: true,
+      load: async (window) => {
+        installNavigationPolicy(window, actions)
+        const renderer = fileURLToPath(new URL('../quick-retrieval/index.html', import.meta.url))
+        await window.loadFile(renderer)
+      },
+      position: (window) => { positionSmartClipboardQuickPanel(window) },
+      onShown: (window) => { window.webContents.send('hermit:smart-clipboard:show') },
+    },
+  }
 }
 
-/** 将 Quick Panel 定位到光标附近并发送 show 事件。 */
-export function showSmartClipboardQuickPanel(window: BrowserWindow): void {
+/** 只计算窗口位置和布局状态，显示由 Desktop Surface Manager 统一完成。 */
+export function positionSmartClipboardQuickPanel(window: BrowserWindow): void {
   if (window.isDestroyed()) return
   const cursor = screen.getCursorScreenPoint()
   const display = screen.getDisplayNearestPoint(cursor)
@@ -88,9 +113,6 @@ export function showSmartClipboardQuickPanel(window: BrowserWindow): void {
   const y = clamp(cursor.y + POSITION_GAP, bounds.y + WORK_AREA_EDGE, bounds.y + bounds.height - height - WORK_AREA_EDGE)
   states.set(window, { mainX: x, y, workArea: bounds, rows: MAX_ROWS, previewOpen: false, placement: 'right' })
   window.setBounds({ x, y, width: MAIN_PANEL_WIDTH, height }, false)
-  window.show()
-  window.focus()
-  window.webContents.send('hermit:smart-clipboard:show')
 }
 
 /** 根据行数和预览开关调整窗口尺寸，返回预览位于主列表左侧还是右侧。 */

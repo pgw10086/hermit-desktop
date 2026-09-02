@@ -25,8 +25,13 @@ type LayoutState = {
   details: number
   narrow: boolean
   narrowExpanded: boolean
-  productSurfaceId: string | null
+  primaryView: PrimaryView
 }
+
+/** 主工作区的唯一目的地；会话选择本身仍由 DSH sessions 服务负责。 */
+type PrimaryView =
+  | { kind: 'conversation' }
+  | { kind: 'product-surface'; surfaceId: string }
 
 /**
  * Annotation twin of the actions literal below (the export needs a declared
@@ -60,7 +65,7 @@ export function createLayoutStore(): EngineStoreHandle<LayoutState, LayoutAction
       details: 0,
       narrow: false,
       narrowExpanded: false,
-      productSurfaceId: null,
+      primaryView: { kind: 'conversation' },
     }),
     actions: {
       setSidebar: (d, px: number) => { d.sidebar = clampWidth(px, SIDEBAR_MIN, SIDEBAR_MAX) },
@@ -80,8 +85,8 @@ export function createLayoutStore(): EngineStoreHandle<LayoutState, LayoutAction
       },
       openDetails: (d) => { if (d.details === 0) d.details = DETAILS_DEFAULT },
       closeDetails: (d) => { d.details = 0 },
-      openProductSurface: (d, id: string) => { d.productSurfaceId = id },
-      closeProductSurface: (d) => { d.productSurfaceId = null },
+      openProductSurface: (d, id: string) => { d.primaryView = { kind: 'product-surface', surfaceId: id } },
+      closeProductSurface: (d) => { d.primaryView = { kind: 'conversation' } },
     },
   })
   return handle

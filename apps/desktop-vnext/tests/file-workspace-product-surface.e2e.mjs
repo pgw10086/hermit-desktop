@@ -48,7 +48,7 @@ async function qualifyStock(dshEntry, artifact, target) {
   try {
     await withBrowser(runtime.url, path.join(target, 'browser'), async (page) => {
       await openSidebar(page)
-      assert.equal(await page.getByRole('button', { name: '打开文件工作区' }).count(), 0)
+      assert.equal(await page.getByRole('button', { name: '文件工作区' }).count(), 0)
     })
   } finally { await stopProcess(runtime.child) }
 }
@@ -58,11 +58,35 @@ async function qualifyHermit(artifact, target) {
   try {
     await withBrowser(runtime.url, path.join(target, 'browser'), async (page) => {
       await openSidebar(page)
-      const navigation = page.getByRole('button', { name: '打开文件工作区' })
+      const navigation = page.getByRole('button', { name: '文件工作区' })
       await navigation.waitFor({ timeout: 20_000 })
       await navigation.click()
       const surface = page.locator('[data-file-workspace-surface="ready"]')
       await surface.waitFor({ timeout: 20_000 })
+      const theme = await surface.evaluate((element) => {
+        const surfaceStyle = getComputedStyle(element)
+        const hostStyle = getComputedStyle(document.body)
+        const requiredTokens = [
+          '--dsw-alias-bg-base',
+          '--dsw-alias-bg-layer-1',
+          '--dsw-alias-bg-layer-2',
+          '--dsw-alias-border-l2',
+          '--dsw-alias-label-primary',
+          '--dsw-alias-label-secondary',
+          '--dsw-alias-interactive-bg-active',
+          '--dsw-alias-brand-primary',
+        ]
+        return {
+          background: surfaceStyle.backgroundColor,
+          hostBackground: hostStyle.backgroundColor,
+          color: surfaceStyle.color,
+          hostColor: hostStyle.color,
+          unresolved: requiredTokens.filter((token) => surfaceStyle.getPropertyValue(token).trim() === ''),
+        }
+      })
+      assert.deepEqual(theme.unresolved, [])
+      assert.equal(theme.background, theme.hostBackground)
+      assert.equal(theme.color, theme.hostColor)
       await surface.getByRole('button', { name: '新建快速记事' }).click()
       const note = surface.locator('textarea[aria-label^="编辑 快速记事"]')
       await note.waitFor({ timeout: 20_000 })

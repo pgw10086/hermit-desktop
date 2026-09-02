@@ -1,8 +1,10 @@
 import fs from "node:fs";
+import { createRequire } from "node:module";
 import path from "node:path";
 import {
   app,
   BrowserWindow,
+  globalShortcut,
   ipcMain,
   Menu,
   nativeImage,
@@ -12,6 +14,7 @@ import {
   Tray,
   type Event as ElectronEvent,
   type MenuItem,
+  type WebContents,
 } from "electron";
 import { createMainWindow } from "./desktop/windows.js";
 import { SmartClipboardDesktopRuntime } from "./desktop/smart-clipboard-runtime.js";
@@ -32,6 +35,17 @@ import {
   RuntimeGenerationManager,
 } from "./runtime/generation-manager.js";
 import { createEvidenceSink } from "./desktop/evidence.js";
+import { FileShortcutSettingsStore, ShortcutRegistry } from "./core/shortcut-registry.js";
+import { registerDesktopShortcutIpc } from "./core/shortcut-ipc.js";
+import { DesktopSurfaceManager, SURFACE_ACTIVATION_GUARD_MS } from "./core/desktop-surface-manager.js";
+import { ConversationQuickRuntime } from "./desktop/conversation-quick-runtime.js";
+import {
+  registerDesktopSurfaceIpc,
+} from "./desktop/desktop-surface-ipc.js";
+import { registerDesktopDeadlineIpc, registerDesktopNotificationIpc } from "./core/desktop-capability-ipc.js";
+import { DesktopDeadlineService } from "./core/desktop-deadline-service.js";
+import { DesktopNotificationService } from "./core/desktop-notification-service.js";
+import { createElectronNotificationFactory } from "./core/electron-notification-factory.js";
 import { ShutdownCoordinator } from "./desktop/shutdown-coordinator.js";
 import {
   FileMainWindowStateStore,
@@ -53,6 +67,9 @@ import {
   type LoginItemState,
 } from "./desktop/system-integration.js";
 
+loadPackagedTestHarness();
+configurePackagedTestUserData();
+
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
@@ -61,6 +78,31 @@ if (!app.requestSingleInstanceLock()) {
     console.error(`Hermit startup failed: ${message}`);
     app.exit(1);
   });
+}
+
+/** 目录测试包必须在申请单实例锁前切到独立数据根，避免被正式 Hermit 进程接管。 */
+function configurePackagedTestUserData(): void {
+  if (!app.isPackaged) return;
+  // 自动化验收显式传入临时目录时，保留测试框架的隔离边界。
+  if (process.argv.some((argument) => argument === "--user-data-dir" || argument.startsWith("--user-data-dir="))) return;
+  const manifest = JSON.parse(fs.readFileSync(path.join(app.getAppPath(), "package.json"), "utf8")) as {
+    readonly hermitBuildVariant?: unknown;
+  };
+  if (manifest.hermitBuildVariant !== "test") return;
+  app.setPath("userData", path.join(app.getPath("appData"), "Hermit Test"));
+}
+
+/** 仅允许目录测试包加载 Playwright 的主进程握手，不让正式包携带测试入口。 */
+function loadPackagedTestHarness(): void {
+  const loaderPath = process.env.HERMIT_PLAYWRIGHT_LOADER;
+  if (!app.isPackaged || loaderPath === undefined) return;
+  const manifest = JSON.parse(fs.readFileSync(path.join(app.getAppPath(), "package.json"), "utf8")) as {
+    readonly hermitBuildVariant?: unknown;
+  };
+  if (manifest.hermitBuildVariant !== "test") {
+    throw new Error("Playwright test harness requires the Hermit test build variant");
+  }
+  createRequire(import.meta.url)(loaderPath);
 }
 
 /**
@@ -76,6 +118,11 @@ async function startDesktop(): Promise<void> {
   fs.mkdirSync(profileHome, { recursive: true });
   fs.mkdirSync(workspacePath, { recursive: true });
   const evidence = createEvidenceSink(userData);
+  const shortcutRegistry = new ShortcutRegistry({
+    port: globalShortcut,
+    settings: new FileShortcutSettingsStore(path.join(userData, "desktop", "shortcuts.json")),
+    evidence,
+  });
 
   const generationManager = app.isPackaged
     ? new RuntimeGenerationManager({
@@ -106,6 +153,7 @@ async function startDesktop(): Promise<void> {
   let quitAllowed = false;
   let dshOrigin: string | undefined;
   let dshStatus = "启动中";
+  let clearDesktopCapabilities: (() => void) | undefined;
   let tray: Tray | undefined;
   const initialLoginItem = app.getLoginItemSettings();
   const loginItemPort: LoginItemPort = {
@@ -143,6 +191,7 @@ async function startDesktop(): Promise<void> {
 
   const quit = (): void => app.quit();
   const restartDsh = (): void => {
+    clearDesktopCapabilities?.();
     void supervisor.restart().catch((cause: unknown) => showRecovery(errorMessage(cause)));
   };
   const actions = {
@@ -167,7 +216,63 @@ async function startDesktop(): Promise<void> {
     console.error(`恢复主窗口位置失败，将使用默认位置: ${errorMessage(cause)}`);
   }
   const mainWindow = createMainWindow(actions, restoredMainWindowBounds);
-  let quickPanelVisible = false;
+  const disposeShortcutIpc = registerDesktopShortcutIpc({
+    ipcMain,
+    registry: shortcutRegistry,
+    mainWindow,
+    resolveWindow: (contents) => BrowserWindow.fromWebContents(contents),
+  });
+  const surfaceManager = new DesktopSurfaceManager({
+    createWindow: (options) => new BrowserWindow(options),
+    onVisibilityChanged: (_id, visible) => {
+      if (!visible) surfaceActivationSuppressedUntil = Date.now() + SURFACE_ACTIVATION_GUARD_MS;
+    },
+  });
+  /** 将 Quick Conversation 当前会话交给主窗口；Session 仍由 DSH 通过 URL 选择。 */
+  const showMainWindow = (): void => {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.show();
+    mainWindow.focus();
+  };
+  const disposeSurfaceIpc = registerDesktopSurfaceIpc({
+    ipcMain,
+    surfaceManager,
+    trustedWindows: [mainWindow],
+    resolveWindow: (contents) => BrowserWindow.fromWebContents(contents),
+    openMainSession: async (sessionId) => {
+      if (dshOrigin === undefined) throw new Error('DSH Web 尚未就绪');
+      const url = new URL(dshOrigin);
+      url.searchParams.set('sessionId', sessionId);
+      await mainWindow.loadURL(url.href);
+      showMainWindow();
+    },
+  });
+  const deadlineService = new DesktopDeadlineService();
+  const notificationService = new DesktopNotificationService(createElectronNotificationFactory());
+  clearDesktopCapabilities = () => {
+    deadlineService.clear();
+    notificationService.clear();
+  };
+  const trustedCapabilityWindows = {
+    trustedWindows: [mainWindow],
+    resolveWindow: (contents: WebContents) => BrowserWindow.fromWebContents(contents),
+    ownsWindow: (window: BrowserWindow) => surfaceManager.ownsWindow(window),
+  };
+  const disposeDeadlineIpc = registerDesktopDeadlineIpc({
+    ipcMain,
+    service: deadlineService,
+    ...trustedCapabilityWindows,
+  });
+  const disposeNotificationIpc = registerDesktopNotificationIpc({
+    ipcMain,
+    service: notificationService,
+    ...trustedCapabilityWindows,
+  });
+  const conversationRuntime = new ConversationQuickRuntime({
+    surfaceManager,
+    shortcutRegistry,
+    actions,
+  });
   const clipboardRuntime = new SmartClipboardDesktopRuntime({
     userData,
     mainWindow,
@@ -176,9 +281,8 @@ async function startDesktop(): Promise<void> {
     isPackaged: app.isPackaged,
     resourcesPath: process.resourcesPath,
     appPath: app.getAppPath(),
-    onQuickPanelVisibilityChanged: (visible) => {
-      quickPanelVisible = visible;
-    },
+    shortcutRegistry,
+    surfaceManager,
   });
   /** 根据当前 generation 重新核验 Smart Clipboard，并同步其捕获、IPC 与快捷键生命周期。 */
   const syncClipboardRuntime = (): void => {
@@ -273,6 +377,7 @@ async function startDesktop(): Promise<void> {
   syncOrganizerProfile();
   syncClipboardRuntime();
   const stopClipboardRuntime = (): void => clipboardRuntime.stop();
+  const stopConversationRuntime = (): void => conversationRuntime.stop();
 
   let windowStateTimer: ReturnType<typeof setTimeout> | undefined;
   /** 保存主窗口正常态 bounds；全屏或最小化等临时状态不写入恢复文件。 */
@@ -313,6 +418,15 @@ async function startDesktop(): Promise<void> {
     },
     stopRuntime: async () => {
       stopClipboardRuntime();
+      stopConversationRuntime();
+      deadlineService.dispose();
+      notificationService.dispose();
+      disposeDeadlineIpc();
+      disposeNotificationIpc();
+      disposeSurfaceIpc();
+      disposeShortcutIpc();
+      surfaceManager.disposeAll();
+      shortcutRegistry.disposeAll();
       await supervisor.stop();
     },
     allowQuit: () => {
@@ -329,23 +443,19 @@ async function startDesktop(): Promise<void> {
   });
 
   app.on("second-instance", () => showMainWindow());
-  app.on("activate", () => {
-    // 快速取回是当前应用的临时前台工作面；其关闭后应回到快捷键前的应用，
-    // 不能把 macOS activate 当成“打开 Hermit 主窗口”的隐式命令。
-    if (!quickPanelVisible) showMainWindow();
+  let surfaceActivationSuppressedUntil = 0;
+  app.on("activate", (_event, hasVisibleWindows) => {
+    // Quick Panel 的显隐只由 Surface Manager 管理；activate 只响应 macOS
+    // Dock/relaunch 的正常应用生命周期，避免复制动作误开主窗口。
+    if (hasVisibleWindows === false
+      && Date.now() >= surfaceActivationSuppressedUntil
+      && !surfaceManager.hasActiveSurface()) showMainWindow();
   });
 
   session.defaultSession.setPermissionCheckHandler(() => false);
   session.defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) => {
     callback(false);
   });
-
-  /** 恢复、显示并聚焦主窗口。 */
-  const showMainWindow = (): void => {
-    if (mainWindow.isMinimized()) mainWindow.restore();
-    mainWindow.show();
-    mainWindow.focus();
-  };
 
   /** 修改开机启动并重建菜单，让 UI 反映系统实际返回状态。 */
   const updateLoginItem = (openAtLogin: boolean): void => {
@@ -465,6 +575,7 @@ async function startDesktop(): Promise<void> {
 
   /** 清除失效 DSH origin 并展示可操作的恢复页。 */
   function showRecovery(message: string): void {
+    clearDesktopCapabilities?.();
     dshOrigin = undefined;
     void mainWindow.loadURL(recoveryPageUrl(message)).then(showMainWindow);
   }
@@ -475,19 +586,25 @@ async function startDesktop(): Promise<void> {
     rebuildTrayMenu();
     syncOrganizerProfile();
     syncClipboardRuntime();
-    void loadDsh(event).catch((cause: unknown) => showRecovery(errorMessage(cause)));
+    void loadDsh(event)
+      .then(() => conversationRuntime.start())
+      .catch((cause: unknown) => showRecovery(errorMessage(cause)));
   });
   supervisor.on("crash", (event: { generation: number; code: number | null; signal: NodeJS.Signals | null }) => {
+    clearDesktopCapabilities?.();
     stopClipboardRuntime();
+    stopConversationRuntime();
     console.error(
       `DSH generation ${String(event.generation)} exited unexpectedly (code=${String(event.code)}, signal=${String(event.signal)}); restarting`,
     );
   });
   supervisor.on("unavailable", (event: DshUnavailableEvent) => {
+    clearDesktopCapabilities?.();
     dshStatus = "需要处理";
     recordStartupStage("dsh-unavailable");
     rebuildTrayMenu();
     stopClipboardRuntime();
+    stopConversationRuntime();
     showRecovery(event.cause.message);
   });
 
@@ -518,6 +635,7 @@ async function startDesktop(): Promise<void> {
     await supervisor.start();
   } catch (cause) {
     stopClipboardRuntime();
+    stopConversationRuntime();
     showRecovery(errorMessage(cause));
   }
 }

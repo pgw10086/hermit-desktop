@@ -14,22 +14,35 @@ import type {
   OrganizerSnapshot,
   Projection,
   ReminderRow,
+  ReminderRuleDraft,
+  TemporalPoint,
 } from '../client/contracts.js'
 import { ORGANIZER_DOMAIN } from './spec.js'
 import type { OrganizerRecord, OrganizerStatus } from './types.js'
 import { toOrganizerItem } from './types.js'
+import { resolveTemporalExpression, toAbsoluteReminder, type CreateReminderInput } from './time.js'
+
+/** AI 创建输入中的提醒事实；日期会在 Tool 边界解析后再进入领域层。 */
+const createReminderSchema = z.object({
+  date: z.string().optional(), relativeDays: z.number().int().optional(), time: z.string(),
+  sourceText: z.string().optional(), timeZone: z.string().optional(), referenceAt: z.number().int().nonnegative().optional(),
+})
 
 const createTodoSchema = z.object({
   title: z.string().trim().min(1).max(500),
   detail: z.string().max(20_000).optional(),
   originalInput: z.string().max(20_000).optional(),
   checklist: z.array(z.object({ text: z.string().trim().min(1).max(500) })).max(100).optional(),
+  todoStart: z.object({ date: z.string(), time: z.string() }).optional(),
+  todoDue: z.object({ date: z.string(), time: z.string() }).optional(),
+  reminders: z.array(createReminderSchema).max(10).optional(),
 })
 
 const createNoteSchema = z.object({
   title: z.string().trim().min(1).max(500),
   detail: z.string().max(20_000).optional(),
   originalInput: z.string().max(20_000).optional(),
+  reminders: z.array(createReminderSchema).max(10).optional(),
 })
 
 export interface CreateTodoInput {
@@ -41,6 +54,12 @@ export interface CreateTodoInput {
   readonly originalInput?: string
   /** 创建时附带的清单文本。 */
   readonly checklist?: readonly { readonly text: string }[]
+  /** 计划开始时间；明确执行时刻时由 AI 解析为该字段。 */
+  readonly todoStart?: TemporalPoint
+  /** 最晚完成时间；只有用户表达截止语义时填写。 */
+  readonly todoDue?: TemporalPoint
+  /** 创建时附带的一次性提醒。 */
+  readonly reminders?: readonly CreateReminderInput[]
 }
 
 export interface CreateNoteInput {
@@ -50,6 +69,8 @@ export interface CreateNoteInput {
   readonly detail?: string
   /** 用户原始输入，用于保留来源上下文。 */
   readonly originalInput?: string
+  /** 创建时附带的一次性提醒。 */
+  readonly reminders?: readonly CreateReminderInput[]
 }
 
 /** Organizer Canonical 数据的唯一写入服务，统一处理 revision、幂等和状态转换。 */
@@ -73,6 +94,9 @@ export class OrganizerService {
       ...(parsed.data.detail === undefined ? {} : { detail: parsed.data.detail }),
       ...(parsed.data.originalInput === undefined ? {} : { originalInput: parsed.data.originalInput }),
       ...(parsed.data.checklist === undefined ? {} : { checklist: parsed.data.checklist }),
+      ...(parsed.data.todoStart === undefined ? {} : { todoStart: resolveTemporalExpression(parsed.data.todoStart, undefined, '待办开始') }),
+      ...(parsed.data.todoDue === undefined ? {} : { todoDue: resolveTemporalExpression(parsed.data.todoDue, undefined, '待办截止') }),
+      ...(parsed.data.reminders === undefined ? {} : { reminders: parsed.data.reminders.map(normalizeReminderInput) }),
     }, callId)
   }
 
@@ -84,6 +108,7 @@ export class OrganizerService {
       kind: 'note', title: parsed.data.title,
       ...(parsed.data.detail === undefined ? {} : { detail: parsed.data.detail }),
       ...(parsed.data.originalInput === undefined ? {} : { originalInput: parsed.data.originalInput }),
+      ...(parsed.data.reminders === undefined ? {} : { reminders: parsed.data.reminders.map(normalizeReminderInput) }),
     }, callId)
   }
 
@@ -200,6 +225,9 @@ export class OrganizerService {
     readonly detail?: string
     readonly originalInput?: string
     readonly checklist?: readonly { readonly text: string }[]
+    readonly todoStart?: TemporalPoint
+    readonly todoDue?: TemporalPoint
+    readonly reminders?: readonly CreateReminderInput[]
   }, callId: string): Promise<OrganizerRecord> {
     return this.write(async () => {
       const existingCall = this.domain.table('tool_calls').get(callId)
@@ -217,12 +245,14 @@ export class OrganizerService {
         id: crypto.randomUUID(), kind: input.kind, title: input.title, detail: input.detail ?? '', tags: [],
         revision: 1, createdAt: timestamp, updatedAt: timestamp,
         sourceLabel: 'DSH 对话', originalInput: input.originalInput ?? input.title,
-        reminders: [], createdByCallId: callId,
+        reminders: normalizeReminders(input.reminders), createdByCallId: callId,
       } satisfies Omit<OrganizerRecord, 'status' | 'typeHistory'>
       const item: OrganizerRecord = input.kind === 'note'
         ? { ...base, kind: 'note', status: 'active', typeHistory: ['首次创建为便签'], pinned: false }
         : {
           ...base, kind: 'todo', status: 'planned', typeHistory: ['首次创建为待办'], completed: false, priority: 'none',
+          ...(input.todoStart === undefined ? {} : { todoStart: { ...input.todoStart } }),
+          ...(input.todoDue === undefined ? {} : { todoDue: { ...input.todoDue } }),
           ...(input.checklist === undefined ? {} : { checklist: input.checklist.map((entry, index) => ({ id: `check-${String(index + 1)}`, text: entry.text, completed: false })) }),
         }
       await this.domain.table('items').put(item.id, item)
@@ -276,6 +306,23 @@ function buildSnapshot(active: readonly OrganizerItem[], filtered: readonly Orga
     today: { overdue: ready(overdueTodos), todos: ready(todayTodos), events: ready(todayEvents), reminders: empty<ReminderRow>() },
     calendar: { state: calendarDays.every((day) => day.items.length === 0) ? 'empty' : 'ready', rangeLabel: calendarRange(calendarDays), days: calendarDays, list: active.filter((item) => item.kind === 'event') },
     reminders: { due: ready(reminderRows), upcoming: empty<ReminderRow>(), history: empty<ReminderRow>() }, trash: ready(trash), search: ready(search),
+  }
+}
+
+/** 将 AI 创建输入中的提醒统一转成绝对 Reminder Rule；相对日期必须先在 Tool 边界解析。 */
+function normalizeReminders(reminders: readonly CreateReminderInput[] | undefined): readonly ReminderRuleDraft[] {
+  return (reminders ?? []).map((reminder, index) => toAbsoluteReminder(reminder, index, undefined))
+}
+
+/** 去掉 Zod 推导类型中显式的 undefined，遵守 exactOptionalPropertyTypes。 */
+function normalizeReminderInput(input: z.infer<typeof createReminderSchema>): CreateReminderInput {
+  return {
+    time: input.time,
+    ...(input.date === undefined ? {} : { date: input.date }),
+    ...(input.relativeDays === undefined ? {} : { relativeDays: input.relativeDays }),
+    ...(input.sourceText === undefined ? {} : { sourceText: input.sourceText }),
+    ...(input.timeZone === undefined ? {} : { timeZone: input.timeZone }),
+    ...(input.referenceAt === undefined ? {} : { referenceAt: input.referenceAt }),
   }
 }
 

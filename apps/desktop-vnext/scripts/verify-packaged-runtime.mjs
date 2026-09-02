@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { validateProductSurfacePatch, validateRuntimeClosure } from "./after-pack.mjs";
+import { validateForegroundSessionNavigationPatch } from "./dsh-foreground-session-navigation-patch.mjs";
 import { bundledGenerationRoot, defaultResourcesPath } from "./runtime-paths.mjs";
 import { readDshUpstreamRegistry } from "../../../scripts/dsh-upstream.mjs";
 
@@ -31,6 +32,13 @@ const dshEntry = validateRuntimeClosure(path.join(runtimeRoot, "dsh")).entry;
 const productSurfacePatch = validateProductSurfacePatch(path.join(runtimeRoot, "dsh"));
 if (JSON.stringify(generationManifest.productSurfacePatch) !== JSON.stringify(productSurfacePatch)) {
   throw new Error("Packaged Product Surface patch does not match generation.json");
+}
+const foregroundSessionNavigationPatch = validateForegroundSessionNavigationPatch(path.join(runtimeRoot, "dsh"));
+if (
+  JSON.stringify(generationManifest.foregroundSessionNavigationPatch) !==
+  JSON.stringify(foregroundSessionNavigationPatch)
+) {
+  throw new Error("Packaged foreground session navigation patch does not match generation.json");
 }
 const runtimeManifest = JSON.parse(
   fs.readFileSync(path.join(runtimeRoot, "dsh", "hermit-runtime.json"), "utf8"),

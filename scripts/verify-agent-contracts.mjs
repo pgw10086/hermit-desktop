@@ -23,6 +23,7 @@ const allowedTopLevel = new Set([
   ".git",
   ".github",
   ".gitignore",
+  ".agents",
   ".hermit",
   ".idea",
   ".node-version",

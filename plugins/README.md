@@ -5,8 +5,9 @@
 `plugins/` 保存第一方 Product Plugin 的当前设计，并在实现开始后承载各插件的可安装
 制品。一个目录代表一套完整业务，不代表一个页面、按钮或 DSH Tool。
 
-开发时先看[Product Plugin 开发规范](development-guidelines.md)。需要系统剪贴板、全局
-快捷键、原生窗口等桌面能力时，再看[Desktop Core 开发规范](../docs/development/desktop-core-development.md)。
+新增插件先看[Product Plugin 最小接入](../docs/development/product-plugin-quickstart.md)。开发
+规范见[Product Plugin 开发规范](development-guidelines.md)；需要系统剪贴板、全局快捷键、
+原生窗口等桌面能力时，再看[Desktop Core 开发规范](../docs/development/desktop-core-development.md)。
 
 ## 当前目录
 
@@ -30,8 +31,8 @@ plugins/
 
 平台接入参考位于
 [`packages/dsh-plugin-reference`](../packages/dsh-plugin-reference/README.md)。它只验证 DSH
-公共 Bundle、Host、Client、Settings、Tool、React 和生命周期，不是第四个 Product Plugin，
-也不提供三个业务插件共用的伪基类或业务页面。
+公共 Bundle、Host、Client、Settings、Tool、Product Surface、React 和生命周期，不是第四个
+业务 Product Plugin，也不提供三个业务插件共用的伪基类或业务页面。
 
 ## 文档分工
 

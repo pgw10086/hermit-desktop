@@ -11,11 +11,21 @@ import {
   Tooltip,
   type MenuEntry,
 } from '@deepseek-ai/dsh-client-ui-primitives'
+import type { ILayout, ProductEntry } from '@deepseek-ai/dsh-client-ui-layout/client'
 import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
 import type {} from '@deepseek-ai/dsh-client-ui-settings-plugins/client'
 
 /** Host 资格状态只读路由；用于验证同一制品的 Host/Client 配置一致。 */
 const STATE_ROUTE = '/__hermit_reference__/state'
+/** 只用于验证 Product Surface 接入的稳定示例身份。 */
+const PRODUCT_SURFACE_ID = 'hermit-reference-surface'
+/** 参考插件使用通用图标，不要求 Core 为资格示例增加专属图标。 */
+const PRODUCT_ENTRY = {
+  id: PRODUCT_SURFACE_ID,
+  label: '参考工作面',
+  icon: 'plugin',
+  order: 100,
+} satisfies ProductEntry
 /** 参考页面用于验证官方 Menu 的选择和分隔行为。 */
 const MENU_ITEMS: readonly MenuEntry[] = [
   { id: 'today', label: '今天', icon: <IconCheckOutline16 size={16} /> },
@@ -150,9 +160,24 @@ function ReferenceSettingsTab(): ReactNode {
   )
 }
 
+/** 只证明 Product Surface 的接入形状，不引入业务数据或第二套页面外壳。 */
+function ReferenceProductSurface({ onClose }: { readonly onClose: () => void }): ReactNode {
+  return (
+    <section data-hermit-reference-product-surface="ready">
+      <header>
+        <h1>Hermit 参考工作面</h1>
+        <Button type="button" variant="outline" onClick={onClose}>
+          返回对话
+        </Button>
+      </header>
+      <p>这是一个只用于验证 Product Navigation 和 Product Surface 生命周期的最小示例。</p>
+    </section>
+  )
+}
+
 export const inject = ['slots']
 
-/** 注册参考插件的 Settings tab。 */
+/** 注册参考插件的 Settings tab，并在可选 Hermit layout contract 存在时增加最小工作面示例。 */
 export function apply(ctx: ClientContext): void {
   ctx.slots.inject('settings.plugins.tab', () => ctx.slots.register({
     name: 'settings.plugins.tab',
@@ -160,4 +185,17 @@ export function apply(ctx: ClientContext): void {
     order: 100,
     label: () => 'Hermit 参考插件',
   }, ReferenceSettingsTab))
+
+  // stock DSH 没有 Hermit layout service；可选读取让 Settings 资格继续成立，
+  // 同时避免把 Product Surface 假装成 DSH 官方 stock 能力。
+  const layout = ctx.get('layout') as ILayout | undefined
+  if (layout?.productSurfaceContract !== 1 || layout.productNavigationContract !== 1) return
+  const closeSurface = (): void => layout.closeProductSurface()
+  ctx.slots.inject('product.surface', () => ctx.slots.register({
+    name: 'product.surface',
+    id: PRODUCT_SURFACE_ID,
+    order: PRODUCT_ENTRY.order,
+    inject: () => ({ onClose: closeSurface }),
+  }, ReferenceProductSurface))
+  ctx.effect(() => layout.registerProductEntry(PRODUCT_ENTRY), 'hermit-reference: product navigation entry')
 }

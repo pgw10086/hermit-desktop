@@ -4,6 +4,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { _electron as electron } from 'playwright-core'
+import { packagedElectronTestEnvironment } from './packaged-electron-harness.mjs'
 
 const appRoot = path.resolve(fileURLToPath(new URL('..', import.meta.url)))
 const executablePath = process.platform === 'darwin'
@@ -43,7 +44,31 @@ try {
   await openSidebar(page)
 
   assert.equal(await page.evaluate(() => typeof window.hermitSmartClipboard), 'object')
-  const navigation = page.getByRole('button', { name: '打开剪贴板历史' })
+  assert.equal(await page.evaluate(() => typeof window.hermitDesktopShortcuts), 'object')
+  await page.getByRole('button', { name: /^(Settings|设置)$/u }).last().click()
+  const desktopSettings = page.getByRole('dialog', { name: /^(Settings|设置)$/u })
+  await desktopSettings.waitFor({ timeout: 20_000 })
+  await desktopSettings.getByRole('button', { name: /^(快捷键|Shortcuts)$/u }).click()
+  const shortcutCenter = desktopSettings.locator('[data-hermit-shortcut-center="ready"]')
+  await shortcutCenter.waitFor({ timeout: 20_000 })
+  await shortcutCenter.getByText('Smart Clipboard', { exact: true }).waitFor()
+  await shortcutCenter.getByText('打开剪贴板快速取回', { exact: true }).waitFor()
+  const shortcutRow = shortcutCenter.locator('[data-shortcut-status]').filter({ hasText: '打开剪贴板快速取回' })
+  const shortcutInput = shortcutRow.getByRole('textbox', { name: /Smart Clipboard 打开剪贴板快速取回/u })
+  await shortcutInput.press('Control+Shift+F12')
+  await shortcutRow.getByRole('button', { name: '应用' }).click()
+  await page.getByText('打开剪贴板快速取回 已保存', { exact: true }).waitFor()
+  assert.equal((await page.evaluate(async () => (await window.hermitDesktopShortcuts.list()).find((item) => item.id === 'smart-clipboard.open')?.accelerator)), 'CommandOrControl+Shift+F12')
+  await shortcutInput.press('Control+Shift+Enter')
+  await shortcutRow.getByRole('button', { name: '应用' }).click()
+  await page.getByText('打开剪贴板快速取回 未修改：与 Hermit 其他命令冲突', { exact: true }).waitFor()
+  assert.equal((await page.evaluate(async () => (await window.hermitDesktopShortcuts.list()).find((item) => item.id === 'smart-clipboard.open')?.accelerator)), 'CommandOrControl+Shift+F12')
+  await shortcutRow.getByRole('button', { name: '恢复默认' }).click()
+  await page.getByText('打开剪贴板快速取回 已恢复默认', { exact: true }).waitFor()
+  assert.equal((await page.evaluate(async () => (await window.hermitDesktopShortcuts.list()).find((item) => item.id === 'smart-clipboard.open')?.accelerator)), 'CommandOrControl+Shift+Space')
+  await desktopSettings.press('Escape')
+  await desktopSettings.waitFor({ state: 'detached' })
+  const navigation = page.getByRole('button', { name: '剪贴板历史' })
   await navigation.waitFor({ timeout: 20_000 })
   await navigation.click()
   const history = page.locator('[data-smart-clipboard-history="ready"]')
@@ -89,7 +114,7 @@ try {
 
   application = await launchApplication()
   const disabledPage = await waitForMainWindow(application)
-  assert.equal(await disabledPage.getByRole('button', { name: '打开剪贴板历史' }).count(), 0)
+  assert.equal(await disabledPage.getByRole('button', { name: '剪贴板历史' }).count(), 0)
   assert.deepEqual(await application.evaluate(({ BrowserWindow, globalShortcut }) => ({
     shortcut: globalShortcut.isRegistered('CommandOrControl+Shift+Space'),
     panels: BrowserWindow.getAllWindows().filter((window) => window.getTitle() === 'Smart Clipboard').length,
@@ -102,7 +127,7 @@ try {
   application = await launchApplication()
   const reenabledPage = await waitForMainWindow(application)
   await openSidebar(reenabledPage)
-  const reenabledNavigation = reenabledPage.getByRole('button', { name: '打开剪贴板历史' })
+  const reenabledNavigation = reenabledPage.getByRole('button', { name: '剪贴板历史' })
   await reenabledNavigation.waitFor({ timeout: 20_000 })
   assert.equal(await application.evaluate(({ globalShortcut }) => globalShortcut.isRegistered('CommandOrControl+Shift+Space')), true)
   assert.deepEqual((await reenabledPage.evaluate(() => window.hermitSmartClipboard.settings())).excludedKinds, ['IMAGE'])
@@ -124,6 +149,7 @@ function launchApplication() {
     executablePath,
     args: [`--user-data-dir=${userData}`, '--lang=zh-CN'],
     cwd: root,
+    env: packagedElectronTestEnvironment(),
     timeout: 60_000,
   })
 }

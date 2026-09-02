@@ -149,7 +149,10 @@ function ItemRow({ item, selected, onOpen, onComplete, onQuickEdit, onChecklistT
                     {item.tags.length > 0 ? item.tags.join(' · ') : item.detail}
                   </span>
                 </span>
-                <span className={css.itemTime}>{item.timeLabel ?? '无日期'}</span>
+                <span className={css.itemTime}>
+                  <span>{item.timeLabel ?? '无日期'}</span>
+                  {item.reminderLabel !== undefined && <span className={css.itemReminder}>提醒：{item.reminderLabel}</span>}
+                </span>
               </button>
             </div>
           )}

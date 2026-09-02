@@ -1,4 +1,4 @@
-import { forwardRef, useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
+import { forwardRef, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { actionAvailable, actionLabel, DEFAULT_ACTION_MAPPING, type ActionMapping, type ClipboardAction } from '@hermit/smart-clipboard/actions'
 import type { ClipboardOperationResult, ClipboardWireEntry, SmartClipboardClientApi } from '@hermit/smart-clipboard/client-api'
 import css from './QuickRetrievalApp.module.css'
@@ -59,7 +59,7 @@ function ConnectedQuickRetrieval({ api }: { readonly api: SmartClipboardClientAp
     return api.observe(() => { void refresh() })
   }, [api, refresh])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     /** 每次打开都清理上次预览和搜索状态，再重新读取最新历史。 */
     const show = (): void => {
       previewRequestRef.current += 1
@@ -124,15 +124,15 @@ function ConnectedQuickRetrieval({ api }: { readonly api: SmartClipboardClientAp
     if (wasOpen) api.closeQuickPanel()
   }
 
-  /** 执行当前选中项动作，只有平台确认结果后才关闭浮层。 */
-  const execute = async (action: ClipboardAction): Promise<void> => {
-    if (selected === undefined) return
-    if (!actionAvailable(action, selected.kind)) {
-      setStatus('纯文本使用只支持文本记录')
+  /** 执行动作；鼠标点击显式传入目标，避免等待 selectedIndex 异步更新后误用旧行。 */
+  const execute = async (action: ClipboardAction, target: ClipboardWireEntry | undefined = selected): Promise<void> => {
+    if (target === undefined) return
+    if (!actionAvailable(action, target.kind)) {
+      setStatus('纯文本复制只支持文本记录')
       return
     }
     try {
-      const result = await api.execute(selected.id, action, 'quick-panel')
+      const result = await api.execute(target.id, action, 'quick-panel')
       setStatus(operationMessage(result))
       if (result.status === 'copied' || result.status === 'pasted' || result.status === 'copy-only') closePanel()
     } catch (cause) {
@@ -140,7 +140,7 @@ function ConnectedQuickRetrieval({ api }: { readonly api: SmartClipboardClientAp
     }
   }
 
-  /** 将上下键、Escape 和 Enter 映射为选择、关闭和快捷动作。 */
+  /** 将上下键、Escape 和 Enter 映射为选择、关闭和 Maccy 式快捷动作。 */
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>): void => {
     if (event.key === 'ArrowDown' && visible.length > 0) {
       event.preventDefault()
@@ -155,7 +155,7 @@ function ConnectedQuickRetrieval({ api }: { readonly api: SmartClipboardClientAp
       event.preventDefault()
       const action = event.shiftKey
         ? mapping['Shift+Enter']
-        : event.metaKey || event.ctrlKey
+        : event.altKey || event.metaKey || event.ctrlKey
           ? mapping['Mod+Enter']
           : mapping.Enter
       void execute(action)
@@ -194,7 +194,11 @@ function ConnectedQuickRetrieval({ api }: { readonly api: SmartClipboardClientAp
                   entry={entry}
                   selected={index === safeIndex}
                   onPointerDown={() => setSelectedIndex(index)}
-                  onUse={() => { setSelectedIndex(index); void execute(mapping.Enter) }}
+                  onPrimaryAction={(paste) => {
+                    setSelectedIndex(index)
+                    void execute(paste ? mapping['Mod+Enter'] : mapping.Enter, entry)
+                  }}
+                  onPreview={() => { setSelectedIndex(index) }}
                 />
               ))}
         </div>
@@ -204,7 +208,7 @@ function ConnectedQuickRetrieval({ api }: { readonly api: SmartClipboardClientAp
       <footer className={css.footer}>
         {status.length > 0
           ? <span className={css.status} role="status" aria-live="polite">{status}</span>
-          : <span className={css.shortcuts}>↵ {shortActionLabel(mapping.Enter)} · {modLabel()}↵ {shortActionLabel(mapping['Mod+Enter'])} · ⇧↵ {shortActionLabel(mapping['Shift+Enter'])}</span>}
+          : <span className={css.shortcuts}>↵ {shortActionLabel(mapping.Enter)} · {pasteModifierLabel()}↵ {shortActionLabel(mapping['Mod+Enter'])} · ⇧↵ {shortActionLabel(mapping['Shift+Enter'])}</span>}
         <button type="button" className={css.historyButton} onClick={() => { closePanel(); api.openHistory() }}>完整历史 ›</button>
       </footer>
     </main>
@@ -218,11 +222,13 @@ interface QuickRowProps {
   readonly selected: boolean
   /** 鼠标选择回调。 */
   readonly onPointerDown: () => void
-  /** 使用当前记录。 */
-  readonly onUse: () => void
+  /** 左键执行当前记录；paste 表示用户明确按下 Option。 */
+  readonly onPrimaryAction: (paste: boolean) => void
+  /** 右键打开已有的贴靠预览，不执行内容动作。 */
+  readonly onPreview: () => void
 }
 
-/** 快速取回列表项；forwardRef 用于键盘选择后的滚动定位。 */
+/** 快速取回列表项；左键执行，右键复用现有贴靠预览。 */
 const QuickRow = forwardRef<HTMLButtonElement, QuickRowProps>((props, ref) => (
   <button
     ref={ref}
@@ -230,8 +236,20 @@ const QuickRow = forwardRef<HTMLButtonElement, QuickRowProps>((props, ref) => (
     className={css.row}
     role="option"
     aria-selected={props.selected}
-    onMouseDown={(event) => { event.preventDefault(); props.onPointerDown() }}
-    onClick={props.onUse}
+    onMouseDown={(event) => {
+      if (event.button === 0) {
+        event.preventDefault()
+        props.onPointerDown()
+      } else if (event.button === 2) {
+        // 先在 secondary click 到达前选中记录，确保已有预览不会被原生菜单时序延迟。
+        props.onPreview()
+      }
+    }}
+    onClick={(event) => props.onPrimaryAction(event.altKey)}
+    onContextMenu={(event) => {
+      event.preventDefault()
+      props.onPreview()
+    }}
   >
     <span className={css.kindMark}>{kindMark(props.entry.kind)}</span>
     <span className={css.rowContent}>
@@ -324,12 +342,12 @@ function kindLabel(kind: ClipboardWireEntry['kind']): string {
 /** 将动作转换为快捷键提示中的短标签。 */
 function shortActionLabel(action: ClipboardAction): string {
   const label = actionLabel(action)
-  return label === '使用当前项' ? '使用' : label === '纯文本使用' ? '纯文本' : '只复制'
+  return label === '粘贴' ? '粘贴' : label === '纯文本复制' ? '纯文本' : '复制'
 }
 
 /** 根据宿主平台选择 Mac 或 Windows 的修饰键提示。 */
-function modLabel(): string {
-  return navigator.platform.toLocaleLowerCase().includes('mac') ? '⌘' : 'Ctrl+'
+function pasteModifierLabel(): string {
+  return navigator.platform.toLocaleLowerCase().includes('mac') ? '⌥' : 'Alt+'
 }
 
 /** 将 Unix 毫秒时间戳格式化为本地时间。 */

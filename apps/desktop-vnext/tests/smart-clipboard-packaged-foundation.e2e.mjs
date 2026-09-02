@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { _electron as electron } from "playwright-core";
+import { packagedElectronTestEnvironment } from "./packaged-electron-harness.mjs";
 
 const appRoot = path.resolve(new URL("..", import.meta.url).pathname);
 const executablePath = process.platform === "darwin"
@@ -33,6 +34,7 @@ test("packaged Hermit 通过资格端口验证非侵入式 Clipboard foundation"
     executablePath,
     args: [`--user-data-dir=${userData}`, "--lang=zh-CN"],
     cwd: root,
+    env: packagedElectronTestEnvironment(),
     timeout: 60_000,
   });
 

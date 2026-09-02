@@ -5,9 +5,11 @@ import { once } from 'node:events'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
+import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import electronPath from 'electron'
 import { _electron as playwrightElectron } from 'playwright-core'
+import { copyRuntimeClosure } from '../../../apps/desktop-vnext/scripts/after-pack.mjs'
 
 const packageRoot = path.resolve(fileURLToPath(new URL('..', import.meta.url)))
 const repositoryRoot = path.resolve(packageRoot, '..', '..')
@@ -26,19 +28,20 @@ const bundledDsh = path.join(
   'lib',
   'bin.js',
 )
-const stockDsh = path.join(repositoryRoot, 'node_modules', '@deepseek-ai', 'dsh', 'lib', 'bin.js')
 const bundledPnpm = path.join(bundledDshRoot, 'node_modules', 'pnpm', 'bin', 'pnpm.cjs')
 const expectedNode = 'v24.19.0'
 const expectedDsh = '0.1.1-rc.2'
 const packageName = '@hermit/dsh-plugin-reference'
 const stateRoute = '/__hermit_reference__/state'
 
-for (const required of [bundledNode, bundledDsh, stockDsh, bundledPnpm, electronPath]) {
+for (const required of [bundledNode, bundledDsh, bundledPnpm, electronPath]) {
   assert.equal(fs.existsSync(required), true, `资格测试缺少运行时文件：${required}`)
 }
 assert.equal(spawnSync(bundledNode, ['--version'], { encoding: 'utf8' }).stdout.trim(), expectedNode)
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hermit-reference-plugin-'))
+const stockDsh = prepareStockRuntime(path.join(root, 'stock-runtime'))
+assert.equal(fs.existsSync(stockDsh), true, `stock DSH 运行时文件缺失：${stockDsh}`)
 let succeeded = false
 
 try {
@@ -121,7 +124,7 @@ async function qualifyRuntime(runtime, artifact, runtimeRootPath) {
       .then((response) => response.text())
     assert.match(client, /^window\.__ModuleLoader__\.load/u)
     assert.match(client, /require\("react"\)/u)
-    await assertClientUi(url, path.join(runtimeRootPath, 'browser'))
+    await assertClientUi(url, path.join(runtimeRootPath, 'browser'), runtime.label)
   } finally {
     await stopProcess(active)
   }
@@ -168,7 +171,7 @@ async function qualifyRuntime(runtime, artifact, runtimeRootPath) {
   }
 }
 
-async function assertClientUi(url, browserRoot) {
+async function assertClientUi(url, browserRoot, runtimeLabel) {
   fs.mkdirSync(browserRoot, { recursive: true })
   fs.writeFileSync(
     path.join(browserRoot, 'package.json'),
@@ -219,6 +222,17 @@ async function assertClientUi(url, browserRoot) {
 
     const openSidebar = page.getByRole('button', { name: /^(Open sidebar|打开侧边栏)$/u })
     if (await openSidebar.isVisible().catch(() => false)) await openSidebar.click()
+    const productNavigation = page.getByRole('button', { name: '参考工作面' })
+    if (runtimeLabel === 'hermit-bundled-dsh') {
+      await productNavigation.waitFor({ timeout: 20_000 })
+      await productNavigation.click()
+      const productSurface = page.locator('[data-hermit-reference-product-surface="ready"]')
+      await productSurface.waitFor({ timeout: 20_000 })
+      await productSurface.getByRole('button', { name: '返回对话' }).click()
+      await productSurface.waitFor({ state: 'detached', timeout: 20_000 })
+    } else {
+      assert.equal(await productNavigation.count(), 0)
+    }
     await page.getByRole('button', { name: /^(Settings|设置)$/u }).last().click()
     const settingsDialog = page.getByRole('dialog', { name: /^(Settings|设置)$/u })
     await settingsDialog.waitFor({ timeout: 20_000 })
@@ -268,6 +282,32 @@ async function assertClientUi(url, browserRoot) {
   } finally {
     await application.close().catch(() => undefined)
   }
+}
+
+/** 复制一份真正的 stock DSH，避免仓库 workspace 的 patched layout 污染对照端。 */
+function prepareStockRuntime(target) {
+  copyRuntimeClosure(bundledDshRoot, target)
+  const require = createRequire(import.meta.url)
+  const officialWebApp = require.resolve('@deepseek-ai/dsh-web-app/package.json')
+  const officialRequire = createRequire(officialWebApp)
+  const officialLayout = path.dirname(officialRequire.resolve('@deepseek-ai/dsh-client-ui-layout/package.json'))
+  const nodeModules = path.join(target, 'node_modules')
+  const layouts = new Set([path.join(nodeModules, '@deepseek-ai', 'dsh-client-ui-layout')])
+  for (const consumer of ['dsh-web-app', 'dsh-client-ui-sidebar', 'dsh-client-ui-conversation']) {
+    const manifest = path.join(nodeModules, '@deepseek-ai', consumer, 'package.json')
+    if (fs.existsSync(manifest)) {
+      layouts.add(path.dirname(createRequire(manifest).resolve('@deepseek-ai/dsh-client-ui-layout/package.json')))
+    }
+  }
+  for (const layout of layouts) {
+    fs.rmSync(layout, { recursive: true, force: true })
+    fs.mkdirSync(layout, { recursive: true })
+    for (const entry of ['LICENSE', 'package.json', 'lib']) {
+      fs.cpSync(path.join(officialLayout, entry), path.join(layout, entry), { recursive: true, dereference: true })
+    }
+    assert.equal(JSON.parse(fs.readFileSync(path.join(layout, 'package.json'), 'utf8')).hermitPatch, undefined)
+  }
+  return path.join(target, 'node_modules', '@deepseek-ai', 'dsh', 'lib', 'bin.js')
 }
 
 function startDsh(dshEntry, cwd, env) {

@@ -66,7 +66,8 @@ export default defineConfig([
         this.addWatchFile(file)
         const source = await readFile(file)
         const { code, exports } = transform({ filename: file, code: source, cssModules: { pattern: '[hash]_[local]' }, minify: true })
-        const classes = Object.fromEntries(Object.entries(exports ?? {}).map(([name, value]) => [name, value.name]))
+        // 固定导出键顺序，保证相同源码的 runtime 摘要和复用判断稳定。
+        const classes = Object.fromEntries(Object.entries(exports ?? {}).sort(([left], [right]) => left.localeCompare(right)).map(([name, value]) => [name, value.name]))
         const tagId = `${PACKAGE_NAME}/${basename(file)}`
         return [
           `const css = ${JSON.stringify(code.toString())};`,

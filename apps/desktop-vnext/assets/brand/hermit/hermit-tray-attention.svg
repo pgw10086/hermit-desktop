@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">Hermit tray attention</title>
+  <path fill="currentColor" d="M20 8h24a12 12 0 0 1 12 12v27c0 2.3-1.2 3.7-3.1 2.6L38 40.9V22a4.8 4.8 0 0 0-4.8-4.8h-4.8A4.8 4.8 0 0 0 23.6 22v16l20 18H14a5 5 0 0 1-5-5V20A12 12 0 0 1 20 8Z"/>
+  <circle cx="51" cy="13" r="8" fill="currentColor"/>
+  <circle cx="51" cy="13" r="2.2" fill="#fff"/>
+</svg>

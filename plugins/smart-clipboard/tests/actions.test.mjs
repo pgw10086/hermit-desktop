@@ -22,7 +22,7 @@ test('manifest 只声明 Smart Clipboard 实际需要的桌面能力', () => {
   })
 })
 
-test('默认动作映射是一一对应的，三个组合分别覆盖使用、复制和纯文本', () => {
+test('默认动作映射是一一对应的，三个组合分别覆盖复制、粘贴和纯文本', () => {
   assert.deepEqual(validateActionMapping(DEFAULT_ACTION_MAPPING), {
     valid: true, mapping: DEFAULT_ACTION_MAPPING,
   })
@@ -35,10 +35,10 @@ test('重复或未知动作不能保存，纯文本动作只能规划给 TEXT', 
     Enter: 'copy', 'Mod+Enter': 'copy', 'Shift+Enter': 'plain-text',
   }), { valid: false, field: 'Mod+Enter', reason: 'duplicate' })
   assert.deepEqual(validateActionMapping({
-    Enter: 'use', 'Mod+Enter': 'copy', 'Shift+Enter': 'other',
+    Enter: 'paste', 'Mod+Enter': 'copy', 'Shift+Enter': 'other',
   }), { valid: false, field: 'Shift+Enter', reason: 'unsupported' })
   assert.equal(planAction('plain-text', imageEntry), undefined)
-  assert.deepEqual(planAction('use', textEntry), {
-    action: 'use', entryId: 'text-1', copyFormatted: true, autoPaste: true,
+  assert.deepEqual(planAction('paste', textEntry), {
+    action: 'paste', entryId: 'text-1', copyFormatted: true, autoPaste: true,
   })
 })

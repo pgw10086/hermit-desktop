@@ -58,9 +58,9 @@ export interface ClipboardPlatformBridge {
   snapshot(): Promise<ClipboardSnapshot | undefined>
   /** 将历史记录写回系统剪贴板。 */
   write(entry: ClipboardEntry, plainText: boolean): Promise<{ readonly status: 'written' | 'denied'; readonly reason?: string }>
-  /** 尝试向捕获写入前记录的目标应用发送粘贴。 */
+  /** 在用户明确请求 paste 时，向捕获写入前记录的目标应用发送粘贴。 */
   autoPaste(): Promise<{ readonly status: 'pasted' | 'copy-only'; readonly reason: string }>
-  /** 取消当前自动粘贴目标，避免后续动作误用旧窗口。 */
+  /** 取消当前显式粘贴目标，避免后续动作误用旧窗口。 */
   discardPasteTarget?(): void
 }
 
@@ -86,7 +86,7 @@ export type ClipboardCaptureStatus =
   | { readonly state: 'recording' | 'paused' | 'storage-full' }
   | { readonly state: 'unavailable'; readonly reason: string }
 
-/** 历史操作结果；copy-only 表示写入成功但平台未完成自动粘贴。 */
+/** 历史操作结果；copy-only 表示写入成功但平台未完成显式粘贴。 */
 export type ClipboardOperationResult =
   | { readonly status: 'copied' }
   | { readonly status: 'pasted' }
@@ -225,19 +225,19 @@ export class ClipboardCoreService {
     this.#settingsChanged()
   }
 
-  /** 将历史记录写回系统并按动作尝试自动粘贴，返回明确平台结果。 */
+  /** 将历史记录写回系统；只有 paste 动作才继续尝试显式粘贴。 */
   async execute(id: string, action: ClipboardAction): Promise<ClipboardOperationResult> {
     const stored = this.#store.list().find((candidate) => candidate.id === id)
     const entry = stored === undefined ? undefined : refreshFileList(stored)
     if (entry === undefined) return this.#unavailable('历史记录不存在')
-    if (!actionAvailable(action, entry.kind)) return this.#unavailable('纯文本使用只支持 TEXT')
+    if (!actionAvailable(action, entry.kind)) return this.#unavailable('纯文本复制只支持 TEXT')
     if (entry.kind === 'FILE_LIST' && entry.items.some((item) => !item.exists)) {
       return this.#unavailable('文件列表包含已不存在的引用')
     }
     const write = await this.#platform.write(entry, action === 'plain-text')
     if (write.status === 'denied') return this.#unavailable(write.reason ?? '系统剪贴板拒绝写入')
     this.#store.use(id)
-    if (action !== 'use') {
+    if (action !== 'paste') {
       this.#platform.discardPasteTarget?.()
       this.#notify()
       return { status: 'copied' }

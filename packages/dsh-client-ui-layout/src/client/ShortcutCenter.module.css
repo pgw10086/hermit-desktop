@@ -1,0 +1,123 @@
+.root {
+  min-height: 0;
+  padding: 18px 0 48px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.header h2,
+.header p,
+.group h3 {
+  margin: 0;
+}
+
+.header h2 {
+  font-size: 18px;
+  letter-spacing: 0;
+}
+
+.header p {
+  margin-top: 4px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
+}
+
+.group {
+  margin-top: 18px;
+  border-top: 1px solid var(--dsw-alias-border-l2);
+}
+
+.group h3 {
+  padding: 14px 0 8px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 430px);
+  align-items: center;
+  gap: 16px;
+  min-height: 58px;
+  border-bottom: 1px solid var(--dsw-alias-border-l3);
+}
+
+.command {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.command strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.command span {
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+}
+
+.row[data-shortcut-status='conflict'] .command span {
+  color: var(--dsw-alias-state-error-primary);
+}
+
+.row[data-shortcut-status='unavailable'] .command span {
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+}
+
+.accelerator {
+  box-sizing: border-box;
+  min-width: 0;
+  width: 150px;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 6px;
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-bg-base);
+  font: inherit;
+  text-align: center;
+}
+
+.accelerator:focus {
+  border-color: var(--dsw-alias-brand-primary);
+  outline: 2px solid var(--dsw-alias-state-business-primary);
+  outline-offset: 1px;
+}
+
+.state {
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
+}
+
+@media (max-width: 680px) {
+  .row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 10px 0;
+  }
+
+  .actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+}

@@ -20,8 +20,8 @@ set/readback/restore 和正常退出顺序，Hermit 自有图标和第三方 att
 observation 记录 `wasOpenedAtLogin = true` 并到达 `dsh-ready`，测试登录项随后恢复为关闭。
 因此桌面底座实现和当前 Mac 本机资格均已完成，可作为统一 macOS 发布流程的输入。签名、
 公证、Gatekeeper 和真实重启分别记录，不在 M1 文档里决定某个 GitHub Release 是否成立。
-Windows 留到后续平台阶段；
-Quick Panel 及其全局快捷键改为独立模块，均不属于当前 M1。
+Windows 留到后续平台阶段；Quick Panel 及其全局快捷键改为独立模块，均不属于当前 M1，
+具体目标见 [Desktop Surface 与 Quick Panel spec](desktop-surface-quick-panel.md)。
 
 ## 1. M1 交付范围
 
@@ -43,7 +43,8 @@ Quick Panel 及其全局快捷键改为独立模块，均不属于当前 M1。
 - Package Gate、Capability Broker、隔离 Runner 的完整产品实现；
 - Tauri、Rust、零 TCP carrier、反向代理或第二套聊天 UI；
 - 社区插件市场、远程控制和真实模型凭据自动化测试。
-- Quick Panel 及其全局快捷键的产品需求、接口和交互；现有实验实现不作为 M1 合同。
+- Quick Panel 及其全局快捷键的实现、接口和交互验收；它们由独立 spec 负责，现有实验实现
+  不作为 M1 合同。
 - Windows 安装器和原生生命周期证据；当前 M1 只验收 macOS Apple Silicon。
 
 ## 2. M1 关键原则
@@ -141,7 +142,7 @@ Quick Panel 及其全局快捷键改为独立模块，均不属于当前 M1。
 | macOS 注销并重新登录后自动启动 | `PASS`；`wasOpenedAtLogin = true`、新 `launchId`、同一安装路径和 `dsh-ready` 均成立，登录项已恢复为 `not-registered`；结果只代表当前机器 |
 | macOS Developer ID 签名、公证、Gatekeeper | 独立发布步骤；当次执行则验收，跳过则记录 `SKIPPED` |
 | macOS 真实关机/重启和启动恢复 | 额外 OS 证据，不是每个版本的固定发布门 |
-| Quick Panel 及其全局快捷键 | `DEFERRED_TO_MODULE_DESIGN`，不阻塞当前 M1 |
+| Quick Panel 及其全局快捷键 | `SPEC_READY; IMPLEMENTATION_DEFERRED_TO_POST_M1`，不阻塞当前 M1 |
 
 Apple 将 Developer ID 和公证定义为 Mac App Store 外分发身份与 Gatekeeper 证明，不是桌面
 底座代码是否实现的判据；Electron 同时明确说明，未签名/未公证应用的登录项可能静默失效。

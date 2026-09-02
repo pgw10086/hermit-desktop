@@ -288,7 +288,7 @@ Hermit DSH vNext
 |-- Personal Organizer（首发业务插件）
 |-- File Workspace（首发业务插件）
 |-- Smart Clipboard（后续业务插件）
-`-- Quick Panel（独立模块，待单独设计，不属于当前 M1）
+`-- Desktop Surface / Quick Panel（Desktop Core 能力，首条闭环为 conversation.quick）
 ```
 
 Core 只拥有宿主、路由、安全和恢复能力，不拥有 WorkItem、Reminder、
@@ -330,8 +330,11 @@ FileRecord 或 Clipboard History 等业务数据。
 
 - 长期内容只有 Note、Todo、Event 三类；
 - Reminder 不是第四份重复正文，而是挂在内容上的时间规则；
-- “新建提醒”默认创建一个最小 Note 并加提醒。用户明确勾选“这是一件要完成
-  的事”时才创建 Todo；
+- Reminder 不决定事项类型。先判断被提醒内容是可执行动作、时间占用的日程还是信息，
+  再把 Reminder 附着到 Todo、Event 或 Note；
+- “在某时提醒我做 X”且 X 是可执行动作时，默认创建 Todo；该时间同时写入 Todo 的
+  `todoStart` 和 Reminder 触发时间。只有明确说“截止/最晚/之前完成”时才写 `todoDue`；
+- “提醒我记住/保存一条信息”仍创建 Note 并附加 Reminder；
 - 不保留 Inbox、无类型临时记录或待整理队列；无法明确判断为 Todo 或 Event 的
   内容直接成为 Note。
 
@@ -353,7 +356,8 @@ Trash 不混进业务状态，只通过 `deleted_at` 表示。因此 planned Tod
 不能靠午夜时刻、空字段组合或展示规则相互冒充；具体存储字段名留到数据设计阶段确定。
 
 Todo 的 start/due 角色必须由用户明确表达：“开始/从……开始”映射 start，“截止/最晚/
-……前完成或提交”映射 due；裸日期不能默认当作 due 或 start。日期角色明确后，今天、
+……前完成或提交”映射 due；“在某时提醒我做 X”且 X 是可执行动作时，该时刻是 Todo 的
+start，同时也是 Reminder 的绝对触发时刻；裸日期不能默认当作 due 或 start。日期角色明确后，今天、
 明天和可唯一解析的星期表达按当前 locale 与 IANA 时区解析；无钟点保存 date-only，有明确
 钟点才保存时刻。“X 日前”作为排他日期边界，在只有日期精度时落到前一个本地日历日期。
 
@@ -424,8 +428,9 @@ Today 的“时间未指定”语义位置显示，不进入 timed 时间轴、�
 #### 6.2.2 创建和类型纠正
 
 插件页面允许用户明确选择 Note、Todo 或 Event 手工创建。DSH 中只提供一个
-Personal Organizer Skill：明确表达“要完成一件事”时创建 Todo，明确表达“某段时间
-有安排”时创建 Event，其余内容直接创建 Note。Skill 通过 Organizer Tool 写入同一套
+Personal Organizer Skill：可执行动作创建 Todo，明确表达“某段时间有安排”时创建 Event，
+其余内容直接创建 Note；“在某时提醒我做 X”属于带提醒的 Todo，“提醒我记住/保存一条信息”
+属于带提醒的 Note。Skill 通过 Organizer Tool 写入同一套
 Canonical 数据，不用本地关键词规则或第二个 Agent 旁路分类。
 
 active Note 可以由用户在右侧抽屉明确改为 Todo 或 Event。修改不复制、不换 ID、
@@ -982,12 +987,13 @@ Smart Clipboard 不做密码、验证码、身份证或 Secret 的内容启发�
   该快捷键直接呼出剪贴板快速取回工作面，不打开 DSH 主窗口或要求切换 Quick Panel 模式；
 - 打开后搜索框立即聚焦；无查询时显示置顶和最近历史，输入后本地实时过滤，键盘选择
   并执行当前项后关闭浮层、把焦点还给原应用；
-- 目标体验保持输入即搜索、键盘选择、复制、粘贴和无格式粘贴；浮层内部固定组合的动作
-  映射由插件 DESIGN 负责，Core 只负责用户确认的全局唤起快捷键；
+- 目标体验保持输入即搜索、键盘选择、复制、显式粘贴和纯文本复制；默认 Enter/普通左键
+  只复制，Mod+Enter 或 Option/Alt+左键才明确请求粘贴。浮层内部固定组合的动作映射由
+  插件 DESIGN 负责，Core 只负责用户确认的全局唤起快捷键；右键只打开已有类型预览，
+  不执行内容动作；
 - 可靠的 Canonical 操作只是“把选择项写回系统剪贴板”；
-- 自动粘贴仅在平台支持且用户给了最小辅助功能权限时执行：打开 Panel 前记住
-  前台目标，写 clipboard 后验证 generation/marker 未被其他程序覆盖，再恢复焦点
-  和模拟粘贴；
+- 显式粘贴仅在平台支持且用户给了最小辅助功能权限时执行：打开 Panel 前记住前台
+  目标，写 clipboard 后验证 generation/marker 未被其他程序覆盖，再恢复焦点和模拟粘贴；
 - 没权限、目标失效、Windows UIPI、Wayland 或远程桌面限制、剪贴板被覆盖时，
   立即降级为“已复制，请手动粘贴”，不提权、不反复抢写、不发送可能错误的按键。
 
@@ -1053,19 +1059,19 @@ P0 不自建 SQLCipher/envelope encryption，也不把它称为 Vault；否则�
 #### 6.4.6 平台桥接和故障隔离
 
 ClipboardBridge 只有 observe、snapshot、write、sourceIdentity、autoPaste 五类能力；
-无网络、无任意文件读取、无 shell、无命令执行。平台监听/
-写入/自动粘贴运行在最小权限平台 bridge。当前 macOS bridge 是 Electron 主进程专用的
+无网络、无任意文件读取、无 shell、无命令执行。平台监听/写入/显式粘贴运行在最小权限
+平台 bridge。当前 macOS bridge 是 Electron 主进程专用的
 Objective-C++ N-API micro-adapter，UI、DB、FTS 和状态编排仍由 TypeScript Core/插件负责；
 业务异常只让 Clipboard 进入 unavailable，native 内存故障仍可能终止 Electron，因此不能
 宣称进程隔离。若真实稳定性证据不足，再评估独立 helper，不为假设风险提前增加第二进程。
 
-- macOS：完整捕获；未授权 Accessibility 时自动粘贴降为 copy-only；
+- macOS：完整捕获；未授权 Accessibility 时，用户明确请求的粘贴降为 copy-only；
 - Windows：使用官方 change listener/sequence；无法恢复前台或 UIPI 阻止输入时
   copy-only，绝不要求管理员权限；
 - Linux X11/XWayland：按实际 clipboard ownership 能力实现；
 - 纯 Wayland 有 data-control 才启用后台捕获，没有就明确显示“当前桌面不支持历史
   捕获”，仍提供能实现的复制功能，不假装完整支持；
-- 远程桌面/VM 的来源归属和自动粘贴都是 best effort，默认偏向 copy-only。
+- 远程桌面/VM 的来源归属和显式粘贴都是 best effort，默认偏向 copy-only。
 
 #### 6.4.7 复用、二开和自研
 
@@ -1081,7 +1087,7 @@ Command+V 守卫；没有复制或改写 Maccy 源码。调研保留精确来源
 其他候选：
 
 - Rust arboard：MIT/Apache-2.0、持续维护，适合封装跨平台 text/image/HTML/
-  file-list 基本 get/set；Windows 事件、macOS marker/来源、race 和自动粘贴
+  file-list 基本 get/set；Windows 事件、macOS marker/来源、race 和显式粘贴
   仍由平台 adapter 自研；
 - EcoPaste：约 7k 星、Apache-2.0、Tauri/Rust，借鉴/逐文件审计后二开平台 glue、
   SQLite/FTS、retention 和恶意格式测试，不嵌入整套 App；
@@ -1154,9 +1160,10 @@ P0 明确不做同步、云、共享、Vault、OCR、AI 自动处理、脚本、
 当前方向和模块 3 桌面入口：已按 macOS M1 收窄。
 
 DSH 官方目前主要提供 CLI 和 Web，没有可依赖的官方 Tray 和开机启动契约，因此这两项
-由 Hermit Core Desktop Shell 实现，并通过少量适配层连接固定版本的 DSH。Quick Panel
-及其全局快捷键已移出本节，后续作为独立模块重新确认需求、边界和验收；本文件其他位置
-已有的 Quick Panel 示例只作为待整理的设计输入，不授权当前实现或插件依赖。
+由 Hermit Core Desktop Shell 实现，并通过少量适配层连接固定版本的 DSH。Quick Panel 现在
+按 Desktop Surface 独立模块维护，窗口宿主归 Desktop Core，Conversation/Session 仍归 DSH，
+业务内容和动作归对应 Product Plugin。本节只保留长期产品边界，接口形状、阶段和验收见
+[Desktop Surface 与 Quick Panel spec](desktop-surface-quick-panel.md)。
 
 #### 6.6.1 主窗口
 
@@ -1183,61 +1190,40 @@ Core-only 时，主窗口就是一款完整的 DSH 桌面 AI：
 
 #### 6.6.2 Quick Panel
 
-只有一个 Core Quick Panel。P0 不显示 Conversation、AI 回答、复杂编辑、设置
-或审批，只提供当前真正可用的快捷动作：
+Quick Panel 是 Desktop Core 托管的桌面 Surface，不再属于 Smart Clipboard 专属能力。第一条
+实现为 `conversation.quick`，提供一个紧凑的 DSH 对话工作面；后续可以由 Smart Clipboard、
+Personal Organizer 或其他已安装插件注册自己的 Surface 内容。
 
 ```text
-| [草稿]  [搜索]  [剪贴板*]               |
-|------------------------------------------|
-| > 输入……                                 |
-|                                          |
-| 动作：放到对话草稿                       |
-| 最近：打开了一个对话 · 已完成            |
-|                                          |
-| Esc 关闭                    Enter 执行    |
-
-* 只有 Smart Clipboard 正常运行时才出现
+全局快捷键
+-> 打开紧凑对话窗口
+-> 输入并提交
+-> DSH 创建或恢复 Session
+-> 流式展示真实 DSH 回复
+-> 继续、取消、重试或等待 DSH Approval
+-> 需要完整工作面时打开同一个 Session
 ```
 
-“草稿”闭环：
+Quick Panel 的通用规则：
 
-```text
-输入文字
--> 选择“放到对话草稿”
--> 检查目标 Conversation 是否可以接收
--> 不自动发送、不调用模型、不写 AI 历史
--> 打开主窗口，由用户检查后自行发送
-```
+- 窗口创建、定位、焦点、置顶、关闭和清理由 Desktop Core 负责；
+- Conversation、Session、消息、模型、Tool、Skill、Approval 和历史由 DSH 负责；
+- 插件负责自己的业务内容和动作；Core 不复制插件数据或对话消息；
+- 第一次只打开窗口不由 Core 创建 Session；`conversation.quick` 从隐藏状态每次重新打开都回到新的
+  DSH 会话草稿，首次提交由 DSH 正式流程创建；
+- 关闭或隐藏窗口不删除已创建的 Session；`conversation.quick` 的“打开主窗口”才显式传入当前
+  `sessionId` 继续已有会话，Core 不猜测；
+- `conversation.quick` 是无标题栏、非置顶、失焦不自动隐藏的普通窗口，具体窗口偏好只属于该 Surface，
+  不成为其他插件的强制模板；
+- “打开完整对话”在调用方明确提供同一个 `sessionId` 时复用该会话，不复制消息或创建第二个会话；
+- Surface 可以声明位置、尺寸、焦点和置顶偏好，Core 根据当前平台返回实际生效状态；
+- 某项偏好不可用时，窗口仍可继续使用，并以明确的 unavailable/degraded 状态反馈；
+- Surface 停用、卸载、DSH 重启或窗口异常时，Core 撤销实例和回调，不能留下旧入口；
+- DSH Approval 继续使用正式 DSH 流程，不在 Quick Panel 中另建审批实现。
 
-- 如果主窗口已有草稿、正在等待审批、目标 Session 已失效或跨窗口交接不可用，
-  不覆盖原内容，只打开主窗口让用户继续；
-- 跨窗口草稿交接必须先对锁定的 DSH 版本做技术验证。若没有稳定公开接口，使用
-  Core 一次性交接队列，由主窗口主动领取；仍无法保证时，P0 隐藏该动作，不能
-  伪造一条 Session 消息冒充草稿；
-- Personal Organizer 正常运行时可增加第二个明确动作“保存为笔记”，但不能
-  偷偷改变 Enter 的默认行为；
-- 搜索只查询 Core 和当前正常运行插件的真实数据源，选中结果后在主窗口打开
-  Canonical 来源并关闭小窗口；
-- 默认进入“上次仍然可用的模式”。上次插件已卸载时自动回到草稿或搜索；
-- 最近动作只写“打开了一个对话、已保存到个人事务”等安全描述，不保留正文、
-  文件名/完整路径、剪贴板片段、Secret 或 Prompt 摘要；
-- Enter 只在存在一个明确可执行动作时生效，空输入或选择不明确时不猜；
-- 未提交的操作随 Esc 取消；已取得 operation ID 的操作可以继续，但必须保证
-  重复按 Enter 或重新打开面板都只执行一次；搜索在关闭时可以取消。
-
-写操作需要审批时：
-
-```text
-Quick Panel 发起写操作
--> Core 判断需要审批
--> 小窗口显示“请到主窗口确认”
--> 打开真实 DSH Conversation 的正式审批
--> 使用同一个 operation ID 和同一份参数
--> 小窗口关闭
-```
-
-Quick Panel 永远不提供“允许、拒绝、永久允许、修改 Tool 参数”等审批按钮。
-若无法安全转交同一个操作，只提示用户去主窗口重新发起，不自建审批。
+Smart Clipboard 的快速取回仍是独立的 `clipboard.quick-retrieval` Surface：它复用 Core
+窗口宿主，但搜索、剪贴板数据、复制/粘贴和动作映射仍由 Smart Clipboard 负责。通用 Surface
+接口、注册方式和分阶段验收见 [Desktop Surface 与 Quick Panel spec](desktop-surface-quick-panel.md)。
 
 #### 6.6.3 Tray / 菜单栏
 
@@ -1279,8 +1265,9 @@ Linux 界面统一称状态菜单。
 | 个人事务 · 快速新建事项   [设置快捷键...] |
 ```
 
-- Core 默认只注册一个打开 Quick Panel 的全局快捷键；
-- 插件只能提交“快捷键建议”，用户在统一设置页确认后才由 Core 注册；
+- 每个真实桌面动作都通过 Core 的快捷键 Registry 注册；默认组合、是否启用和数量由真实
+  Surface/插件需求决定，不在产品需求层硬编码为一个；
+- 插件只能提交带稳定 id 的快捷键定义，用户在统一设置页修改后仍由 Core 注册；
 - Hermit 内部冲突可以提前发现；与系统或其他应用冲突通常只能实际注册后判断，
   界面必须如实显示“已注册、被占用/系统拒绝、当前环境不支持”；
 - 插件开始停用、崩溃或卸载时，先注销快捷键，再撤下其他入口；
@@ -1305,6 +1292,41 @@ Mode 只启动 Core、恢复和诊断，不自动启动任何可选业务插件�
 - 用户正停在失效插件页面时，由 Core 显示“这个功能已停用”，提供返回、重新
   启用或安装，不白屏、不继续调用失效插件；
 - 可选插件不能成为 Core 首屏启动成功的必要条件。这是插件隔离的硬性要求。
+
+#### 6.6.6 系统通知与绝对 Deadline 能力
+
+Personal Organizer 的 Reminder 是业务能力，不能因为需要系统通知就把 Reminder Rule、
+Occurrence 或提醒数据库搬进 Desktop Core。两层职责固定如下：
+
+```text
+Organizer：保存 Rule/Occurrence，解释重复、时区、DST、snooze/dismiss，决定下一次绝对时刻
+    -> Desktop Core deadline：只等待一个不透明 id 对应的绝对时间
+    -> Organizer：收到 fire 后幂等认领 Occurrence，更新业务状态
+    -> Desktop Core notification：按 Organizer 给出的安全摘要尝试系统投递
+```
+
+Desktop Core 只在确有真实使用者时提供两个最小的、公开 typed capability：
+
+- `desktop.deadlines`：`arm({ id, fireAt })`、`cancel(id)`，到期发出带不透明 `id` 的
+  `fire` 事件。`fireAt` 必须是绝对 UTC instant；Core 不理解事项、Rule、Occurrence、
+  重复、snooze、自然语言或业务状态。Core 只保证当前桌面进程生命周期内的等待，以及应用
+  启动/唤醒/恢复时由调用方重新 reconcile；不能把“应用完全退出后的系统级触发”写成跨平台
+  保证。
+- `desktop.notifications`：`status()`、`show({ id, title, body, actions? })`、
+  `replace({ id, ... })`、`remove({ id })`，并以受控事件返回用户点击/动作和投递失败。标题、
+  正文和动作由调用方生成安全摘要，Core 不读取插件数据库，不保存第二份业务内容。
+
+两项能力都必须返回明确的 `supported`、`permission` 或 `unavailable` 结果。权限拒绝、
+平台不支持、Core 重启和单次投递失败只影响系统渠道：Organizer 仍保留 Canonical Reminder，
+Today/Reminder Center/应用内处理继续可用；不得静默删除规则、伪造“已提醒”或把失败变成
+业务完成。Core 不建立 Reminder store、不实现通用 recurrence/scheduler、不提供全局默认时区，
+也不接收自然语言日期。
+
+所有请求归当前 activation generation；停用、卸载、DSH 重启或退出时撤销 deadline、监听器和
+通知句柄，旧 generation 的晚到事件不能产生副作用。通知和 deadline bridge 必须像其他 Core
+能力一样校验 sender、限制输入并在纯 Web 宿主缺失时明确返回 unavailable，而不是暴露通用 IPC。
+当前只验证桌面壳内的公开 typed bridge；后续 Organizer Reminder 切片在该 bridge 上接入，
+不改变 Reminder 的 Canonical ownership。
 
 ### 6.7 Plugin Platform And Lifecycle
 
@@ -1901,7 +1923,7 @@ File Workspace（安装后）
 `-- managed Trash / external 从工作区移除
 
 Smart Clipboard（安装后）
-|-- Quick Panel 剪贴板模式
+|-- Desktop Surface 中的 clipboard.quick-retrieval
 |-- 完整历史
 |   |-- 最近 / 置顶 / 类型筛选 / 本地搜索
 |   `-- 预览 / 复制 / 粘贴 / 编辑副本 / Trash
@@ -1913,10 +1935,10 @@ Smart Clipboard（安装后）
     `-- 导出 / 清空 / 删除插件数据
 
 桌面外围（Core）
-|-- Quick Panel：草稿 / 搜索 / 当前插件安全模式
+|-- Desktop Surface Manager：对话和插件快速工作面宿主
 |-- Tray / 菜单栏
 |-- 快捷键设置与冲突
-|-- 系统通知
+|-- 系统通知与绝对 Deadline bridge（不保存插件业务状态）
 `-- 插件失效通用页
 ```
 
@@ -2174,7 +2196,7 @@ Web GPT 原始资料调研
 - plain/HTML/RTF 的精确同文本最终只有一个 ID，置顶不丢；不同 kind 永不合并；
 - 从历史 Copy/Paste 不生成新记录；读取多格式期间 clipboard 被另一进程改变时
   不产生混合 Entry；
-- 自动粘贴无权限、目标失效、UIPI/Wayland 限制或 clipboard 被覆盖时不提权、
+- 显式粘贴无权限、目标失效、UIPI/Wayland 限制或 clipboard 被覆盖时不提权、
   不发错误按键，退回 copy-only；
 - P0 capability graph 中不存在 Clipboard Federated Search Provider；
 - 捕获、存储、索引、搜索、预览和历史管理链路没有网络 capability，网络观察中
@@ -2254,7 +2276,7 @@ Web GPT 原始资料调研
 - File 继续使用官方 `read` 读取选择时捕获的 projection；File Workspace 内只做名称过滤，
   正文和跨插件搜索由 Core Federated Search 发起，文件修改仍不走通用读取 Tool；
 - 业务页面不保存或复制 AI 回答正文；
-- P0 暂不开发 Quick Panel Conversation；
+- P0 首条 Quick Panel 闭环为 `conversation.quick`，通过真实 DSH Session 提供紧凑对话；
 - 正式环境只能通过 Package Gate 修改，开发环境与正式环境分开；
 - 插件的界面、数据逻辑、Tool、搜索和后台任务作为同一个完整版本切换；
 - 新版本必须先在旁边完整安装并真实试启动，全部成功后才替换旧版本；
@@ -2268,13 +2290,15 @@ Web GPT 原始资料调研
 - 保留数据时默认保留至少一个已验证的精确恢复版本，用户可明确放弃此保障；
 - 任意插件安装或升级失败时，原来的可用版本仍保持有效；
 - 主窗口一级导航由 Core 管理，插件入口只在对应版本正常运行时出现；
-- Quick Panel P0 只做草稿交接、搜索和当前已安装插件的安全快捷动作，不做 AI
-  回答或审批；
-- “放到对话草稿”不自动发送、不覆盖现有草稿，无法安全交接时只打开主窗口；
-- Quick Panel 写操作需要审批时转到真实 DSH Conversation，并沿用同一个操作；
+- Quick Panel 的窗口由 Desktop Core 托管，内容和业务动作由 DSH 或对应 Product Plugin 提供；
+- Quick Conversation 使用 DSH 正式 Session；从隐藏状态重新打开时每次从新的会话草稿开始，关闭窗口
+  不删除已经创建的会话；只有打开主窗口时才显式绑定当前 `sessionId` 继续复用该 Session；
+- Quick Conversation 使用无标题栏、非置顶、失焦不自动隐藏的普通窗口；这些是该 Surface 的具体偏好，
+  不是所有 Quick Panel 或插件窗口的统一限制；
+- Quick Panel 内触发 DSH 写操作时沿用正式 Session/Tool/Approval 流程，不自建第二套审批；
 - 系统只有一个 Core Tray/菜单栏图标，只显示安全状态和不过期的计数；
-- Core 默认只注册一个 Quick Panel 全局快捷键，插件快捷键必须由用户确认并由
-  Core 统一注册；
+- Quick Panel 和插件快捷键都必须由 Core 统一注册，具体默认组合按真实动作配置并在统一页面
+  显示冲突或不可用状态；
 - 开机启动和后台暂停都由 Core 管理，插件不能各自创建常驻入口；
 - 可选插件不是 Core 启动条件，失效时一次撤掉导航、小窗口、Tray 和快捷键贡献；
 - Personal Organizer 长期内容只有 Note/Todo/Event，不保留 Inbox 或无类型暂存态；
@@ -2282,7 +2306,9 @@ Web GPT 原始资料调研
 - 无法明确判断为 Todo 或 Event 的输入直接成为 Note；用户把 Note 明确改为 Todo 或
   Event 时保持同一 ID、内容、提醒和历史，不复制内容或打断引用；
 - P0 支持简单重复提醒，不支持重复 Todo/Event、cron 和完整 RRULE；
-- 系统通知失败不丢提醒，启动/唤醒/重启后从 SQLite 恢复调度；
+- 系统通知失败不丢提醒；Organizer 从 SQLite 恢复 Reminder Rule/Occurrence，并在启动/唤醒/
+  重启后重新计算下一次绝对时刻，再通过 Desktop Core deadline bridge 等待；Core 不保存提醒
+  业务状态；
 - 插件没有 AI、网络、File Workspace 或通知权限时仍能手工完整使用；
 - 插件全文搜索和业务数据都由自己的 SQLite 负责，AI 只通过 DSH Resource/Tool；
 - JSON 是无损格式，CSV/ICS 只作有限互操作，导入必须先预览再整批提交；
@@ -2316,7 +2342,8 @@ Web GPT 原始资料调研
 - P0 保存精确纯文本、受控 HTML/RTF 格式表示、规范化图片和文件引用，不保存未知对象；
 - transient、concealed、auto-generated 等明确 exclusion marker 直接跳过；插件不做
   内容敏感度启发式分类或 `MASKED/Reveal`；
-- 自动粘贴是可降级便利能力，失败时可靠退回“已复制，请手动粘贴”；
+- 显式粘贴是可降级便利能力，失败时可靠退回“已复制，请手动粘贴”；普通复制不额外
+  发送粘贴按键；
 - P0 不注册 Clipboard Federated Search Provider，AI 不能列出或搜索完整历史；
 - AI 只能读取用户明确选择的单条、当前 Session/本轮一次性引用；成功 Tool Result
   留在会话后，删除 ClipboardEntry 不会删除会话历史；
@@ -2367,7 +2394,7 @@ Web GPT 原始资料调研
 Clipboard 已为 `FUNCTIONAL_SCOPE_FROZEN`，M1/M2 领域、SQLite/FTS、桌面工作面、完整 History
 和 macOS 原生 micro-adapter 已实现并通过未签名成品 E2E；
 Hermit Product Surface v1 已按 ADR-0003 落地并通过同一插件 artifact 的 stock/Hermit 双宿主
-资格。当前无人值守资格不触碰用户 General Pasteboard，真实写回/自动粘贴/物理快捷键、
+资格。当前无人值守资格不触碰用户 General Pasteboard，真实写回/显式粘贴/物理快捷键、
 签名发行和 Windows/Linux 原生切片仍未完成，因此不能
 宣称跨平台发布就绪。UI foundation 当前为 `PARTIAL`：Product Surface 和 Smart Clipboard
 实际使用的导航 Button/图标已 qualified，其余候选与 `@hermit/ui` 尚未执行。

@@ -2,8 +2,15 @@
 
 状态：`current`
 
-本文只说明 Hermit Desktop Core 什么时候存在、应该提供什么，以及插件怎样安全地使用它。
-它不是 Electron 教程，也不复制 DSH 官方插件文档。
+本文面向 Hermit Desktop Core 维护者，只说明 Desktop Core 什么时候存在、应该提供什么，
+以及插件怎样安全地使用它。新 Product Plugin 开发者应先阅读
+[Product Plugin 最小接入](product-plugin-quickstart.md)。
+
+本文不是 Electron 教程，也不复制 DSH 官方插件文档。本文只定义 Desktop Core 的长期职责
+和通用规则；具体 Surface 的接口形状、阶段范围和验收以
+[Desktop Surface 与 Quick Panel spec](../../specs/2026-08-24-hermit-dsh-vnext/desktop-surface-quick-panel.md)、
+[DSH 桌面快捷键中心 spec](../../specs/2026-08-24-hermit-dsh-vnext/desktop-shortcut-center.md)
+和实际 typed contract 为准。
 
 ## 先用哪一层
 
@@ -34,9 +41,63 @@ Desktop Core 是桌面外壳和原生能力的负责人，常见范围包括：
 普通业务文件读写、业务存储、业务搜索、页面列表和编辑器不属于 Core，优先走 DSH 或插件
 自己的业务代码。
 
+## Desktop Surface
+
+Desktop Surface 是 Desktop Core 对外提供的受控桌面工作面能力。它可以承载 DSH Conversation
+或 Product Plugin 已注册的工作面，具体 `kind` 和内容由各自的 typed contract 决定。
+
+主窗口的主工作区由 layout Core 统一建模为“会话区”或“一个 Product Surface”二选一。插件
+入口点击只负责打开自己的 Surface；用户从 DSH 的会话列表、搜索结果、分叉结果或新会话入口
+进入前台会话时，Core 负责关闭 Product Surface。当前会话的身份和历史仍归 DSH `sessions`
+service，Core 不复制一份 `sessionId`，也不把插件页面改造成第二套路由。
+
+Core 负责窗口宿主、屏幕和工作区、焦点、置顶、可见性、平台降级以及停用/卸载清理；DSH 或
+插件负责 Surface 内的会话、业务数据、业务动作和状态。Surface API 允许插件表达位置、尺寸、
+焦点和置顶偏好，Core 返回当前平台实际生效的结果，不把每种未来窗口形态提前写成固定枚举。
+
+第一条实现是 `conversation.quick`：它使用无标题栏、非置顶、失焦不自动隐藏的普通窗口，刚打开
+是紧凑草稿态，首条消息提交后切换到聊天态；从隐藏状态再次打开和点击“新建对话”都回到新的
+DSH 会话草稿。聊天态的“打开主窗口”通过公开 `openMainSession(sessionId)` 交接当前会话。
+这些是该 Surface 的具体偏好。Smart Clipboard 的快速取回和未来 Organizer Todo 小窗可以复用
+同一个 Manager，但不能因此共享业务状态或互相调用内部实现。
+
+### Deadline 与系统通知
+
+Personal Organizer 的 Reminder 是当前真实使用者，因此 Desktop Core 提供两项已经验证的
+窄能力。它们位于 Hermit patched DSH layout client 的公开出口：
+
+```ts
+import {
+  getDesktopDeadlineClient,
+  getDesktopNotificationClient,
+} from '@deepseek-ai/dsh-client-ui-layout/client'
+```
+
+- `getDesktopDeadlineClient()` 返回 `arm({ id, fireAt })`、`cancel(id)` 和 `observe(listener)`。
+  `fireAt` 必须是带 `Z` 的 UTC ISO instant；到期事件只携带不透明 `id`、原定时刻和实际
+  触发时刻。相同 `id` 的再次 `arm` 会替换旧等待，`cancel` 幂等。
+- `getDesktopNotificationClient()` 返回 `status()`、`show(input)`、`replace(input)`、
+  `remove(id)` 和 `observe(listener)`。通知只接受稳定 `id`、标题、正文和最多三个有限动作；
+  相同 `id` 的显示会替换已有通知。状态会明确返回 `supported` 与
+  `granted/denied/unknown/unsupported`，当前 Electron 跨平台适配无法读取系统授权细节时返回
+  `unknown`，不把“调用成功”伪装成用户已经授权。
+
+两项 facade 在纯 Web 或没有受信 preload 时返回 `undefined`。桌面壳通过独立的
+`hermit:desktop-deadlines` 和 `hermit:desktop-notifications` IPC channel 处理请求，主进程校验
+sender 和输入，事件只回发给发起窗口；这不是通用 IPC，也不允许插件传入 Electron 对象。
+`unavailable`、`permission denied`、单次通知 `failed` 和窗口/Core 停止都只是桌面渠道状态，
+调用方必须保留自己的业务事实。
+
+Organizer 的正确调用顺序是“自己从 Rule 算出下一次绝对时刻 -> arm deadline -> 收到 fire 后
+幂等认领 Occurrence -> show/replace 安全摘要 -> 记录 delivery 结果”。Core 不提供 Reminder
+数据库、重复规则、snooze、默认时区、自然语言解析或应用完全退出后的跨平台定时保证。
+当前 Core bridge 已完成接口、失败和生命周期测试；Organizer 的 Reminder vertical slice
+接入仍以自身 DESIGN 和业务验收为准。
+
 ## 对外只给能力
 
-插件看到的是稳定的 TypeScript 能力接口，不是 Electron 对象。例如：
+当某项桌面能力经过真实使用、接口确认和资格验证后，插件看到的应该是稳定的 TypeScript
+能力接口，而不是 Electron 对象。例如，接口形状可以是：
 
 ```ts
 clipboard.observe()
@@ -44,8 +105,37 @@ shortcut.register(command)
 quickSurface.open(options)
 ```
 
+插件侧的 Desktop Surface contract 位于 Hermit DSH layout client 公共出口，可通过
+`getDesktopSurfaceClient()` 取得 `open/toggle/resize/close/openMainSession/capabilities`。其中 `resize`
+只调整已有窗口尺寸，不触发页面加载或 Session 选择。桌面壳缺少该 bridge 时
+返回 `undefined`。窗口注册、renderer loader 和 Electron 句柄仍只在 Desktop Core 内部；
+`ShortcutRegistry` 也继续由 Core 持有；快捷键中心只消费 Core 的列表、更新、恢复和变化通知，
+不把 Electron 句柄或插件回调暴露给 DSH Client。
+
 不要向插件暴露 `BrowserWindow`、`ipcRenderer`、Node 文件系统、原生模块实例或通用 IPC
-转发器。Core 内部可以使用这些实现，但它们不属于插件契约。
+转发器。Core 内部可以使用这些实现，但它们不属于插件契约；插件通过公开的 Surface、快捷键
+或其他 typed capability 表达意图即可。
+
+### 快捷键 Registry
+
+快捷键是共享的系统资源，不能由每个插件各自调用 Electron。插件桌面适配层向 Core 提交
+`id`、`pluginId`、插件/命令展示名称、默认 accelerator 和触发回调，Core 负责读取
+`userData/desktop/shortcuts.json`、检查 Hermit 内部重复、调用系统注册并在停用时释放。
+
+- `register` 返回 `registered`、`conflict` 或 `unavailable`，注册失败不会抛出为插件启动失败；
+- Hermit 内部重复在调用系统前标记为 `internal-conflict`；系统或其他应用冲突以系统返回为准，
+  标记为 `external-or-system-conflict`；
+- 修改快捷键先注册新组合，成功后才释放旧组合；失败时旧组合和已保存配置都不变；
+- Core 只保存用户成功应用的组合，默认组合冲突时下次启动仍会重新尝试默认值；
+- DSH 或插件运行单元停用时，先释放 binding，再释放捕获、IPC、窗口等其他资源。
+
+统一设置页位于 bundled DSH 的“设置 -> 快捷键”，按 `pluginId` 竖向分组。Smart Clipboard
+和 `conversation.quick` 是当前真实注册者；Organizer、File Workspace 没有真实桌面快捷键
+动作前不注册空行。快捷键中心的 UI 和 renderer facade 属于 Hermit layout patch，业务插件
+只负责注册命令 metadata 和触发后的业务动作。
+
+因此，Smart Clipboard 的快捷键冲突只让“快速取回”不可用，剪贴板捕获、History 和 IPC
+仍然可以继续工作；DSH 崩溃或插件资格失败才会撤销整个 Smart Clipboard 桌面运行单元。
 
 每个能力都应该说明：
 
@@ -90,17 +180,23 @@ Core 创建的窗口、快捷键、监听器、定时器、IPC handler、数据�
 4. 停用、卸载和退出时的清理方式；
 5. 至少一条打包后的真实流程验证。
 
-不要预先建立万能 `desktopAPI`、复杂权限清单或未来能力目录。第二个真实使用者出现后，
-再判断是否需要抽成更通用的接口。
+可以建立可扩展的 Desktop Surface service，但不提前实现没有真实使用者的窗口类型。每个新
+Surface 仍需说明真实产品流程、typed contract、失败结果、生命周期和至少一条打包验证；这些
+是通用治理要求，不是把未来所有窗口选项一次性冻结。
 
 ## 和 Product Plugin 的关系
 
-Product Plugin 只依赖公开的 Desktop Core contract，不依赖 `apps/desktop-vnext` 的内部
-文件，也不直接导入 Electron。插件负责业务含义，Core 负责把能力安全地执行出来：
+Product Plugin 只依赖已经公开并经过验证的 contract，不依赖 `apps/desktop-vnext` 的内部
+文件，也不直接导入 Electron。当前 Product Navigation/Product Surface 使用的是 Hermit
+patched DSH 的公开 layout contract；Desktop Surface 由 Core 提供宿主，插件只注册内容和业务
+动作。固定 pinned DSH 的 Workspace 和 Sidebar adapter 通过公开
+`ctx.layout.closeProductSurface()` 把前台会话导航交还给 Core；这是 bundled generation 的
+底座适配，不是插件可调用的私有实现。
+插件负责业务含义，Core 负责把桌面能力安全地执行出来：
 
 ```text
 插件：选择哪条历史、执行什么业务动作
-  -> Desktop Core：读写系统剪贴板、注册快捷键、打开窗口
+  -> 已公开的 Desktop Core contract：执行受限桌面动作
   -> 插件：根据结果更新自己的业务状态和页面
 ```
 

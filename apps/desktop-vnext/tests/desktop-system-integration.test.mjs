@@ -7,42 +7,8 @@ import { createEvidenceSink } from "../lib/desktop/evidence.js";
 import {
   createTrayMenuTemplate,
   loginItemLabel,
-  QUICK_PANEL_SHORTCUT,
-  registerQuickPanelShortcut,
   setLoginItemEnabled,
 } from "../lib/desktop/system-integration.js";
-
-test("全局快捷键只有同时被 register 和 isRegistered 确认后才显示已注册", () => {
-  const events = [];
-  let callback;
-  let toggles = 0;
-  const status = registerQuickPanelShortcut(
-    {
-      register: (accelerator, handler) => {
-        assert.equal(accelerator, QUICK_PANEL_SHORTCUT);
-        callback = handler;
-        return true;
-      },
-      isRegistered: () => true,
-    },
-    () => { toggles += 1; },
-    { record: (event, details) => events.push({ event, details }) },
-  );
-
-  assert.equal(status, "已注册");
-  callback();
-  assert.equal(toggles, 1);
-  assert.deepEqual(events.map(({ event }) => event), [
-    "desktop.shortcut-registration",
-    "desktop.shortcut-triggered",
-  ]);
-
-  assert.equal(registerQuickPanelShortcut(
-    { register: () => false, isRegistered: () => true },
-    () => assert.fail("注册失败时不能触发 callback"),
-    { record: () => undefined },
-  ), "被占用或系统拒绝");
-});
 
 test("开机启动切换以系统读回状态为准，并保留 requires-approval 状态", () => {
   const writes = [];

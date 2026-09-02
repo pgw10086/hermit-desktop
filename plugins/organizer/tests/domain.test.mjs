@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { apply } from '../lib/index.js'
 import { OrganizerService } from '../lib/domain/service.js'
+import { resolveTemporalExpression } from '../lib/domain/time.js'
 
 function createDomain() {
   const stores = { items: new Map(), tool_calls: new Map() }
@@ -38,6 +39,13 @@ test('同一 callId 重放只返回原 Todo，不创建第二条记录', async (
   assert.equal(domain.stores.items.size, 1)
   assert.equal(domain.stores.tool_calls.size, 1)
   await service.close()
+})
+
+test('相对日期按原始用户消息时间解析，而不是按 Tool 执行时间解析', () => {
+  const point = resolveTemporalExpression({ relativeDays: 1, time: '08:00' }, { referenceAt: Date.parse('2026-09-01T12:00:00.000Z'), timeZone: 'Asia/Shanghai' }, '待办开始')
+  assert.deepEqual(point, { date: '2026-09-02', time: '08:00' })
+  assert.throws(() => resolveTemporalExpression({ relativeDays: 1, time: '' }, undefined, '提醒'), /原始消息时间/u)
+  assert.throws(() => resolveTemporalExpression({ date: '2026-09-02', time: '' }, undefined, '提醒', true), /需要具体时间/u)
 })
 
 test('没有明确类型时创建 active Note，并可在同一 item ID 上转换为 Todo', async () => {
@@ -103,7 +111,7 @@ test('非法终态操作不会改变 Canonical 状态', async () => {
 
 test('Host apply 注册唯一 Skill 和 Todo Tool，并写入同一 Canonical domain', async () => {
   const domain = createDomain()
-  const registrations = { skills: [], tools: [] }
+  const registrations = { skills: [], tools: [], preExecute: [] }
   const effects = []
   const ctx = {
     effect(callback) { effects.push(Promise.resolve(callback())) },
@@ -111,17 +119,21 @@ test('Host apply 注册唯一 Skill 和 Todo Tool，并写入同一 Canonical do
     skills: { register(skill) { registrations.skills.push(skill); return () => {} } },
     connection: { rpc: { handle() { return async () => {} } } },
     tools: { register(definition) { registrations.tools.push(definition); return () => {} } },
+    on(event, listener) { if (event === 'tools/pre-execute') registrations.preExecute.push(listener); return () => {} },
   }
+  const service = await OrganizerService.open({ storage: { domain: { open: async () => domain } } })
   apply(ctx)
   await effects[0]
   assert.equal(registrations.skills.length, 1)
   assert.equal(registrations.skills[0].name, 'personal-organizer')
-  assert.equal(registrations.tools.length, 2)
+  assert.equal(registrations.tools.length, 3)
   const turns = { concluded: false }
   const todoTool = registrations.tools.find((tool) => tool.name === 'organizer_create_todo')
   const noteTool = registrations.tools.find((tool) => tool.name === 'organizer_create_note')
+  const listTodayTool = registrations.tools.find((tool) => tool.name === 'organizer_list_today')
   assert.notEqual(todoTool, undefined)
   assert.notEqual(noteTool, undefined)
+  assert.notEqual(listTodayTool, undefined)
   const result = await todoTool.execute({ title: '从 Host 测试创建' }, { callId: 'host-call-1', signal: new AbortController().signal, concludeTurn: () => { turns.concluded = true } })
   assert.equal(result.kind, 'todo')
   assert.equal(domain.stores.items.size, 1)
@@ -129,7 +141,45 @@ test('Host apply 注册唯一 Skill 和 Todo Tool，并写入同一 Canonical do
   const noteResult = await noteTool.execute({ title: '从 Host 测试记录' }, { callId: 'host-call-2', signal: new AbortController().signal, concludeTurn: () => {} })
   assert.equal(noteResult.kind, 'note')
   assert.equal(domain.stores.items.size, 2)
+  const scheduled = await todoTool.execute({
+    title: '吃饭', originalInput: '明天上午 8 点提醒我吃饭',
+    todoStart: { relativeDays: 1, time: '08:00' },
+    reminders: [{ relativeDays: 1, time: '08:00', sourceText: '明天上午 8 点' }],
+  }, {
+    callId: 'host-call-scheduled', signal: new AbortController().signal, concludeTurn: () => { turns.concluded = true },
+    agent: { session: { events: [{ type: 'user/message', time: Date.parse('2026-09-01T06:00:00.000Z'), data: { source: { kind: 'user' } } }] } },
+  })
+  assert.equal(scheduled.kind, 'todo')
+  assert.equal(scheduled.todoStart, '2026-09-02 08:00')
+  assert.equal(scheduled.reminder, '2026-09-02 08:00')
+  const scheduledItem = [...domain.stores.items.values()].find((item) => item.title === '吃饭')
+  assert.equal(scheduledItem.todoStart.date, '2026-09-02')
+  assert.equal(scheduledItem.reminders.length, 1)
+  assert.equal(scheduledItem.reminders[0].date, '2026-09-02')
+  assert.equal(scheduledItem.reminders[0].time, '08:00')
+  const current = new Date()
+  const todayDate = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}-${String(current.getDate()).padStart(2, '0')}`
+  const todayResult = await service.execute({
+    type: 'save',
+    draft: {
+      kind: 'todo', title: '今日 Host 测试', detail: '不应进入 AI 摘要', tags: [], pinned: false,
+      priority: 'none', checklist: [], todoStart: { date: todayDate, time: '' }, todoDue: { date: '', time: '' },
+      eventTime: { mode: 'all-day', startDate: '', startTime: '', endDate: '', endTime: '', hasEnd: false }, location: '', reminders: [],
+    },
+  })
+  assert.equal(todayResult.outcome, 'success')
+  const today = await listTodayTool.execute({}, { callId: 'host-call-3', signal: new AbortController().signal })
+  assert.equal(today.todos.length, 2)
+  assert.equal(today.todos.some((item) => item.title === '今日 Host 测试'), true)
+  assert.equal(today.todos.find((item) => item.title === '今日 Host 测试').detail, undefined)
+  assert.equal(listTodayTool.output.render({}, { overdue: [], todos: [], events: [] })[0].text, '今天没有过期待办、今日待办或今日事件。')
+  const approval = await registrations.preExecute[0]({ name: 'organizer_create_todo' }, async () => ({ kind: 'allow' }))
+  assert.deepEqual(approval, { kind: 'ask', reason: '这次操作会在个人事项中写入本地数据，需要你的确认。' })
+  const readDecision = await registrations.preExecute[0]({ name: 'organizer_list_today' }, async () => ({ kind: 'allow' }))
+  assert.deepEqual(readDecision, { kind: 'allow' })
   assert.match(registrations.skills[0].content, /organizer_create_note/u)
+  assert.match(registrations.skills[0].content, /organizer_list_today/u)
   assert.match(registrations.skills[0].content, /不要创建第二个聊天入口/u)
   await effects[0].then((dispose) => dispose())
+  await service.close()
 })

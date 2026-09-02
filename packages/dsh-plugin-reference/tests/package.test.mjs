@@ -21,6 +21,8 @@ test('Client bundle 使用 DSH lazy-CJS factory 并共享 React', async () => {
   assert.match(source, /require\("@deepseek-ai\/dsh-client-ui-primitives"\)/u)
   assert.match(source, /DisclosureRow/u)
   assert.match(source, /Toast/u)
+  assert.match(source, /registerProductEntry/u)
+  assert.match(source, /product\.surface/u)
   assert.doesNotMatch(source, /document\.querySelector|MutationObserver/u)
   assert.doesNotMatch(source, /@deepseek-ai\/[^"']+\/src\//u)
 })

@@ -36,6 +36,7 @@
     "client": {
       "inject": [
         "@deepseek-ai/dsh-client-runtime",
+        "@deepseek-ai/dsh-client-ui-layout",
         "@deepseek-ai/dsh-client-ui-settings-plugins"
       ],
       "platform": "web"
@@ -43,7 +44,7 @@
   },
   "scripts": {
     "clean": "node scripts/clean.mjs",
-    "build": "corepack pnpm run clean && tsdown && tsc -p tsconfig.host.json && tsc -p tsconfig.client.json",
+    "build": "corepack pnpm --filter @deepseek-ai/dsh-client-ui-layout build && corepack pnpm run clean && tsdown && tsc -p tsconfig.host.json && tsc -p tsconfig.client.json",
     "test": "corepack pnpm run build && node --test tests/package.test.mjs",
     "test:qualification": "corepack pnpm run test && node tests/reference-plugin.e2e.mjs"
   },

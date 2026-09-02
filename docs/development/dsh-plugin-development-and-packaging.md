@@ -76,10 +76,11 @@ bundled DSH 安装、运行和验收同一份 `.tgz`，不能为两个宿主维�
 2. 对每个随包 package 执行一次 `pnpm pack`，把 tarball 内容物化进 runtime 闭包；
 3. 计算 lock、workspace、runtime 清单和构建产物的 SHA-256；
 4. 生成可搬运的物理 `node_modules` 闭包；
-5. 安装并校验 Hermit Product Surface source patch；
+5. 安装并校验 Hermit layout Product Surface source patch，以及固定 DSH Workspace 的前台
+   会话导航 source patch；
 6. 校验 DSH CLI、pnpm、链接、依赖和闭包路径；
-7. 写入 runtime generation manifest，并记录 DSH 版本批次、`packed-tarball-v1` 模式、发布文件
-   内容摘要和实际 `.tgz` 摘要。
+7. 写入 runtime generation manifest，并记录 DSH 版本批次、两个 source patch 的摘要、
+   `packed-tarball-v1` 模式、发布文件内容摘要和实际 `.tgz` 摘要。
 
 Electron 只把自己的壳放入 ASAR。DSH 闭包、bundled Node、pnpm 和 source patch 放在
 `resources/runtime/`。只有 Electron 主进程静态 import 的 host package 才能额外进入

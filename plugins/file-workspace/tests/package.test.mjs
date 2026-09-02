@@ -12,3 +12,13 @@ test('package exposes separate host/client entries and public-contract-only clie
   assert.match(client, /file-workspace/)
   assert.doesNotMatch(client, /dsh-web-frontend\/src|dsh-client-ui-layout\/src|private/i)
 })
+
+test('client CSS consumes DSH semantic theme tokens without a private palette', async () => {
+  const css = await readFile(new URL('../src/client/FileWorkspace.module.css', import.meta.url), 'utf8')
+  assert.match(css, /--dsw-alias-bg-base/u)
+  assert.match(css, /--dsw-alias-label-primary/u)
+  assert.match(css, /--dsw-alias-interactive-bg-active/u)
+  assert.doesNotMatch(css, /--fw-/u)
+  assert.doesNotMatch(css, /--dsw-alias-(surface|text|border-subtle|fill-active)/u)
+  assert.doesNotMatch(css, /(?:#[0-9a-f]{3,8}|rgba?\()/iu)
+})

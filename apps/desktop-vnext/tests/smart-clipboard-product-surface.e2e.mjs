@@ -55,7 +55,7 @@ async function qualifyStock(stockDsh, artifact, target) {
   try {
     await withBrowser(runtime.url, path.join(target, 'browser'), async (page) => {
       await openSidebar(page)
-      assert.equal(await page.getByRole('button', { name: '打开剪贴板历史' }).count(), 0)
+      assert.equal(await page.getByRole('button', { name: '剪贴板历史' }).count(), 0)
       await page.getByRole('button', { name: /^(Settings|设置)$/u }).last().click()
       const settings = page.getByRole('dialog', { name: /^(Settings|设置)$/u })
       await settings.waitFor({ timeout: 20_000 })
@@ -110,12 +110,22 @@ async function qualifyHermit(artifact, target) {
   try {
     await withBrowser(runtime.url, path.join(target, 'browser'), async (page) => {
       await openSidebar(page)
-      const navigation = page.getByRole('button', { name: '打开剪贴板历史' })
+      const navigation = page.getByRole('button', { name: '剪贴板历史' })
+      await page.locator('[data-hermit-product-navigation]').waitFor({ timeout: 20_000 })
       await navigation.waitFor({ timeout: 20_000 })
       await navigation.click()
       const frame = page.locator('[data-product-surface="smart-clipboard-history"]')
       await frame.waitFor({ timeout: 20_000 })
       await frame.locator('[data-smart-clipboard-history="unavailable"]').waitFor()
+      const newSession = page.getByRole('button', { name: '新建会话' }).first()
+      await newSession.waitFor({ timeout: 20_000 })
+      await newSession.click()
+      await page.locator('[data-primary-view="conversation"]').waitFor({ timeout: 20_000 })
+      await frame.waitFor({ state: 'detached', timeout: 20_000 })
+      assert.equal(await page.locator('[data-product-surface="smart-clipboard-history"]').count(), 0)
+
+      await navigation.click()
+      await page.locator('[data-product-surface="smart-clipboard-history"]').waitFor({ timeout: 20_000 })
       await frame.getByRole('button', { name: '返回对话' }).click()
       await page.locator('[data-product-surface="smart-clipboard-history"]').waitFor({ state: 'detached' })
     })

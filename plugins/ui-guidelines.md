@@ -29,8 +29,9 @@
 - 现在不创建空的 `packages/ui/`。先完成资格验证；首个包必须同时带来真实实现、公共契约
   和验证用例。
 
-Hermit Product Surface v1 已通过 Smart Clipboard 同制品双宿主资格，公开面限定为
-`product.surface` 和 `ctx.layout.openProductSurface/closeProductSurface`。DSH 基础组件
+Hermit Product Surface v1 已通过 Smart Clipboard 同制品双宿主资格，公开面包括
+`product.surface`、`ctx.layout.openProductSurface/closeProductSurface` 和
+Core-owned `Product Navigation v1`。DSH 基础组件
 allowlist 按能力逐项验证；Organizer 开工前已在 Reference Plugin 的 stock/Hermit
 同制品真实宿主资格中验证 `Button`、`Input`、`Menu`、`Tooltip`、`Toast`、
 `DisclosureRow` 和本轮使用的公开图标。这些不需要 Hermit 增加语义的稳定 public
@@ -63,8 +64,12 @@ Hermit bundled DSH 的 source patch 由底座/发布链负责，不由 Product P
 patch 暴露的能力先进入 DSH 公共 typed contract，经过资格验证后插件才能依赖；运行时
 仍禁止私有 Router、内部 store、DOM/CSS selector 和第二个 React root。
 
-一个插件最多贡献一个持久业务入口。当前 Product Surface v1 由 Hermit bundled DSH 的受控
-layout patch 提供，stock DSH 缺少契约时只保留兼容 fallback。插件内部视图放在自己的页面标题区、筛选区或内容区，
+一个插件最多贡献一个持久业务入口。入口只通过 layout 的
+`registerProductEntry({ id, label, icon, order })` 声明 metadata，入口 UI、active 状态和
+展开/收起表现由 Core-owned `Product Navigation v1` 统一渲染；插件不得直接注册
+`sidebar.footer.action` 作为产品入口。当前 Product Surface v1 和 Product Navigation v1
+由 Hermit bundled DSH 的受控 layout patch 提供，stock DSH 缺少契约时只保留兼容 fallback。
+插件内部视图放在自己的页面标题区、筛选区或内容区，
 不再创建一套完整侧边栏、标题栏、设置中心或聊天界面。Federated Search 和 Tray 由 Core
 统一承载；Quick Panel 在合同冻结前不能被插件依赖。
 

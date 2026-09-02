@@ -3,7 +3,7 @@
   "productName": "Hermit",
   "description": "Hermit desktop shell for a qualified bundled DeepSeek Harness generation",
   "author": "pgw10086",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "main": "lib/main.js",
@@ -32,10 +32,12 @@
     "qualification:mac-login:verify": "node scripts/qualify-mac-login.mjs verify",
     "test:m1:desktop:packaged": "node tests/m1-desktop-packaged.e2e.mjs",
     "test:m1:replay:packaged": "node tests/m1-replay-packaged.e2e.mjs",
+    "test:organizer:ai:replay": "node tests/organizer-ai-replay-packaged.e2e.mjs",
     "test:organizer:product-surface": "corepack pnpm --filter @hermit/organizer build && node tests/organizer-product-surface.e2e.mjs",
     "test:file-workspace:product-surface": "node tests/file-workspace-product-surface.e2e.mjs",
     "test:smart-clipboard:product-surface": "node tests/smart-clipboard-product-surface.e2e.mjs",
-    "test:smart-clipboard:packaged-ui": "node tests/smart-clipboard-packaged-ui.e2e.mjs"
+    "test:smart-clipboard:packaged-ui": "node tests/smart-clipboard-packaged-ui.e2e.mjs",
+    "test:conversation:quick:packaged": "node tests/conversation-quick-packaged.e2e.mjs"
   },
   "dependencies": {
     "@deepseek-ai/dsh": "0.1.1-rc.2",

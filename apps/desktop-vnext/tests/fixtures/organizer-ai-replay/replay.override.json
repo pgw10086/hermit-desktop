@@ -1,0 +1,62 @@
+[
+  {
+    "kind": "chunks",
+    "chunks": [
+      { "type": "block-start", "index": 0, "blockType": "tool-call" },
+      {
+        "type": "block-end",
+        "index": 0,
+        "block": {
+          "type": "tool-call",
+          "id": "call_organizer_list_today_1",
+          "name": "organizer_list_today",
+          "arguments": "{}"
+        }
+      },
+      { "type": "finish", "reason": { "kind": "tool-calls" } }
+    ]
+  },
+  {
+    "kind": "chunks",
+    "chunks": [
+      { "type": "block-start", "index": 0, "blockType": "text" },
+      { "type": "text-delta", "index": 0, "text": "今天没有过期待办、今日待办或今日事件。" },
+      {
+        "type": "block-end",
+        "index": 0,
+        "block": { "type": "text", "text": "今天没有过期待办、今日待办或今日事件。" }
+      },
+      { "type": "finish", "reason": { "kind": "stop" } }
+    ]
+  },
+  {
+    "kind": "chunks",
+    "chunks": [
+      { "type": "block-start", "index": 0, "blockType": "tool-call" },
+      {
+        "type": "block-end",
+        "index": 0,
+        "block": {
+          "type": "tool-call",
+          "id": "call_organizer_create_todo_1",
+          "name": "organizer_create_todo",
+          "arguments": "{\"title\":\"准备二期验收\",\"detail\":\"检查三个插件和 AI 闭环\",\"originalInput\":\"帮我记一个待办：准备二期验收，检查三个插件和 AI 闭环\"}"
+        }
+      },
+      { "type": "finish", "reason": { "kind": "tool-calls" } }
+    ]
+  },
+  {
+    "kind": "chunks",
+    "chunks": [
+      { "type": "block-start", "index": 0, "blockType": "text" },
+      { "type": "text-delta", "index": 0, "text": "已确认，刚才的待办已经记录。" },
+      {
+        "type": "block-end",
+        "index": 0,
+        "block": { "type": "text", "text": "已确认，刚才的待办已经记录。" }
+      },
+      { "type": "finish", "reason": { "kind": "stop" } }
+    ]
+  }
+]

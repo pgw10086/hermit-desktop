@@ -26,6 +26,10 @@ export function registerSmartClipboardIpc(options: {
   readonly mainWindow: BrowserWindow
   /** Quick Panel 窗口。 */
   readonly quickPanel: BrowserWindow
+  /** 通过 Desktop Surface Manager 关闭 Quick Panel，避免绕过生命周期保护。 */
+  readonly closeQuickPanel: () => Promise<void>
+  /** 通过 Desktop Surface Manager 重开 Quick Panel，确保 activate 看到 opening 状态。 */
+  readonly openQuickPanel: () => Promise<void>
   /** 调整 Quick Panel 布局的宿主能力。 */
   readonly quickPanelLayout: (input: SmartClipboardQuickPanelLayout) => { readonly placement: 'left' | 'right' }
 }): () => void {
@@ -49,11 +53,13 @@ export function registerSmartClipboardIpc(options: {
     if (request.op === 'settings') return options.service.settings()
     if (request.op === 'status') return options.service.status()
     if (request.op === 'execute') {
-      if (request.source === 'quick-panel') options.quickPanel.hide()
+      // 只有显式 paste 需要先让出 Quick Panel 的焦点；普通 copy 保持面板可见，
+      // 等系统剪贴板写入成功后由 Renderer 关闭，失败时用户还能继续处理。
+      const quickPaste = request.source === 'quick-panel' && request.action === 'paste'
+      if (quickPaste) await options.closeQuickPanel()
       const result = await options.service.execute(request.id, request.action)
-      if (request.source === 'quick-panel' && result.status === 'unavailable') {
-        options.quickPanel.show()
-        options.quickPanel.focus()
+      if (quickPaste && result.status === 'unavailable') {
+        await options.openQuickPanel()
       }
       if (request.source === 'quick-panel' && result.status === 'copy-only' && Notification.isSupported()) {
         new Notification({ title: 'Smart Clipboard', body: `已复制，请手工粘贴：${result.reason}` }).show()
@@ -82,13 +88,13 @@ export function registerSmartClipboardIpc(options: {
       return options.quickPanelLayout(request)
     }
     if (request.op === 'open-history') {
-      options.quickPanel.hide()
+      await options.closeQuickPanel()
       options.mainWindow.show()
       options.mainWindow.focus()
       options.mainWindow.webContents.send('hermit:smart-clipboard:open-history')
       return undefined
     }
-    if (request.op === 'close-quick-panel') { options.quickPanel.hide(); return undefined }
+    if (request.op === 'close-quick-panel') { await options.closeQuickPanel(); return undefined }
     const result = await dialog.showSaveDialog(options.mainWindow, {
       title: '导出剪贴板历史',
       defaultPath: 'smart-clipboard-export.zip',

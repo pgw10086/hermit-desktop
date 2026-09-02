@@ -235,7 +235,7 @@ function HistoryDetail({ entry, view, onBack, onAction, onTrash, onRestore, onPe
                 ? (
                   <>
                     <Button type="button" variant="outline" size="sm" icon={<IconCopyOutline16 size={16} />} onClick={() => onAction('copy')}>复制</Button>
-                    <Button type="button" variant="primary" size="sm" onClick={() => onAction('use')}>粘贴</Button>
+                    <Button type="button" variant="primary" size="sm" onClick={() => onAction('paste')}>粘贴</Button>
                     <Button type="button" variant="ghost" size="sm" icon={<IconTrashOutline16 size={16} />} onClick={onTrash}>删除</Button>
                   </>
                 )

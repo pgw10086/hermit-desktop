@@ -82,7 +82,8 @@ M1 桌面底座实现已经完成，并形成 macOS Apple Silicon 可运行候�
   -> 本机交互资格补证
 ```
 
-Quick Panel 及其全局快捷键不在这条开发顺序内，后续按独立模块重新做需求、边界和验收。
+Quick Panel 及其全局快捷键不在这条 M1 开发顺序内；当前独立模块 spec 已形成，后续按
+Desktop Surface 的独立开发、打包和验收顺序推进。
 仓库中的现有实验页面不作为 M1 完成证据。
 
 ## 7. M1 退出和发行条件
@@ -118,4 +119,5 @@ M1 实现完成后才开始三个业务插件的第一条 vertical slice。File 
   读写、正常 startup observation 和统一退出顺序已通过；
 - macOS 真实 Tray 菜单点击已通过，跨注销资格 journal、官方 `wasOpenedAtLogin` 判据和原状态
   恢复均已通过，`M1_LOCAL_QUALIFIED = PASS`；签名、公证、Gatekeeper 和真实关机/重启仍
-  作为独立证据记录，不反向改变 M1 结论。Windows 和 Quick Panel 不属于当前 M1。
+ 作为独立证据记录，不反向改变 M1 结论。Windows 和 Quick Panel 不属于当前 M1，Quick Panel
+另见 [Desktop Surface 与 Quick Panel spec](desktop-surface-quick-panel.md)。

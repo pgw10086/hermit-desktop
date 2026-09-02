@@ -13,6 +13,11 @@ import {
   validateProductSurfacePatch,
   validateRuntimeClosure,
 } from "../scripts/after-pack.mjs";
+import {
+  foregroundSessionNavigationPatch,
+  installForegroundSessionNavigationPatch,
+  validateForegroundSessionNavigationPatch,
+} from "../scripts/dsh-foreground-session-navigation-patch.mjs";
 
 test("macOS Clipboard bridge dependency gate ignores the inspected file header and only accepts system libraries", () => {
   assert.doesNotThrow(() => validateMacosDynamicDependencies(`/Users/developer/project/bridge.node:
@@ -97,7 +102,7 @@ test("afterPack 拒绝把主机 runtime 塞进其他平台产物", () => {
   );
 });
 
-test("Product Surface gate validates the pinned patch and client digest", () => {
+test("Hermit layout and Desktop Surface gate validates the pinned patch and client digest", () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "hermit-product-surface-"));
   try {
     const layout = path.join(root, "node_modules", "@deepseek-ai", "dsh-client-ui-layout");
@@ -112,13 +117,13 @@ test("Product Surface gate validates the pinned patch and client digest", () => 
       name: "@deepseek-ai/dsh-client-ui-layout",
       version: "0.1.1-rc.2",
       hermitPatch: {
-        contractVersion: 1,
-        name: "product-surface",
+        contractVersion: 6,
+        name: "product-navigation-shortcut-center-desktop-surface-and-primary-workspace",
         upstreamTag: "dsh-v0.1.1-rc.2",
         upstreamCommit: "b150a551b8d465e31e418e1b2eaf5e79bbb7d28e",
       },
     }));
-    fs.writeFileSync(path.join(layout, "lib", "client.js"), "product.surface openProductSurface\n");
+    fs.writeFileSync(path.join(layout, "lib", "client.js"), "product.surface openProductSurface registerProductEntry shortcut-center getDesktopSurfaceClient getDesktopDeadlineClient getDesktopNotificationClient\n");
     fs.writeFileSync(path.join(stockLayout, "package.json"), JSON.stringify({
       name: "@deepseek-ai/dsh-client-ui-layout",
       version: "0.1.1-rc.2",
@@ -128,8 +133,102 @@ test("Product Surface gate validates the pinned patch and client digest", () => 
     installProductSurfacePatch(root);
     const result = validateProductSurfacePatch(root);
     assert.equal(result.packageVersion, "0.1.1-rc.2");
-    assert.equal(result.contractVersion, 1);
+    assert.equal(result.contractVersion, 6);
     assert.equal(result.clientSha256.length, 64);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("DSH foreground navigation patches are precise and idempotent", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "hermit-foreground-navigation-"));
+  try {
+    const workspace = path.join(
+      root,
+      "node_modules",
+      "@deepseek-ai",
+      "dsh-client-ui-workspace",
+    );
+    fs.mkdirSync(path.join(workspace, "lib"), { recursive: true });
+    fs.writeFileSync(path.join(workspace, "package.json"), JSON.stringify({
+      name: "@deepseek-ai/dsh-client-ui-workspace",
+      version: "0.1.1-rc.2",
+    }));
+    fs.writeFileSync(path.join(workspace, "lib", "client.js"), [
+      "const browserInjected = () => ({",
+      "  startSession: (workspaceId) => {",
+      "    ctx.workspaces.startSession(workspaceId);",
+      "  },",
+      "  open: (sessionId) => {",
+      "    ctx.sessions.open(sessionId);",
+      "  },",
+      "  forkSession: (sessionId) => {",
+      "    ctx.sessions.fork({ sessionId }).then((childId) => {",
+      "      ctx.sessions.open(childId);",
+      "    });",
+      "  },",
+      "});",
+      "",
+    ].join("\n"));
+    const sidebar = path.join(
+      root,
+      "node_modules",
+      "@deepseek-ai",
+      "dsh-client-ui-sidebar",
+    );
+    fs.mkdirSync(path.join(sidebar, "lib"), { recursive: true });
+    fs.writeFileSync(path.join(sidebar, "package.json"), JSON.stringify({
+      name: "@deepseek-ai/dsh-client-ui-sidebar",
+      version: "0.1.1-rc.2",
+    }));
+    fs.writeFileSync(path.join(sidebar, "lib", "client.js"), [
+      "const sidebarInjected = {",
+      "  startSession: (workspaceId) => {",
+      "    ctx.workspaces.startSession(workspaceId);",
+      "  },",
+      "};",
+      "",
+    ].join("\n"));
+
+    const first = installForegroundSessionNavigationPatch(root);
+    const second = installForegroundSessionNavigationPatch(root);
+    const workspaceClient = fs.readFileSync(path.join(workspace, "lib", "client.js"), "utf8");
+    const sidebarClient = fs.readFileSync(path.join(sidebar, "lib", "client.js"), "utf8");
+    assert.deepEqual(first, second);
+    assert.deepEqual(
+      {
+        ...first,
+        packages: first.packages.map(({ clientSha256: _clientSha256, ...entry }) => entry),
+      },
+      foregroundSessionNavigationPatch,
+    );
+    assert.equal(workspaceClient.split('ctx.get("layout")?.closeProductSurface();').length - 1, 3);
+    assert.equal(sidebarClient.split('ctx.get("layout")?.closeProductSurface();').length - 1, 1);
+    assert.equal(validateForegroundSessionNavigationPatch(root).packages.every((entry) => entry.clientSha256.length === 64), true);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("DSH Workspace foreground navigation patch rejects a stale source anchor", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "hermit-foreground-navigation-stale-"));
+  try {
+    const workspace = path.join(
+      root,
+      "node_modules",
+      "@deepseek-ai",
+      "dsh-client-ui-workspace",
+    );
+    fs.mkdirSync(path.join(workspace, "lib"), { recursive: true });
+    fs.writeFileSync(path.join(workspace, "package.json"), JSON.stringify({
+      name: "@deepseek-ai/dsh-client-ui-workspace",
+      version: "0.1.1-rc.2",
+    }));
+    fs.writeFileSync(path.join(workspace, "lib", "client.js"), "const stale = true;\n");
+    assert.throws(
+      () => installForegroundSessionNavigationPatch(root),
+      /patch anchor must match once/u,
+    );
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }

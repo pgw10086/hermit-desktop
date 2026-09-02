@@ -6,6 +6,7 @@ const scriptDirectory = path.dirname(fileURLToPath(import.meta.url))
 const appRoot = path.resolve(scriptDirectory, '..')
 const assets = [
   ['src/desktop/smart-clipboard-preload.cjs', 'lib/desktop/smart-clipboard-preload.cjs'],
+  ['src/desktop/conversation-quick-preload.cjs', 'lib/desktop/conversation-quick-preload.cjs'],
   ['src/quick-retrieval/index.html', 'lib/quick-retrieval/index.html'],
 ]
 

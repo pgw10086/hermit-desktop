@@ -3,6 +3,7 @@ import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { createRequire } from "node:module";
 import path from "node:path";
+import { validateForegroundSessionNavigationPatch } from "./dsh-foreground-session-navigation-patch.mjs";
 import { BUNDLED_GENERATION_ID, bundledGenerationRoot } from "./runtime-paths.mjs";
 
 /** 返回受管 DSH runtime 的构建输入目录，避免打包脚本读取未声明路径。 */
@@ -146,7 +147,7 @@ export function validateRuntimeClosure(runtimeRoot, { allowLinks = false } = {})
   return { entry, pnpmEntry };
 }
 
-/** 校验所有 DSH consumer 解析到同一份 Product Surface patch 制品。 */
+/** 校验所有 DSH consumer 解析到同一份 Hermit layout patch 制品。 */
 export function validateProductSurfacePatch(runtimeRoot) {
   const nodeModules = path.join(path.resolve(runtimeRoot), "node_modules");
   const layoutManifestPath = path.join(
@@ -277,18 +278,26 @@ function readProductSurfacePatch(layoutManifestPath) {
   const patch = manifest.hermitPatch;
   if (
     manifest.version !== "0.1.1-rc.2" ||
-    patch?.contractVersion !== 1 ||
-    patch?.name !== "product-surface" ||
+    patch?.contractVersion !== 6 ||
+    patch?.name !== "product-navigation-shortcut-center-desktop-surface-and-primary-workspace" ||
     patch?.upstreamTag !== "dsh-v0.1.1-rc.2" ||
     patch?.upstreamCommit !== "b150a551b8d465e31e418e1b2eaf5e79bbb7d28e"
   ) {
-    throw new Error("Bundled DSH layout does not carry the approved Hermit Product Surface patch");
+    throw new Error("Bundled DSH layout does not carry the approved Hermit layout and Desktop Surface patch");
   }
   const clientPath = path.join(path.dirname(layoutManifestPath), "lib", "client.js");
   const client = fs.readFileSync(clientPath);
   const clientText = client.toString("utf8");
-  if (!clientText.includes("product.surface") || !clientText.includes("openProductSurface")) {
-    throw new Error("Hermit Product Surface client bundle is stale or incomplete");
+  if (
+    !clientText.includes("product.surface") ||
+    !clientText.includes("openProductSurface") ||
+    !clientText.includes("registerProductEntry") ||
+    !clientText.includes("shortcut-center") ||
+    !clientText.includes("getDesktopSurfaceClient") ||
+    !clientText.includes("getDesktopDeadlineClient") ||
+    !clientText.includes("getDesktopNotificationClient")
+  ) {
+    throw new Error("Hermit layout and Desktop Surface client bundle is stale or incomplete");
   }
   return {
     packageVersion: manifest.version,
@@ -401,8 +410,15 @@ export default async function afterPack(context) {
   const dshRuntimeManifest = JSON.parse(
     fs.readFileSync(path.join(target, "hermit-runtime.json"), "utf8"),
   );
+  const foregroundSessionNavigationPatch = validateForegroundSessionNavigationPatch(target);
   if (JSON.stringify(dshRuntimeManifest.productSurfacePatch) !== JSON.stringify(productSurfacePatch)) {
     throw new Error("Packaged Product Surface patch does not match the prepared runtime manifest");
+  }
+  if (
+    JSON.stringify(dshRuntimeManifest.foregroundSessionNavigationPatch) !==
+    JSON.stringify(foregroundSessionNavigationPatch)
+  ) {
+    throw new Error("Packaged foreground session navigation patch does not match the prepared runtime manifest");
   }
   if (
     dshRuntimeManifest.dshUpstream === undefined ||
@@ -421,6 +437,7 @@ export default async function afterPack(context) {
       dshVersion: dshManifest.version,
       dshUpstream: dshRuntimeManifest.dshUpstream,
       productSurfacePatch,
+      foregroundSessionNavigationPatch,
       ...(macosClipboardBridge === undefined ? {} : { macosClipboardBridge }),
       dataEpoch: 1,
     }, null, 2)}\n`,

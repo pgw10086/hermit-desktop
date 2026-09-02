@@ -199,6 +199,11 @@
     gap: 5px;
   }
 
+  .shortcutSetting {
+    grid-template-columns: 1fr;
+    padding-left: 32px;
+  }
+
   .inlineActions {
     align-items: flex-start;
     flex-direction: column;

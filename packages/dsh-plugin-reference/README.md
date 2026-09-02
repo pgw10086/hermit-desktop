@@ -3,11 +3,13 @@
 状态：`current`
 
 `@hermit/dsh-plugin-reference` 是 Hermit 的 DSH 公共接入资格包。它用一个最小制品验证
-DSH `0.1.1-rc.2` 的 Bundle、Host、Client、Settings、Tool、React 单实例和插件生命周期，
+DSH `0.1.1-rc.2` 的 Bundle、Host、Client、Settings、Tool、Product Navigation、Product
+Surface、React 单实例和插件生命周期，
 作为第一方 Product Plugin 开发前的可执行参考。
 
-它不是 Organizer、File Workspace、Smart Clipboard 之外的第四个 Product Plugin，不承载
-用户业务，也不定义 Product Surface。包内只读状态路由只用于把同一资格制品的 Host 和
+它不是 Organizer、File Workspace、Smart Clipboard 之外的第四个业务 Product Plugin，不承载
+用户业务。它包含一个只用于资格验证的最小 Product Surface，仅在 Hermit patched DSH 上显示；
+stock DSH 仍只验证 Settings 和 Tool。包内只读状态路由只用于把同一资格制品的 Host 和
 Client 结果关联起来，不能复制为业务 RPC；正式业务调用仍必须经过 Core 或 DSH 公共契约。
 
 ## 公共接入面
@@ -16,7 +18,7 @@ Client 结果关联起来，不能复制为业务 RPC；正式业务调用仍必
 | --- | --- | --- |
 | Bundle | [`package.json`](package.json) 与 [`cordis.patch.yml`](cordis.patch.yml) | 安装后由官方 profile bundle 激活 |
 | Host | [`src/index.ts`](src/index.ts) | 注册 settings namespace、Tool 和可回收资格路由 |
-| Client | [`src/client/index.tsx`](src/client/index.tsx) | 通过公开 `./client` export 和 typed slot 增加 Settings tab，验证 Organizer 首批所需 DSH public primitives |
+| Client | [`src/client/index.tsx`](src/client/index.tsx) | 通过公开 `./client` export 和 typed slot 增加 Settings tab；在可选 Hermit layout contract 存在时注册最小 Product Surface |
 | 构建 | [`tsdown.config.ts`](tsdown.config.ts) | 生成 DSH lazy-CJS Client bundle，并把 React 和 DSH UI runtime 留给 Host |
 | 静态门禁 | [`tests/package.test.mjs`](tests/package.test.mjs) | 拒绝私有源码导入、DOM 注入和第二份 React |
 | 双端资格 | [`tests/reference-plugin.e2e.mjs`](tests/reference-plugin.e2e.mjs) | 同一 tarball 在 stock DSH 与 Hermit bundled DSH 上完成真实生命周期 |
@@ -43,6 +45,9 @@ Hermit bundled DSH 验证：
 6. 从 profile bundle 移除后重启 DSH，Client entry 和资格路由都消失；
 7. 官方 `dsh plugin remove` 清除 package 和 bundle entry。
 
+Hermit bundled DSH 额外验证：Product Navigation 入口出现、打开最小 Product Surface、通过公开
+关闭动作回到 Conversation；stock DSH 不出现该入口，不把 Hermit patch 当成官方能力。
+
 `Tooltip` 当前只验证原生 DOM ref 锚点；DSH public `Button` 不转发 ref，
 两者不得直接组合。`Menu` 在 Settings Modal 中的 Escape 会联动关闭
 父层，Product Plugin 只能在另外通过资格的 Product Surface 用法内依赖 Escape。
@@ -53,11 +58,10 @@ Hermit bundled DSH 验证：
 
 ## 边界
 
-本包已证明 rc.2 的 Settings contribution 可以作为 Client/UI 兼容性探针，但没有证明
-日常业务页面所需的公开 Product Surface 已存在。当前包默认验证 stock `0.1.1-rc.2`；若
-Hermit 采用 source-patched DSH generation，必须把该 generation 作为单独资格目标，证明
-patch 暴露的公开 contract，而不是把 Settings、私有 Router、DSH DOM 或 CSS selector 当成
-业务入口。Product Plugin 的静态私有依赖红线不因 source patch 放宽。
+本包已证明 rc.2 的 Settings contribution 可以作为 Client/UI 兼容性探针，并用独立的
+Hermit bundled DSH 资格证明 Product Navigation/Product Surface 公共 contract。当前包默认
+同时验证 stock `0.1.1-rc.2` 和 Hermit patched generation；不能把 Settings、私有 Router、
+DSH DOM 或 CSS selector 当成业务入口。Product Plugin 的静态私有依赖红线不因 source patch 放宽。
 
 当前资格也不把外部 Client 插件的进程内热卸载视为已验证能力。插件安装、激活或停用后
 按当前产品边界重启 DSH；若未来要承诺无重启切换，必须单独验证 Host 与 Client 的同代

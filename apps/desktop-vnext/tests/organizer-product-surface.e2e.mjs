@@ -54,7 +54,7 @@ async function qualifyStock(dshEntry, artifact, target) {
   try {
     await withBrowser(runtime.url, path.join(target, 'browser'), async (page) => {
       await openSidebar(page)
-      assert.equal(await page.getByRole('button', { name: '打开个人事项' }).count(), 0)
+      assert.equal(await page.getByRole('button', { name: '个人事项' }).count(), 0)
     })
   } finally {
     await stopProcess(runtime.child)
@@ -127,7 +127,7 @@ async function qualifyHermit(artifact, target) {
 
 async function openOrganizer(page) {
   await openSidebar(page)
-  const navigation = page.getByRole('button', { name: '打开个人事项' })
+  const navigation = page.getByRole('button', { name: '个人事项' })
   await navigation.waitFor({ timeout: 20_000 })
   await navigation.click()
   await page.locator('[data-organizer-surface="ready"]').waitFor({ timeout: 20_000 })

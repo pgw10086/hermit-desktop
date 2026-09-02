@@ -59,12 +59,12 @@ app.on('window-all-closed', () => app.quit())
     await search.press('ArrowDown')
     await page.getByRole('img', { name: '图片预览' }).waitFor()
     await search.press('Shift+Enter')
-    await page.getByText('纯文本使用只支持文本记录', { exact: true }).waitFor()
+    await page.getByText('纯文本复制只支持文本记录', { exact: true }).waitFor()
     assert.deepEqual(await page.evaluate(() => window.hermitQuickRetrievalTest.state().actions), [])
 
     await search.press('Enter')
     assert.deepEqual(await page.evaluate(() => window.hermitQuickRetrievalTest.state().actions.at(-1)), {
-      id: 'image-review', action: 'use', source: 'quick-panel',
+      id: 'image-review', action: 'copy', source: 'quick-panel',
     })
     await search.press('ArrowDown')
     await page.getByText('obsolete.txt', { exact: true }).waitFor()
@@ -75,14 +75,28 @@ app.on('window-all-closed', () => app.quit())
     await search.press('Shift+Enter')
     const actions = await page.evaluate(() => window.hermitQuickRetrievalTest.state().actions)
     assert.deepEqual(actions.slice(-2), [
-      { id: 'text-release', action: 'copy', source: 'quick-panel' },
+      { id: 'text-release', action: 'paste', source: 'quick-panel' },
       { id: 'text-release', action: 'plain-text', source: 'quick-panel' },
+    ])
+
+    await search.fill('')
+    const actionCountBeforePointer = (await page.evaluate(() => window.hermitQuickRetrievalTest.state().actions)).length
+    await page.getByRole('option').nth(1).click({ button: 'right' })
+    await page.getByRole('img', { name: '图片预览' }).waitFor()
+    assert.equal((await page.evaluate(() => window.hermitQuickRetrievalTest.state().actions)).length, actionCountBeforePointer)
+
+    await page.getByRole('option').nth(2).click()
+    await page.getByRole('option').nth(0).click({ modifiers: ['Alt'] })
+    const pointerActions = await page.evaluate(() => window.hermitQuickRetrievalTest.state().actions)
+    assert.deepEqual(pointerActions.slice(-2), [
+      { id: 'files-plan', action: 'copy', source: 'quick-panel' },
+      { id: 'text-release', action: 'paste', source: 'quick-panel' },
     ])
 
     await page.getByRole('button', { name: '完整历史 ›' }).click()
     await search.press('Escape')
     assert.deepEqual(await page.evaluate(() => window.hermitQuickRetrievalTest.state()), {
-      actions,
+      actions: pointerActions,
       closeCount: 1,
       openHistoryCount: 1,
     })

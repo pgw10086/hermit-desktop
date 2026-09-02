@@ -16,14 +16,16 @@ Tool/Approval、插件双端、Electron main 强杀清理、预置 generation �
 Tray/登录项读写/正常退出证据已通过；Hermit 自有图标和第三方 attribution 已进入产物。
 最近一次启动状态会原子记录启动原因和 DSH ready；跨注销资格脚本只在明确授权后注册登录项，
 不会自行安装或删除应用，也不会触发注销。
-Windows 留到后续平台阶段；通用 AI Quick Panel 仍留待独立模块设计，Smart Clipboard
+Windows 留到后续平台阶段；通用 AI Quick Panel 已完成独立模块 spec，首条 `conversation.quick`
+和 Smart Clipboard 窗口迁移已经落地并通过 macOS packaged 验收，Smart Clipboard
 M1/M2 已形成 macOS 候选，包含插件专属快捷取回、完整 History、SQLite/FTS5 和
 主进程专用 Objective-C++ native bridge。无人值守测试没有读取或改写用户 General
 Pasteboard；真实复制/自动粘贴/物理快捷键仍待 disposable 资格。签名、公证和 staple 是
 完整发布流程中的可选步骤，执行或跳过都必须明确记录，不能由本机证书状态自动决定。
 产品范围见[核心需求](specs/2026-08-24-hermit-dsh-vnext/core-requirements.md)，M1
 入口见[项目启动准备](specs/2026-08-24-hermit-dsh-vnext/start-readiness.md)和
-[M1 设计](specs/2026-08-24-hermit-dsh-vnext/m1-foundation-qualification.md)。
+[M1 设计](specs/2026-08-24-hermit-dsh-vnext/m1-foundation-qualification.md)。二期路线见
+[二期总方向](specs/2026-08-24-hermit-dsh-vnext/phase-2-roadmap.md)。
 
 ## 文档入口
 
@@ -31,10 +33,12 @@ Pasteboard；真实复制/自动粘贴/物理快捷键仍待 disposable 资格�
 - [文档权威索引](docs/document-authority.yaml)：某类事实应该查哪份文档；
 - [系统边界](docs/architecture/system-boundaries.md)：Electron、DSH、插件的当前职责；
 - [Desktop Core 开发规范](docs/development/desktop-core-development.md)：桌面能力边界、desktop API 和生命周期；
+- [Product Plugin 最小接入](docs/development/product-plugin-quickstart.md)：新插件的唯一 `Start Here` 入口和当前 Core 能力一览；
 - [Product Plugin 开发规范](plugins/development-guidelines.md)：三个第一方插件共同遵循的开发方式；
 - [Product Plugin 入口](plugins/README.md)：三个插件的设计、开发和文档导航；
 - [DSH 集成契约](docs/contracts/dsh-integration.md)：启动、loopback、renderer 和恢复；
 - [核心需求](specs/2026-08-24-hermit-dsh-vnext/core-requirements.md)：产品能力和用户闭环；
+- [Desktop Surface 与 Quick Panel spec](specs/2026-08-24-hermit-dsh-vnext/desktop-surface-quick-panel.md)：Quick Panel、对话小窗口和剪贴板窗口迁移；
 - [M1 设计](specs/2026-08-24-hermit-dsh-vnext/m1-foundation-qualification.md)：M1 阶段、gate 和退出条件；
 - [仓库布局](docs/repository-layout.md)：目录所有权和生命周期；
 - [DSH 官方上游资料](DEEPSEEK-HARNESS-UPSTREAM.md)：当前 DSH 文档快照、版本和更新规则；
@@ -68,6 +72,7 @@ corepack pnpm test:m1:desktop:packaged
 corepack pnpm test:m1:replay:packaged
 corepack pnpm test:smart-clipboard:product-surface
 corepack pnpm test:smart-clipboard:packaged-ui
+corepack pnpm --filter @hermit/desktop test:conversation:quick:packaged
 corepack pnpm test:smart-clipboard:native
 corepack pnpm qualification:desktop:mac-login:status
 ```

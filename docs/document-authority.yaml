@@ -15,6 +15,14 @@ topics:
     authority: specs/2026-08-24-hermit-dsh-vnext/m1-foundation-qualification.md
   start-readiness:
     authority: specs/2026-08-24-hermit-dsh-vnext/start-readiness.md
+  phase-2-roadmap:
+    authority: specs/2026-08-24-hermit-dsh-vnext/phase-2-roadmap.md
+  desktop-surface-quick-panel:
+    authority: specs/2026-08-24-hermit-dsh-vnext/desktop-surface-quick-panel.md
+  desktop-shortcut-center:
+    authority: specs/2026-08-24-hermit-dsh-vnext/desktop-shortcut-center.md
+  product-plugin-quickstart:
+    authority: docs/development/product-plugin-quickstart.md
   frontend-ui-design:
     authority: docs/development/frontend-ui-design.md
   product-plugin-development:
