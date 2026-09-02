@@ -1,6 +1,6 @@
 {
   "name": "@hermit/file-workspace",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Hermit File Workspace managed files and Markdown Product Surface",
   "private": true,
   "type": "module",

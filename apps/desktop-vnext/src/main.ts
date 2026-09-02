@@ -92,14 +92,14 @@ function configurePackagedTestUserData(): void {
   app.setPath("userData", path.join(app.getPath("appData"), "Hermit Test"));
 }
 
-/** 仅允许目录测试包加载 Playwright 的主进程握手，不让正式包携带测试入口。 */
+/** 仅允许目录测试包或显式资格进程加载 Playwright 的主进程握手。 */
 function loadPackagedTestHarness(): void {
   const loaderPath = process.env.HERMIT_PLAYWRIGHT_LOADER;
   if (!app.isPackaged || loaderPath === undefined) return;
   const manifest = JSON.parse(fs.readFileSync(path.join(app.getAppPath(), "package.json"), "utf8")) as {
     readonly hermitBuildVariant?: unknown;
   };
-  if (manifest.hermitBuildVariant !== "test") {
+  if (manifest.hermitBuildVariant !== "test" && process.env.HERMIT_PACKAGED_QUALIFICATION !== "1") {
     throw new Error("Playwright test harness requires the Hermit test build variant");
   }
   createRequire(import.meta.url)(loaderPath);

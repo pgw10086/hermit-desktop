@@ -137,7 +137,11 @@ function verifyApplication(applicationPath, verificationMode) {
   run(
     process.execPath,
     [path.join(appRoot, "tests", "m1-desktop-packaged.e2e.mjs")],
-    { ...process.env, HERMIT_PACKAGED_EXECUTABLE: executable },
+    {
+      ...process.env,
+      HERMIT_PACKAGED_EXECUTABLE: executable,
+      HERMIT_PACKAGED_QUALIFICATION: "1",
+    },
   );
 
   if (verificationMode === "release" && signingMode === "required") {
