@@ -3,7 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { createEvidenceSink } from "../lib/desktop/evidence.js";
+import { createEvidenceSink } from "@hermit/desktop-core";
 import {
   createTrayMenuTemplate,
   loginItemLabel,

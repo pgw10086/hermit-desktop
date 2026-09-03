@@ -35,7 +35,9 @@ Hermit 只在这里增加自己的规则：
 - runtime generation 和插件制品摘要。
 
 不能只改 package 版本号而跳过资格验证，也不能让文档快照、runtime 和打包制品各自跟不同的
-上游版本前进。新 DSH 先作为 candidate 快照，差异和资格通过后再同时切换。
+上游版本前进。新 DSH 先作为对应 Product Desktop 的 candidate 快照，差异和资格通过后再
+切换该产品；不要求另一个产品同步升级。新产品拥有自己的等价 manifest，不直接复用 Hermit
+的 runtime 清单或 layout patch。
 
 ## 插件角色与接入
 
@@ -64,7 +66,8 @@ bundled DSH 安装、运行和验收同一份 `.tgz`，不能为两个宿主维�
 
 ## Hermit runtime 闭包
 
-`apps/desktop-vnext/runtime-bundle-manifest.json` 是 Hermit runtime 输入清单，负责声明：
+`apps/desktop-vnext/runtime-bundle-manifest.json` 是 Hermit Desktop 的 runtime 输入清单，
+负责声明：
 
 - Product Surface patch package；
 - 随包第一方插件的源码位置和构建产物路径；

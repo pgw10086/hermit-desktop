@@ -1,0 +1,11 @@
+{
+  "name": "@hermit/dsh-runtime-host",
+  "version": "0.2.2",
+  "description": "Hermit deployment root for the isolated DSH runtime closure",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@deepseek-ai/dsh": "0.1.1-rc.2",
+    "pnpm": ">=11.0.0 <12"
+  }
+}

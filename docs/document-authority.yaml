@@ -29,6 +29,8 @@ topics:
     authority: plugins/development-guidelines.md
   desktop-core-development:
     authority: docs/development/desktop-core-development.md
+  multi-product-repository-split:
+    authority: specs/2026-09-03-product-variant-platform-split.md
   dsh-plugin-development-and-packaging:
     authority: docs/development/dsh-plugin-development-and-packaging.md
   macos-release:
@@ -37,12 +39,6 @@ topics:
     authority: DEEPSEEK-HARNESS-UPSTREAM.md
   product-plugin-ui:
     authority: plugins/ui-guidelines.md
-  organizer-design:
-    authority: plugins/organizer/DESIGN.md
-  file-workspace-design:
-    authority: plugins/file-workspace/DESIGN.md
-  smart-clipboard-design:
-    authority: plugins/smart-clipboard/DESIGN.md
 
 superseded:
   docs/adr/0001-zero-tcp-desktop-carrier.md:

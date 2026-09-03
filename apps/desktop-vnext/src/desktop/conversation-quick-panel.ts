@@ -1,5 +1,4 @@
-import type { DesktopSurfaceHostDefinition } from '../core/desktop-surface-manager.js'
-import type { DesktopSurfaceDefinition, DesktopSurfaceOpenOptions } from '../core/desktop-surface-contract.js'
+import type { DesktopSurfaceHostDefinition, DesktopSurfaceDefinition, DesktopSurfaceOpenOptions } from '@hermit/desktop-core'
 import { screen, type BrowserWindow } from 'electron'
 import { fileURLToPath } from 'node:url'
 import type { NavigationActions } from './window-policy.js'

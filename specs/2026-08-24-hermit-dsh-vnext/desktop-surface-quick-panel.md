@@ -22,7 +22,7 @@ Quick Conversation 烟测。macOS 代码签名因本机没有 Developer ID 而�
   通用规则和生命周期；
 - [Product Plugin 最小接入](../../docs/development/product-plugin-quickstart.md)：插件如何识别
   和使用公开能力；
-- [Smart Clipboard 设计](../../plugins/smart-clipboard/DESIGN.md)：剪贴板业务规则和快速取回体验。
+- `plugin-smart-clipboard` sibling 仓库中的 `DESIGN.md`：剪贴板业务规则和快速取回体验。
 
 ## 1. 变更结论
 

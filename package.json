@@ -1,5 +1,5 @@
 {
-  "name": "@hermit-vnext/workspace",
+  "name": "@hermit/desktop-workspace",
   "version": "0.0.0-private",
   "private": true,
   "type": "module",
@@ -25,6 +25,7 @@
     "qualification:desktop:mac-login:verify": "corepack pnpm --filter @hermit/desktop qualification:mac-login:verify",
     "test:m1:desktop:packaged": "corepack pnpm --filter @hermit/desktop test:m1:desktop:packaged",
     "test:m1:replay:packaged": "corepack pnpm --filter @hermit/desktop test:m1:replay:packaged",
+    "test:dsh:long-session": "corepack pnpm --filter @hermit/desktop test:dsh:long-session",
     "test:file-workspace:product-surface": "corepack pnpm --filter @hermit/desktop test:file-workspace:product-surface",
     "test:organizer:product-surface": "corepack pnpm --filter @hermit/desktop test:organizer:product-surface",
     "test:smart-clipboard:product-surface": "corepack pnpm --filter @hermit/desktop test:smart-clipboard:product-surface",

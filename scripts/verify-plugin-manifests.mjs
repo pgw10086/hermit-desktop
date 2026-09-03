@@ -3,7 +3,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
-const pluginsRoot = path.join(root, 'plugins')
+const runtimeManifestPath = path.join(root, 'apps', 'desktop-vnext', 'runtime-bundle-manifest.json')
 const knownDesktopCapabilities = new Set([
   'system-clipboard',
   'global-shortcut',
@@ -13,10 +13,14 @@ const knownDesktopCapabilities = new Set([
 ])
 const failures = []
 
-for (const entry of fs.readdirSync(pluginsRoot, { withFileTypes: true })) {
-  if (!entry.isDirectory()) continue
-  const packagePath = path.join(pluginsRoot, entry.name, 'package.json')
-  if (!fs.existsSync(packagePath)) continue
+const runtimeManifest = JSON.parse(fs.readFileSync(runtimeManifestPath, 'utf8'))
+for (const spec of runtimeManifest.bundledPackages ?? []) {
+  const packageRoot = path.resolve(root, spec.source)
+  const packagePath = path.join(packageRoot, 'package.json')
+  if (!packageRoot.startsWith(`${root}${path.sep}`) || !fs.existsSync(packagePath)) {
+    failures.push(`${String(spec.packageName)}: runtime 清单指向缺失或越界的插件制品`)
+    continue
+  }
   const relative = path.relative(root, packagePath)
   let manifest
   try {
@@ -27,6 +31,9 @@ for (const entry of fs.readdirSync(pluginsRoot, { withFileTypes: true })) {
   }
   if (manifest.hermit?.type !== 'product-plugin') {
     failures.push(`${relative}: 缺少 hermit.type=product-plugin`)
+  }
+  if (manifest.name !== spec.packageName) {
+    failures.push(`${relative}: package name 与 runtime 清单不一致`)
   }
   const capabilities = manifest.hermit?.desktop?.capabilities
   if (capabilities === undefined) continue

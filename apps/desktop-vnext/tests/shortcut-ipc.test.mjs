@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { registerDesktopShortcutIpc } from '../lib/core/shortcut-ipc.js'
+import { registerDesktopShortcutIpc } from '@hermit/desktop-core'
 
 test('快捷键 IPC 只允许 DSH 主窗口读取和修改 Core 目录', async () => {
   const calls = []

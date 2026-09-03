@@ -1,7 +1,6 @@
 import { BrowserWindow, screen } from 'electron'
 import { fileURLToPath } from 'node:url'
-import type { DesktopSurfaceHostDefinition } from '../core/desktop-surface-manager.js'
-import type { DesktopSurfaceDefinition } from '../core/desktop-surface-contract.js'
+import type { DesktopSurfaceHostDefinition, DesktopSurfaceDefinition } from '@hermit/desktop-core'
 import type { NavigationActions } from './window-policy.js'
 import { installNavigationPolicy } from './window-policy.js'
 import { hardenedWebPreferences } from './window-options.js'

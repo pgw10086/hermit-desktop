@@ -3,7 +3,7 @@
 日期：2026-08-28
 
 状态：调研结论，不是产品规范或当前实现。Smart Clipboard 的产品事实仍以
-[`plugins/smart-clipboard/DESIGN.md`](../../plugins/smart-clipboard/DESIGN.md) 为唯一权威来源；
+`plugin-smart-clipboard` sibling 仓库中的 `DESIGN.md` 为唯一权威来源；
 开发前 Gate 以
 [`2026-08-28-smart-clipboard-pre-development.md`](2026-08-28-smart-clipboard-pre-development.md)
 为准。本文件没有修改任何插件 `DESIGN.md`。

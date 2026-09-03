@@ -7,6 +7,22 @@ Electron 与 DSH Web/Runtime 对接时双方必须遵守的具体规则。stock 
 bundled DSH 可以在同一 pinned generation 上携带经过审计的最小 source patch，但插件仍
 只能消费 patch 暴露的公开 typed contract。
 
+## 多产品 runtime 边界
+
+`desktop-core` 只提供桌面平台能力和 DSH 进程监管，不拥有 DSH Web/Layout、DSH 版本选择或
+任何产品插件清单。`hermit-desktop` 和 `new-product-desktop` 各自维护自己的 runtime
+generation、lockfile、profile/home、layout/source patch、插件 artifact 和打包 manifest。
+
+两个产品可以锁定同一个上游 DSH commit，也可以在各自完成资格后使用不同 commit。共享的是
+上游能力语义和 Desktop Core public contract，不是一个可变的 DSH checkout。一个 runtime
+内的所有 DSH consumer 必须解析到同一份 layout 制品；不同产品的 layout 必须进入不同
+generation，不能混装。
+
+正式依赖通过发布 package 或固定 tarball 连接。多个 sibling Git 仓库可以放在一个父文件夹
+中，但不组成超级 pnpm workspace；禁止跨仓库相对路径导入源码、`workspace:*`、`link:` 或
+隐式 hoist 作为 CI/Release 依赖。本地联调可以使用明确的 dev tarball，最终构建必须恢复
+版本化输入。
+
 ## 运行时闭包
 
 - Electron、Node、pnpm、DSH、React/ReactDOM、第一方插件和批准的必需插件依赖必须在

@@ -102,9 +102,9 @@
 
 ### 高耦合的具体表现（基于当前仓库静态审计）
 
-1. `plugins/file-workspace`、`plugins/organizer`、`plugins/smart-clipboard` 的 `package.json` 都把 `dsh.bundle`、`dsh.client`、Host/Client 导出和同一套运行时 peer 放在一个私有 package 中（例如 [file-workspace/package.json#L7-L40](../../plugins/file-workspace/package.json#L7-L40)）。这使“业务插件是否挂载”“是否贡献 profile 层”“是否有 Web UI”成为一个开关，任一端构建或依赖变化都牵动整个制品。
-2. 三个插件各自复制 Host + Client tsdown 配置和 `CLIENT_EXTERNALS` 列表（例如 [file-workspace/tsdown.config.ts#L21-L50](../../plugins/file-workspace/tsdown.config.ts#L21-L50)）。这不是 DSH 官方要求；官方只定义 Client loader 的输出 Contract，仓库外包需要自行复刻格式。重复配置容易造成版本、external 列表和浏览器图不一致。
-3. 每个 `cordis.patch.yml` 只是插入自身 Host package（例如 [file-workspace/cordis.patch.yml#L1-L3](../../plugins/file-workspace/cordis.patch.yml#L1-L3)），但 Bundle 层和 Host 行仍被同一 package 绑定；若未来要把业务 Host、Web Client 或 profile layer 分开发布，当前 manifest/脚本会同时改动多个边界。
+1. 三个 sibling 插件仓库的 `package.json` 都把 `dsh.bundle`、`dsh.client`、Host/Client 导出和同一套运行时 peer 放在一个私有 package 中。这使“业务插件是否挂载”“是否贡献 profile 层”“是否有 Web UI”成为一个开关，任一端构建或依赖变化都牵动整个制品。
+2. 三个插件各自维护 Host + Client tsdown 配置和 `CLIENT_EXTERNALS` 列表。这不是 DSH 官方要求；官方只定义 Client loader 的输出 Contract，仓库外包需要自行复刻格式。重复配置容易造成版本、external 列表和浏览器图不一致。
+3. 每个 `cordis.patch.yml` 只插入自身 Host package，但 Bundle 层和 Host 行仍被同一 package 绑定；若未来要把业务 Host、Web Client 或 profile layer 分开发布，当前 manifest/脚本会同时改动多个边界。
 
 这些是结构性风险判断，不等同于已经证明的运行时 bug。实际打包失败仍应通过失败制品、解析树和启动日志定位；研究结论只说明当前规范把可选能力强制耦合，增加了失败半径。
 

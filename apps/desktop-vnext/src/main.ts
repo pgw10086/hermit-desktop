@@ -17,35 +17,29 @@ import {
   type WebContents,
 } from "electron";
 import { createMainWindow } from "./desktop/windows.js";
-import { SmartClipboardDesktopRuntime } from "./desktop/smart-clipboard-runtime.js";
 import { recoveryPageUrl } from "./desktop/recovery-page.js";
 import { createDshCommand } from "./runtime/dsh-command.js";
 import {
+  createEvidenceSink,
+  DesktopDeadlineService,
+  DesktopNotificationService,
+  DesktopSurfaceManager,
+  DshRuntimeController,
   DshSupervisor,
-  type DshReadyEvent,
-  type DshUnavailableEvent,
-} from "./runtime/dsh-supervisor.js";
-import { DshRuntimeController } from "./runtime/dsh-runtime-controller.js";
-import { ensureSmartClipboardProfile } from "./runtime/smart-clipboard-profile.js";
-import { ensureBundledPluginProfile } from "./runtime/bundled-plugin-profile.js";
-import { resolveBundledPluginPath } from "./runtime/bundled-plugin-path.js";
-import { FileGenerationStateStore } from "./runtime/generation-state-store.js";
-import {
+  FileShortcutSettingsStore,
+  FileGenerationStateStore,
+  registerDesktopDeadlineIpc,
+  registerDesktopNotificationIpc,
+  registerDesktopShortcutIpc,
+  registerDesktopSurfaceIpc,
   RuntimeGenerationCatalog,
   RuntimeGenerationManager,
-} from "./runtime/generation-manager.js";
-import { createEvidenceSink } from "./desktop/evidence.js";
-import { FileShortcutSettingsStore, ShortcutRegistry } from "./core/shortcut-registry.js";
-import { registerDesktopShortcutIpc } from "./core/shortcut-ipc.js";
-import { DesktopSurfaceManager, SURFACE_ACTIVATION_GUARD_MS } from "./core/desktop-surface-manager.js";
-import { ConversationQuickRuntime } from "./desktop/conversation-quick-runtime.js";
-import {
-  registerDesktopSurfaceIpc,
-} from "./desktop/desktop-surface-ipc.js";
-import { registerDesktopDeadlineIpc, registerDesktopNotificationIpc } from "./core/desktop-capability-ipc.js";
-import { DesktopDeadlineService } from "./core/desktop-deadline-service.js";
-import { DesktopNotificationService } from "./core/desktop-notification-service.js";
-import { createElectronNotificationFactory } from "./core/electron-notification-factory.js";
+  ShortcutRegistry,
+  SURFACE_ACTIVATION_GUARD_MS,
+  type DshReadyEvent,
+  type DshUnavailableEvent,
+} from "@hermit/desktop-core";
+import { createElectronNotificationFactory } from "@hermit/desktop-core/electron-notification-factory";
 import { ShutdownCoordinator } from "./desktop/shutdown-coordinator.js";
 import {
   FileMainWindowStateStore,
@@ -66,6 +60,7 @@ import {
   type LoginItemPort,
   type LoginItemState,
 } from "./desktop/system-integration.js";
+import { HermitProductComposition } from "./product/hermit-product-composition.js";
 
 loadPackagedTestHarness();
 configurePackagedTestUserData();
@@ -268,13 +263,10 @@ async function startDesktop(): Promise<void> {
     service: notificationService,
     ...trustedCapabilityWindows,
   });
-  const conversationRuntime = new ConversationQuickRuntime({
-    surfaceManager,
-    shortcutRegistry,
-    actions,
-  });
-  const clipboardRuntime = new SmartClipboardDesktopRuntime({
+  const productComposition = new HermitProductComposition({
     userData,
+    profileHome,
+    workspacePath,
     mainWindow,
     actions,
     ipcMain,
@@ -283,101 +275,11 @@ async function startDesktop(): Promise<void> {
     appPath: app.getAppPath(),
     shortcutRegistry,
     surfaceManager,
+    ...(generationManager === undefined ? {} : { generationManager }),
   });
-  /** 根据当前 generation 重新核验 Smart Clipboard，并同步其捕获、IPC 与快捷键生命周期。 */
-  const syncClipboardRuntime = (): void => {
-    try {
-      const activeRuntimeRoot = generationManager?.selectStartupGeneration().root;
-      const profileCommand = createDshCommand({
-        isPackaged: app.isPackaged,
-        resourcesPath: process.resourcesPath,
-        profileHome,
-        workspacePath,
-        ...(activeRuntimeRoot === undefined ? {} : { runtimeRoot: activeRuntimeRoot }),
-      });
-      const pluginPath = resolveBundledPluginPath({
-        packageName: "@hermit/smart-clipboard",
-        isPackaged: app.isPackaged,
-        appPath: app.getAppPath(),
-        resourcesPath: process.resourcesPath,
-        ...(activeRuntimeRoot === undefined ? {} : { runtimeRoot: activeRuntimeRoot }),
-      });
-      const profile = ensureSmartClipboardProfile({
-        nodeBinary: profileCommand.executable,
-        dshEntry: profileCommand.args[1] ?? "",
-        profileHome,
-        pluginPath,
-        environment: profileCommand.env,
-      });
-      try {
-        const fileWorkspacePath = resolveBundledPluginPath({
-          packageName: "@hermit/file-workspace",
-          isPackaged: app.isPackaged,
-          appPath: app.getAppPath(),
-          resourcesPath: process.resourcesPath,
-          ...(activeRuntimeRoot === undefined ? {} : { runtimeRoot: activeRuntimeRoot }),
-        });
-        const fileWorkspaceProfile = ensureBundledPluginProfile({
-          packageName: "@hermit/file-workspace",
-          markerName: "file-workspace",
-          nodeBinary: profileCommand.executable,
-          dshEntry: profileCommand.args[1] ?? "",
-          profileHome,
-          pluginPath: fileWorkspacePath,
-          environment: profileCommand.env,
-        });
-        if (fileWorkspaceProfile.state !== "active") console.info(`File Workspace ${fileWorkspaceProfile.state}，插件不会挂载到 DSH Product Surface`);
-      } catch (cause) {
-        console.error(`File Workspace 启动资格检查失败，插件保持不可用: ${errorMessage(cause)}`);
-      }
-      if (profile.state === "active") clipboardRuntime.start();
-      else {
-        clipboardRuntime.stop();
-        console.info(`Smart Clipboard ${profile.state}，已撤销捕获、IPC 和快捷键`);
-      }
-    } catch (cause) {
-      // 可选产品插件不能阻止 DSH Core；资格或原生加载失败时必须 fail closed。
-      clipboardRuntime.stop();
-      console.error(`Smart Clipboard 启动资格检查失败，插件保持不可用: ${errorMessage(cause)}`);
-    }
-  };
-  /** 根据当前 generation 核验 Organizer 插件；资格失败只撤下 Organizer 入口。 */
-  const syncOrganizerProfile = (): void => {
-    try {
-      const activeRuntimeRoot = generationManager?.selectStartupGeneration().root;
-      const profileCommand = createDshCommand({
-        isPackaged: app.isPackaged,
-        resourcesPath: process.resourcesPath,
-        profileHome,
-        workspacePath,
-        ...(activeRuntimeRoot === undefined ? {} : { runtimeRoot: activeRuntimeRoot }),
-      });
-      const pluginPath = resolveBundledPluginPath({
-        packageName: "@hermit/organizer",
-        isPackaged: app.isPackaged,
-        appPath: app.getAppPath(),
-        resourcesPath: process.resourcesPath,
-        ...(activeRuntimeRoot === undefined ? {} : { runtimeRoot: activeRuntimeRoot }),
-      });
-      const profile = ensureBundledPluginProfile({
-        packageName: "@hermit/organizer",
-        markerName: "personal-organizer",
-        nodeBinary: profileCommand.executable,
-        dshEntry: profileCommand.args[1] ?? "",
-        profileHome,
-        pluginPath,
-        environment: profileCommand.env,
-      });
-      if (profile.state !== "active") console.info(`Personal Organizer ${profile.state}，不会挂载到 DSH Product Surface`);
-    } catch (cause) {
-      // Organizer 是可选业务插件；制品或公开能力异常时只撤下它自己的入口。
-      console.error(`Personal Organizer 启动资格检查失败，插件保持不可用: ${errorMessage(cause)}`);
-    }
-  };
-  syncOrganizerProfile();
-  syncClipboardRuntime();
-  const stopClipboardRuntime = (): void => clipboardRuntime.stop();
-  const stopConversationRuntime = (): void => conversationRuntime.stop();
+  /** Hermit 产品组合统一负责插件 profile 和 Smart Clipboard 运行单元。 */
+  const syncProductProfiles = (): void => productComposition.syncProfiles();
+  syncProductProfiles();
 
   let windowStateTimer: ReturnType<typeof setTimeout> | undefined;
   /** 保存主窗口正常态 bounds；全屏或最小化等临时状态不写入恢复文件。 */
@@ -417,8 +319,7 @@ async function startDesktop(): Promise<void> {
       if (tray !== undefined && !tray.isDestroyed()) tray.destroy();
     },
     stopRuntime: async () => {
-      stopClipboardRuntime();
-      stopConversationRuntime();
+      productComposition.stop();
       deadlineService.dispose();
       notificationService.dispose();
       disposeDeadlineIpc();
@@ -584,16 +485,14 @@ async function startDesktop(): Promise<void> {
     dshStatus = "正常";
     recordStartupStage("dsh-ready");
     rebuildTrayMenu();
-    syncOrganizerProfile();
-    syncClipboardRuntime();
+    syncProductProfiles();
     void loadDsh(event)
-      .then(() => conversationRuntime.start())
+      .then(() => productComposition.startConversation())
       .catch((cause: unknown) => showRecovery(errorMessage(cause)));
   });
   supervisor.on("crash", (event: { generation: number; code: number | null; signal: NodeJS.Signals | null }) => {
     clearDesktopCapabilities?.();
-    stopClipboardRuntime();
-    stopConversationRuntime();
+    productComposition.stop();
     console.error(
       `DSH generation ${String(event.generation)} exited unexpectedly (code=${String(event.code)}, signal=${String(event.signal)}); restarting`,
     );
@@ -603,8 +502,7 @@ async function startDesktop(): Promise<void> {
     dshStatus = "需要处理";
     recordStartupStage("dsh-unavailable");
     rebuildTrayMenu();
-    stopClipboardRuntime();
-    stopConversationRuntime();
+    productComposition.stop();
     showRecovery(event.cause.message);
   });
 
@@ -634,8 +532,7 @@ async function startDesktop(): Promise<void> {
   try {
     await supervisor.start();
   } catch (cause) {
-    stopClipboardRuntime();
-    stopConversationRuntime();
+    productComposition.stop();
     showRecovery(errorMessage(cause));
   }
 }

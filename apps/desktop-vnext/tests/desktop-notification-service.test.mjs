@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { DesktopNotificationService } from '../lib/core/desktop-notification-service.js'
+import { DesktopNotificationService } from '@hermit/desktop-core'
 
 test('通知显示、替换、动作回调和移除都不携带业务状态', () => {
   const factory = createFactory(true)

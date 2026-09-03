@@ -2,19 +2,9 @@ import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import type { DshCommand } from "@hermit/desktop-core";
 
-export interface DshCommand {
-  /** 实际启动的 Node 可执行文件路径。 */
-  readonly executable: string;
-  /** 通过 carrier 传递给 DSH 的固定参数。 */
-  readonly args: readonly string[];
-  /** DSH 进程工作目录。 */
-  readonly cwd: string;
-  /** 经过清理的运行时环境，不带宿主包管理器变量。 */
-  readonly env: NodeJS.ProcessEnv;
-  /** 是否通过 stdin 协议请求停止。 */
-  readonly stopViaStdin?: boolean;
-}
+export type { DshCommand } from "@hermit/desktop-core";
 
 export interface DshCommandOptions {
   /** 是否从 bundled runtime 解析路径。 */

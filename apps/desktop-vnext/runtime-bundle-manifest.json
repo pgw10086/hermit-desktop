@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "productSurfacePackage": {
     "packageName": "@deepseek-ai/dsh-client-ui-layout",
     "source": "packages/dsh-client-ui-layout",
@@ -8,17 +8,23 @@
   "bundledPackages": [
     {
       "packageName": "@hermit/organizer",
-      "source": "plugins/organizer",
+      "source": "apps/desktop-vnext/node_modules/@hermit/organizer",
+      "artifact": "vendor/hermit-organizer-0.2.2.tgz",
+      "artifactSha256": "9f75a4e9c5309bfdd454a2886e8a352d79e65ad3754a4ee34d5cd42f712c224c",
       "hashPaths": ["package.json", "cordis.patch.yml", "lib"]
     },
     {
       "packageName": "@hermit/smart-clipboard",
-      "source": "plugins/smart-clipboard",
+      "source": "apps/desktop-vnext/node_modules/@hermit/smart-clipboard",
+      "artifact": "vendor/hermit-smart-clipboard-0.2.2.tgz",
+      "artifactSha256": "9f0a10a3ea1ae749dbb45034f7c0e2ac87341775d5d25503d9c53cfbcb182ba3",
       "hashPaths": ["package.json", "cordis.patch.yml", "lib"]
     },
     {
       "packageName": "@hermit/file-workspace",
-      "source": "plugins/file-workspace",
+      "source": "apps/desktop-vnext/node_modules/@hermit/file-workspace",
+      "artifact": "vendor/hermit-file-workspace-0.2.2.tgz",
+      "artifactSha256": "00fb7646f92586d6cb13cb02d5b6e9db2fd18f09d39f5ea844b4333f58f5f9e3",
       "hashPaths": ["package.json", "cordis.patch.yml", "lib"]
     }
   ]

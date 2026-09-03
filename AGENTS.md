@@ -39,9 +39,8 @@
 
 - 改产品范围、插件划分或用户闭环：读取
   `specs/2026-08-24-hermit-dsh-vnext/core-requirements.md`。
-- 设计或修改 Product Plugin 的功能、页面和交互：先读取 `plugins/README.md`、
-  `plugins/development-guidelines.md`、`plugins/ui-guidelines.md`，再读取对应插件目录的
-  `DESIGN.md`；一个设计会话只更新一个插件的设计文档。
+- 设计或修改 Product Plugin 的功能、页面和交互：切换到对应 sibling 插件仓库，先读取其
+  `AGENTS.md`、`README.md` 和 `DESIGN.md`；本仓库只维护宿主集成、固定制品和共用 UI 规范。
 - 判断启动条件或第一条技术闭环：读取
   `specs/2026-08-24-hermit-dsh-vnext/start-readiness.md`。
 - 创建、移动或调整顶层目录和所有权：先读取 `docs/repository-layout.md`。

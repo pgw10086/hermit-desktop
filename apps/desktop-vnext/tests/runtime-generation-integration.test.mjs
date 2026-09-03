@@ -5,13 +5,13 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
 import { createDshCommand } from "../lib/runtime/dsh-command.js";
-import { DshRuntimeController } from "../lib/runtime/dsh-runtime-controller.js";
-import { DshSupervisor } from "../lib/runtime/dsh-supervisor.js";
 import {
+  DshRuntimeController,
+  DshSupervisor,
+  FileGenerationStateStore,
   RuntimeGenerationCatalog,
   RuntimeGenerationManager,
-} from "../lib/runtime/generation-manager.js";
-import { FileGenerationStateStore } from "../lib/runtime/generation-state-store.js";
+} from "@hermit/desktop-core";
 
 const appRoot = path.resolve(".");
 const repositoryRoot = path.resolve(appRoot, "..", "..");

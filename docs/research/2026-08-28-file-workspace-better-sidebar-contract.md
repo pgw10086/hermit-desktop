@@ -10,7 +10,7 @@
 
 本文是一次实现前资格记录，只保存外部制品、公开契约、实践结果和限制。File Workspace
 当前产品行为仍以
-[插件设计](../../plugins/file-workspace/DESIGN.md)为唯一权威来源，跨域数据与安全边界以
+`plugin-file-workspace` sibling 仓库中的 `DESIGN.md` 为唯一权威来源，跨域数据与安全边界以
 [核心需求](../../specs/2026-08-24-hermit-dsh-vnext/core-requirements.md#63-file-workspace)为准。
 
 ## 1. 要回答的问题

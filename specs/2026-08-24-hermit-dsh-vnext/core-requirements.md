@@ -689,7 +689,7 @@ Workspace 在中央工作面内拥有 logical FileRecord tree、managed 文件�
 搜索与数据生命周期，不再建设独立文件库壳、文件详情页或预览系统。
 
 File Workspace 的功能、页面、交互和当前 vertical slice 以
-[File Workspace DESIGN](../../plugins/file-workspace/DESIGN.md)为唯一权威来源。本节只保留
+`plugin-file-workspace` sibling 仓库中的 `DESIGN.md` 为唯一权威来源。本节只保留
 产品范围、跨域契约、数据边界和验收红线；重复描述若与插件 DESIGN 冲突，插件可见行为
 以 DESIGN 为准，Core 授权、安全和生命周期红线仍以本文为准。
 
@@ -912,7 +912,7 @@ File Workspace 只消费资格通过的公开 package、typed slot 和 service�
 当前方向和模块 6 完整业务闭环：已确认。它是后续可选 Product Plugin。
 
 Smart Clipboard 的功能、页面、交互、用户可调默认值和数据操作细节只由
-[Smart Clipboard DESIGN](../../plugins/smart-clipboard/DESIGN.md)维护。本节只保留
+`plugin-smart-clipboard` sibling 仓库中的 `DESIGN.md` 维护。本节只保留
 产品范围、跨域安全、Core 集成、平台能力和验收红线；重复描述若与插件设计冲突，插件
 行为以 DESIGN 为准，Core 红线仍以本文为准。
 
@@ -1857,9 +1857,8 @@ authority pointer 已提交为 DSH + epoch N
 
 本节负责产品范围和页面覆盖，不作为高频变化的插件交互设计文档。三个 Product Plugin
 的当前信息架构、核心流程、低保真原型和待确认问题分别由
-[Personal Organizer DESIGN](../../plugins/organizer/DESIGN.md)、
-[File Workspace DESIGN](../../plugins/file-workspace/DESIGN.md)和
-[Smart Clipboard DESIGN](../../plugins/smart-clipboard/DESIGN.md)负责。Core 需求负责
+`plugin-organizer`、`plugin-file-workspace` 和 `plugin-smart-clipboard` sibling 仓库中的
+各自 `DESIGN.md` 负责。Core 需求负责
 产品范围、数据归属、跨域安全和验收红线；各插件 DESIGN 负责已确认的功能、页面、交互、
 默认设置和插件内数据操作，不在 Core 需求中复制第二套高频变化事实。
 

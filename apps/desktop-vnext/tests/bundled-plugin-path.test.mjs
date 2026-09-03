@@ -14,7 +14,7 @@ test("开发环境的插件路径来自 runtime bundle manifest", () => {
       appPath,
       resourcesPath,
     }),
-    path.resolve(appPath, "..", "..", "plugins", "smart-clipboard"),
+    path.resolve(appPath, "node_modules", "@hermit", "smart-clipboard"),
   );
 });
 

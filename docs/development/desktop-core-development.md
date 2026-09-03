@@ -41,6 +41,23 @@ Desktop Core 是桌面外壳和原生能力的负责人，常见范围包括：
 普通业务文件读写、业务存储、业务搜索、页面列表和编辑器不属于 Core，优先走 DSH 或插件
 自己的业务代码。
 
+## 多产品使用边界
+
+Desktop Core 是可以被多个 Product Desktop 消费的版本化 package。它只提供稳定的桌面
+平台能力和 typed contract，不拥有某个产品的 DSH Web/Layout、Conversation、Session、
+Settings、Approval、导航、插件清单或业务数据库。
+
+每个 Product Desktop 自己决定：
+
+- 使用哪个 DSH package 版本和上游 commit；
+- 使用哪一份 DSH profile/home、runtime generation 和 layout/source patch；
+- 装配哪些 Product Plugin；
+- 如何打包、发布和回滚自己的产品。
+
+Desktop Core 可以提供“启动、监督、停止 DSH runtime”的平台能力，但不能决定所有产品
+都使用同一套 DSH Web、layout patch 或插件集合。Smart Clipboard 等单一产品的 SQLite、
+捕获编排和 native bridge 属于产品专属 desktop-adapter，不进入共享 Core。
+
 ## Desktop Surface
 
 Desktop Surface 是 Desktop Core 对外提供的受控桌面工作面能力。它可以承载 DSH Conversation
@@ -194,9 +211,10 @@ Surface 仍需说明真实产品流程、typed contract、失败结果、生命�
 
 ## 和 Product Plugin 的关系
 
-Product Plugin 只依赖已经公开并经过验证的 contract，不依赖 `apps/desktop-vnext` 的内部
-文件，也不直接导入 Electron。当前 Product Navigation/Product Surface 使用的是 Hermit
-patched DSH 的公开 layout contract；Desktop Surface 由 Core 提供宿主，插件只注册内容和业务
+Product Plugin 只依赖已经公开并经过验证的 contract，不依赖任一 Product Desktop 的内部
+文件，也不直接导入 Electron。当前 Hermit Product Navigation/Product Surface 使用的是
+Hermit patched DSH 的公开 layout contract；新产品可以维护自己的 layout contract，但不能
+直接修改 Hermit 的 layout patch。Desktop Surface 由 Core 提供宿主，插件只注册内容和业务
 动作。固定 pinned DSH 的 Workspace 和 Sidebar adapter 通过公开
 `ctx.layout.closeProductSurface()` 把前台会话导航交还给 Core；这是 bundled generation 的
 底座适配，不是插件可调用的私有实现。

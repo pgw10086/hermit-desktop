@@ -31,6 +31,12 @@ const runtimeBundleManifestPath = path.join(
   'runtime-bundle-manifest.json',
 );
 const runtimeBundleManifest = readRuntimeBundleManifest(runtimeBundleManifestPath);
+const runtimeHostManifestPath = path.join(
+  repositoryRoot,
+  'packages',
+  'dsh-runtime-host',
+  'package.json',
+);
 const dshUpstreamRegistryPath = path.join(repositoryRoot, 'DEEPSEEK-HARNESS-UPSTREAM.md');
 const dshUpstream = readDshUpstreamRegistry(repositoryRoot);
 const runtimeArtifactMode = 'packed-tarball-v1';
@@ -42,10 +48,10 @@ const productSurfaceSource = resolveManifestSource(runtimeBundleManifest.product
 const bundledPackages = runtimeBundleManifest.bundledPackages.map((spec) => ({
   spec,
   source: resolveManifestSource(spec),
+  artifact: resolveManifestArtifact(spec),
 }));
 const runtimeBuildConfigs = [
   path.join(productSurfaceSource, 'tsdown.config.ts'),
-  ...bundledPackages.map(({ source }) => path.join(source, 'tsdown.config.ts')),
 ];
 const bundledNode = path.join(
   runtimeParent,
@@ -71,6 +77,9 @@ const desktopManifest = JSON.parse(
 );
 const buildPackages = [
   { packageName: runtimeBundleManifest.productSurfacePackage.packageName, source: productSurfaceSource },
+];
+const runtimePackages = [
+  ...buildPackages,
   ...bundledPackages.map(({ spec, source }) => ({ packageName: spec.packageName, source })),
 ];
 for (const { packageName } of buildPackages) {
@@ -107,6 +116,7 @@ hashInput(
   fs.readFileSync(path.join(repositoryRoot, 'pnpm-workspace.yaml')),
 );
 hashInput('runtime-bundle-manifest', fs.readFileSync(runtimeBundleManifestPath));
+hashInput('runtime-host-manifest', fs.readFileSync(runtimeHostManifestPath));
 hashInput('dsh-upstream-registry', fs.readFileSync(dshUpstreamRegistryPath));
 hashInput('runtime-artifact-mode', Buffer.from(runtimeArtifactMode));
 hashInput(
@@ -121,6 +131,9 @@ for (const buildConfig of runtimeBuildConfigs) {
 }
 hashPackage(runtimeBundleManifest.productSurfacePackage, productSurfaceSource);
 for (const { spec, source } of bundledPackages) hashPackage(spec, source);
+for (const { spec, artifact } of bundledPackages) {
+  hashInput(`${spec.packageName}:packed-artifact`, fs.readFileSync(artifact));
+}
 const runtimePackageEvidence = [
   {
     role: 'product-navigation-shortcut-center-desktop-surface-and-primary-workspace',
@@ -156,6 +169,9 @@ if (!reusable) {
 
   try {
     const packedArtifacts = packRuntimePackages(buildPackages, artifactDirectory);
+    for (const { spec, artifact } of bundledPackages) {
+      packedArtifacts.set(spec.packageName, artifact);
+    }
     const deploy = spawnSync(
       bundledNode,
       [
@@ -164,7 +180,7 @@ if (!reusable) {
         '--config.inject-workspace-packages=true',
         '--config.node-linker=hoisted',
         '--filter',
-        '@hermit/desktop',
+        '@hermit/dsh-runtime-host',
         'deploy',
         '--prod',
         target,
@@ -173,7 +189,7 @@ if (!reusable) {
     );
     if (deploy.error !== undefined) throw deploy.error;
     if (deploy.status !== 0) throw new Error('pnpm failed to create the DSH runtime closure');
-    for (const { packageName } of buildPackages) {
+    for (const { packageName } of runtimePackages) {
       materializePackedPackage(target, packageName, packedArtifacts.get(packageName));
     }
     assertRuntimePackageContents(target);
@@ -354,7 +370,7 @@ function materializePackedPackage(runtimeRoot, packageName, artifact) {
 }
 
 function assertRuntimePackageContents(runtimeRoot) {
-  for (const { packageName, source } of buildPackages) {
+  for (const { packageName, source } of runtimePackages) {
     const sourceSpec = packageName === runtimeBundleManifest.productSurfacePackage.packageName
       ? runtimeBundleManifest.productSurfacePackage
       : runtimeBundleManifest.bundledPackages.find((spec) => spec.packageName === packageName);
@@ -391,7 +407,7 @@ function readRuntimeBundleManifest(file) {
   } catch (cause) {
     throw new Error(`无法读取 DSH 运行时清单：${cause instanceof Error ? cause.message : String(cause)}`);
   }
-  if (manifest?.schemaVersion !== 1) throw new Error('DSH 运行时清单 schemaVersion 必须为 1');
+  if (manifest?.schemaVersion !== 2) throw new Error('DSH 运行时清单 schemaVersion 必须为 2');
   const productSurfacePackage = validateManifestPackage(manifest.productSurfacePackage, 'productSurfacePackage');
   const bundledPackages = manifest.bundledPackages;
   if (!Array.isArray(bundledPackages) || bundledPackages.length === 0) {
@@ -406,7 +422,12 @@ function readRuntimeBundleManifest(file) {
     if (names.has(spec.packageName)) throw new Error(`DSH 运行时清单包含重复 package：${spec.packageName}`);
     names.add(spec.packageName);
   }
-  return { schemaVersion: 1, productSurfacePackage, bundledPackages };
+  for (const [index, spec] of bundledPackages.entries()) {
+    if (spec.artifact === undefined || spec.artifactSha256 === undefined) {
+      throw new Error(`bundledPackages[${index}] 必须声明固定 artifact 和 SHA-256`);
+    }
+  }
+  return { schemaVersion: 2, productSurfacePackage, bundledPackages };
 }
 
 function validateManifestPackage(spec, label) {
@@ -424,17 +445,35 @@ function validateManifestPackage(spec, label) {
   ) {
     throw new Error(`${label}.hashPaths 必须是非空字符串数组`);
   }
+  if (spec.artifact !== undefined && (typeof spec.artifact !== 'string' || spec.artifact.length === 0)) {
+    throw new Error(`${label}.artifact 必须是非空字符串`);
+  }
+  if (
+    spec.artifactSha256 !== undefined &&
+    (typeof spec.artifactSha256 !== 'string' || !/^[a-f0-9]{64}$/u.test(spec.artifactSha256))
+  ) {
+    throw new Error(`${label}.artifactSha256 必须是 SHA-256`);
+  }
+  if ((spec.artifact === undefined) !== (spec.artifactSha256 === undefined)) {
+    throw new Error(`${label}.artifact 和 artifactSha256 必须同时声明`);
+  }
   return {
     packageName: spec.packageName,
     source: spec.source,
     hashPaths: [...spec.hashPaths],
+    ...(spec.artifact === undefined ? {} : { artifact: spec.artifact }),
+    ...(spec.artifactSha256 === undefined ? {} : { artifactSha256: spec.artifactSha256 }),
   };
 }
 
 function resolveManifestSource(spec) {
-  const source = path.resolve(repositoryRoot, spec.source);
-  if (!source.startsWith(`${repositoryRoot}${path.sep}`) || !fs.existsSync(source)) {
+  const declaredSource = path.resolve(repositoryRoot, spec.source);
+  if (!declaredSource.startsWith(`${repositoryRoot}${path.sep}`) || !fs.existsSync(declaredSource)) {
     throw new Error(`DSH 运行时清单 source 无效：${spec.source}`);
+  }
+  const source = fs.realpathSync(declaredSource);
+  if (!source.startsWith(`${repositoryRoot}${path.sep}`)) {
+    throw new Error(`DSH 运行时清单 source 解析后越界：${spec.source}`);
   }
   const packageManifest = path.join(source, 'package.json');
   if (!fs.existsSync(packageManifest)) throw new Error(`运行时 package 缺少 package.json：${source}`);
@@ -443,6 +482,27 @@ function resolveManifestSource(spec) {
     throw new Error(`运行时清单与 package.json 名称不一致：${spec.packageName} != ${String(packageJson.name)}`);
   }
   return source;
+}
+
+function resolveManifestArtifact(spec) {
+  if (spec.artifact === undefined || spec.artifactSha256 === undefined) {
+    throw new Error(`DSH 运行时清单缺少固定制品：${spec.packageName}`);
+  }
+  if (!/^[a-f0-9]{64}$/u.test(spec.artifactSha256)) {
+    throw new Error(`DSH 运行时清单 artifactSha256 无效：${spec.packageName}`);
+  }
+  const declaredArtifact = path.resolve(repositoryRoot, spec.artifact);
+  if (!declaredArtifact.startsWith(`${repositoryRoot}${path.sep}`) || !fs.existsSync(declaredArtifact)) {
+    throw new Error(`DSH 运行时清单 artifact 无效：${spec.artifact}`);
+  }
+  const artifact = fs.realpathSync(declaredArtifact);
+  if (!artifact.startsWith(`${repositoryRoot}${path.sep}`)) {
+    throw new Error(`DSH 运行时清单 artifact 解析后越界：${spec.artifact}`);
+  }
+  if (sha256File(artifact) !== spec.artifactSha256) {
+    throw new Error(`DSH 运行时清单 artifact 摘要不一致：${spec.packageName}`);
+  }
+  return artifact;
 }
 
 function hashPackage(spec, source) {

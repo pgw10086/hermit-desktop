@@ -2,8 +2,12 @@
 
 状态：`current`
 
-`plugins/` 保存第一方 Product Plugin 的当前设计，并在实现开始后承载各插件的可安装
-制品。一个目录代表一套完整业务，不代表一个页面、按钮或 DSH Tool。
+`plugins/` 只保存 Hermit 宿主侧共用的 Product Plugin 开发和 UI 规范。一个完整插件由
+自己的 sibling Git 仓库维护，不再把插件源码放回本仓库。
+
+当前三个第一方插件仓库为 `plugin-organizer`、`plugin-file-workspace` 和
+`plugin-smart-clipboard`。Hermit Desktop 只消费它们打出的固定 tarball；runtime 清单和
+`vendor/README.md` 记录版本与摘要。
 
 新增插件先看[Product Plugin 最小接入](../docs/development/product-plugin-quickstart.md)。开发
 规范见[Product Plugin 开发规范](development-guidelines.md)；需要系统剪贴板、全局快捷键、
@@ -15,15 +19,7 @@
 plugins/
 |-- development-guidelines.md
 |-- ui-guidelines.md
-|-- organizer/
-|   |-- README.md
-|   `-- DESIGN.md
-|-- file-workspace/
-|   |-- README.md
-|   `-- DESIGN.md
-`-- smart-clipboard/
-    |-- README.md
-    `-- DESIGN.md
+`-- README.md
 ```
 
 设计期只有 `DESIGN.md` 是正常状态，不表示插件已经实现、可以安装或进入发布候选。实现
@@ -44,12 +40,16 @@ plugins/
 | DSH 官方插件 API、生命周期、Bundle/Profile、CLI 和 Client 资料版本 | [DSH 官方上游资料](../DEEPSEEK-HARNESS-UPSTREAM.md) |
 | 所有前端共同遵循的布局、层级和交互规则 | [前端 UI 设计规范](../docs/development/frontend-ui-design.md) |
 | Product Plugin 的 DSH 接入和组件所有权 | [插件 UI 规范](ui-guidelines.md) |
-| 某个插件当前功能、信息架构、流程和低保真原型 | 对应目录的 `DESIGN.md` |
+| 某个插件当前功能、信息架构、流程和低保真原型 | 对应 sibling 插件仓库的 `DESIGN.md` |
 | 系统职责、DSH 接入、安全和运行时 Agent | `docs/architecture/` 与 `docs/contracts/` 对应权威文档 |
 
 `DESIGN.md` 不复制跨项目规范，也不重新定义 Core、DSH 或安全边界。核心需求不维护
 高频变化的页面布局；两者发生冲突时，先判断是产品范围变化还是交互设计变化，再修改
 对应的唯一权威来源。
+
+拆仓后，插件仓库仍沿用本页和对应 `DESIGN.md` 的规则；插件可以被多个 Product Desktop
+消费，但不得依赖某个产品仓库的内部文件。需要桌面特权的插件只依赖发布后的
+Desktop Core contract，并把产品专属 desktop-adapter 留在自己的仓库。
 
 ## 设计会话规则
 

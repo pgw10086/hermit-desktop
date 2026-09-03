@@ -12,15 +12,14 @@ import { copyRuntimeClosure } from '../scripts/after-pack.mjs'
 
 const appRoot = path.resolve(fileURLToPath(new URL('..', import.meta.url)))
 const repositoryRoot = path.resolve(appRoot, '..', '..')
-const pluginRoot = path.join(repositoryRoot, 'plugins', 'organizer')
+const pluginArtifact = path.join(repositoryRoot, 'vendor', 'hermit-organizer-0.2.2.tgz')
 const runtimeRoot = path.join(repositoryRoot, '.hermit', 'runtime')
 const bundledNode = path.join(runtimeRoot, 'node', process.platform === 'win32' ? 'node.exe' : path.join('bin', 'node'))
 const bundledDshRoot = path.join(runtimeRoot, 'dsh')
 const bundledDsh = path.join(bundledDshRoot, 'node_modules', '@deepseek-ai', 'dsh', 'lib', 'bin.js')
-const bundledPnpm = path.join(bundledDshRoot, 'node_modules', 'pnpm', 'bin', 'pnpm.cjs')
 const packageName = '@hermit/organizer'
 
-for (const required of [bundledNode, bundledDsh, bundledPnpm, electronPath]) {
+for (const required of [bundledNode, bundledDsh, pluginArtifact, electronPath]) {
   assert.equal(fs.existsSync(required), true, `Personal Organizer 资格缺少运行时文件：${required}`)
 }
 
@@ -28,18 +27,8 @@ const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hermit-organizer-surface-'))
 let succeeded = false
 try {
   const stockDsh = prepareStockRuntime(path.join(root, 'stock-runtime'))
-  const packageDirectory = path.join(root, 'package')
-  fs.mkdirSync(packageDirectory, { recursive: true })
-  run(bundledNode, [bundledPnpm, 'pack', '--pack-destination', packageDirectory], {
-    cwd: pluginRoot,
-    env: runtimeEnvironment(path.join(root, 'pack-home')),
-  })
-  const artifacts = fs.readdirSync(packageDirectory).filter((name) => name.endsWith('.tgz'))
-  assert.equal(artifacts.length, 1, `预期一个 Personal Organizer 制品，实际为 ${artifacts.join(', ')}`)
-  const artifact = path.join(packageDirectory, artifacts[0])
-
-  await qualifyStock(stockDsh, artifact, path.join(root, 'stock'))
-  await qualifyHermit(artifact, path.join(root, 'hermit'))
+  await qualifyStock(stockDsh, pluginArtifact, path.join(root, 'stock'))
+  await qualifyHermit(pluginArtifact, path.join(root, 'hermit'))
   console.log('Personal Organizer Product Surface qualification passed: stock=unavailable, hermit=todo+note-conversion+restart')
   succeeded = true
 } catch (cause) {

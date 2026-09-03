@@ -7,10 +7,20 @@
 
 1. 一个事实、模块或数据只由一个明确负责人维护。
 2. 目录跟随真实代码、契约或运维需要创建，不为未来计划保留空壳。
-3. 可安装插件的独立性由 package 和公共契约保证，不通过嵌套 Git 仓库保证。
+3. 可安装插件的运行时独立性由 package 和公共契约保证；物理拆仓使用同级 sibling Git
+   仓库，不在仓库内部嵌套 Git。
 4. 本地状态、缓存、下载依赖、浏览器状态和生成证据不属于项目知识。
 5. package、插件和原生辅助模块的具体清单由真实 manifest/workspace 配置负责，本文
    不复制容易过期的目录快照。
+
+## 多产品拆仓状态
+
+本仓库是拆分后的 `hermit-desktop` 产品仓库，保留 Hermit 的完整构建、测试和发布流程。
+共享 Desktop Core、新产品和后续插件仓库与本仓库位于同一个普通父文件夹中；父文件夹本身
+不是 Git 仓库，也不是一个超级 pnpm workspace。
+
+拆仓后的每个仓库拥有自己的 Git、lockfile、依赖版本、构建和发布边界。代码目录可以相邻，
+正式依赖必须通过已发布的 package 或固定 tarball 连接；不能跨仓库引用兄弟仓库的 `src/*`。
 
 ## 顶层所有权
 
@@ -24,11 +34,29 @@
 | `docs/` | 对应领域 owner 负责长期有效的工程事实 | 当前事实需要长期维护时 | 随事实更新或删除 |
 | `specs/` | Product、Architecture 和 Security 负责已确认需求与规范 | 需求或机器契约确认时 | 按变更主题冻结或演进 |
 | `scripts/` | Developer Experience 和 Release 负责维护命令 | 首个可执行维护命令出现时 | 随命令维护和测试 |
+| `vendor/` | Hermit Release 负责拆仓迁移期的固定 package tarball 和摘要 | registry 尚未建立但产品必须从真实制品集成时 | 正式 registry 依赖稳定后删除 |
 | `.github/` | DevEx、Security 和 Release 负责协作与 CI 配置 | GitHub 配置出现时 | 随仓库治理维护 |
 | `.agents/` | Developer Experience 负责项目开发 skill | 出现可复用开发流程时 | 随流程维护 |
 | `.claude/` | Developer Experience 负责 Claude 专用适配 | 确有 Claude 专用配置时 | 随适配维护 |
 | `.codex/` | Developer Experience 负责 Codex 专用适配 | 确有 Codex 专用配置时 | 随适配维护 |
 | `.hermit/` | 本地运行者拥有 cache、tmp 和 artifacts | 工具运行时按需创建 | 始终忽略，不提交 |
+
+`apps/desktop-vnext/` 是 Hermit 产品 Desktop，不是两个产品共用的产品壳。共享 Desktop
+Core 已经迁到 sibling 仓库，本仓库只通过固定 package 制品消费它。
+
+## 拆仓后的 sibling 责任
+
+| 仓库 | 负责什么 | 明确不负责什么 |
+| --- | --- | --- |
+| `desktop-core/` | Electron 窗口、Tray、Surface、快捷键、通知、系统能力、受控 IPC、安全、生命周期和 DSH 进程监督 | DSH Web/Layout、Conversation/Session/Settings/Approval UI、业务插件清单和业务数据 |
+| `hermit-desktop/` | Hermit 产品壳、Hermit layout/source patch、Hermit DSH generation/profile、插件组合、Hermit 打包和发布 | 新产品 UI、另一产品的 profile、共享 UI 壳 |
+| `new-product-desktop/` | 新产品壳、自己的 Conversation/Session/Settings/Approval/导航组合、自己的 layout/source patch、DSH generation/profile、插件组合和打包 | Hermit layout、另一个产品的业务数据和内部代码 |
+| `plugin-*/` | 一个业务的 Canonical 数据、规则、Host、Client、Tool、迁移和自己的桌面适配（如有） | 宿主全局导航、DSH 私有实现、另一个插件的数据库和 Electron 私有 API |
+| `integration/`（可选） | 跨仓库版本清单、固定制品、集成 E2E 和发布编排 | 产品业务代码、运行时私有状态和临时源码引用 |
+
+DSH upstream 源码和版本来源仍由 DeepSeek Harness 上游负责。每个 Product Desktop 自己
+锁定 DSH package、上游 commit、runtime manifest 和 layout 制品；可以使用同一个上游版本，
+但不能在一套 runtime 中混用两份 layout。
 
 根目录的 `DEEPSEEK-HARNESS-UPSTREAM.md` 由 Architecture/Developer Experience 共同负责，
 只登记当前采用的 DSH 官方资料快照、上游 commit、版本批次、完整性摘要和更新流程。它是
@@ -80,8 +108,13 @@ change-specific spec；本地生成证据放在 `.hermit/artifacts/`。
 
 ## 工作区边界
 
-仓库内部不包含嵌套 Git metadata。Symlink、junction 和等价链接解析后必须留在已
-授权的工作区内。外部依赖源码使用明确授权的只读缓存，不复制进仓库。
+仓库内部不包含嵌套 Git metadata。多个 sibling 仓库可以位于同一个父文件夹，但父文件夹
+不参与源码依赖解析。Symlink、junction 和等价链接解析后必须留在已授权的工作区内。外部
+依赖源码使用明确授权的只读缓存，不复制进仓库。
+
+本地联调可以明确生成 sibling package 的 tarball 或使用受控 dev override；CI、发布和最终
+集成验收必须恢复为版本化 package 或固定 tarball，不得依赖 `../other-repo/src`、`workspace:*`
+或隐式 hoist。
 
 顶层采用自动 allowlist。新增顶层 entry 时，先更新本文件，再同步门禁；未定义负责
 人和生命周期的 entry 由门禁拒绝。

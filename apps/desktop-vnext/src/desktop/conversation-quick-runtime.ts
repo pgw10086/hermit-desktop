@@ -1,5 +1,4 @@
-import type { DesktopSurfaceManager } from '../core/desktop-surface-manager.js'
-import type { ShortcutRegistry } from '../core/shortcut-registry.js'
+import type { DesktopSurfaceManager, ShortcutRegistry } from '@hermit/desktop-core'
 import type { NavigationActions } from './window-policy.js'
 import {
   CONVERSATION_QUICK_SURFACE_ID,

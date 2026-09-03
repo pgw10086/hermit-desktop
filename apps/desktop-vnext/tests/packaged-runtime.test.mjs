@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
@@ -40,7 +41,7 @@ test("DSH runtime bundle manifest 明确列出每个随包 package 和构建哈�
     path.join(appRoot, "runtime-bundle-manifest.json"),
     "utf8",
   ));
-  assert.equal(manifest.schemaVersion, 1);
+  assert.equal(manifest.schemaVersion, 2);
   const packages = [manifest.productSurfacePackage, ...manifest.bundledPackages];
   assert.equal(new Set(packages.map(({ packageName }) => packageName)).size, packages.length);
   for (const spec of packages) {
@@ -53,6 +54,15 @@ test("DSH runtime bundle manifest 明确列出每个随包 package 和构建哈�
     for (const relativePath of spec.hashPaths) {
       assert.equal(fs.existsSync(path.join(source, relativePath)), true);
     }
+  }
+  for (const spec of manifest.bundledPackages) {
+    const artifact = path.resolve(repositoryRoot, spec.artifact);
+    assert.equal(artifact.startsWith(`${repositoryRoot}${path.sep}`), true);
+    assert.equal(fs.existsSync(artifact), true);
+    assert.equal(
+      createHash("sha256").update(fs.readFileSync(artifact)).digest("hex"),
+      spec.artifactSha256,
+    );
   }
 });
 

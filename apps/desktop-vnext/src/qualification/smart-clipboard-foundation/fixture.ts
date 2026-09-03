@@ -1,4 +1,4 @@
-import { ActivationLease } from "../../core/lifecycle/activation-lease.js";
+import { ActivationLease } from "@hermit/desktop-core";
 import type {
   ClipboardQualificationPort,
   LockQualificationPort,

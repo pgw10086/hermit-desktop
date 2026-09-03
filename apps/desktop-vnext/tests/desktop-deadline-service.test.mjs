@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { DesktopDeadlineService } from '../lib/core/desktop-deadline-service.js'
+import { DesktopDeadlineService } from '@hermit/desktop-core'
 
 test('绝对 deadline 可重设、取消，并只触发当前注册', () => {
   const clock = createClock()

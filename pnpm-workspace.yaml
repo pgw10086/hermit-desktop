@@ -2,7 +2,6 @@ packages:
   - apps/*
   - native/*
   - packages/*
-  - plugins/*
 engineStrict: true
 linkWorkspacePackages: false
 allowBuilds:

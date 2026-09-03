@@ -1,6 +1,6 @@
-# Hermit vNext
+# Hermit Desktop
 
-Hermit vNext 是以通过兼容性检查的 DeepSeek Harness（DSH）为底座的本地优先
+Hermit Desktop 是以通过兼容性检查的 DeepSeek Harness（DSH）为底座的本地优先
 桌面 AI 工作台。Electron 只负责桌面外壳和 DSH 进程生命周期；DSH 负责官方 Web、AI
 Session、Tool、Approval、Settings 和插件运行时；个人事务、文件工作台、智能剪贴板
 等能力以可独立安装的 DSH Product Plugin 提供。
@@ -29,6 +29,9 @@ Pasteboard；真实复制/自动粘贴/物理快捷键仍待 disposable 资格�
 
 ## 文档入口
 
+本仓库只负责 Hermit 产品。共享桌面平台位于同级独立 `desktop-core` 仓库，并通过
+`vendor/hermit-desktop-core-0.1.0.tgz` 的固定制品接入；不从 sibling 目录导入源码。
+
 - [Agent 规则](AGENTS.md)：编码任务的入口和红线；
 - [文档权威索引](docs/document-authority.yaml)：某类事实应该查哪份文档；
 - [系统边界](docs/architecture/system-boundaries.md)：Electron、DSH、插件的当前职责；
@@ -41,11 +44,13 @@ Pasteboard；真实复制/自动粘贴/物理快捷键仍待 disposable 资格�
 - [Desktop Surface 与 Quick Panel spec](specs/2026-08-24-hermit-dsh-vnext/desktop-surface-quick-panel.md)：Quick Panel、对话小窗口和剪贴板窗口迁移；
 - [M1 设计](specs/2026-08-24-hermit-dsh-vnext/m1-foundation-qualification.md)：M1 阶段、gate 和退出条件；
 - [仓库布局](docs/repository-layout.md)：目录所有权和生命周期；
+- [多产品拆仓方案](specs/2026-09-03-product-variant-platform-split.md)：Desktop Core、Hermit 和新产品的 sibling 仓库边界与迁移门槛；
 - [DSH 官方上游资料](DEEPSEEK-HARNESS-UPSTREAM.md)：当前 DSH 文档快照、版本和更新规则；
 - [macOS 发布流程](docs/development/macos-release.md)：版本、DMG、可选签名、Draft、下载回验和正式发布；
 - [Smart Clipboard 打包与更新流程](docs/development/smart-clipboard-packaging-runbook.md)：插件制品、桌面包、DMG 和版本更新的执行清单；
 - [ADR-0002](docs/adr/0002-electron-loopback-dsh-carrier.md)：M1 为什么采用 Electron + stock DSH Web（历史底座决定）。
 - [ADR-0003](docs/adr/0003-hermit-bundled-dsh-web-source-patch.md)：何时允许 Hermit 自带 DSH Web 携带受控 source patch。
+- [ADR-0006](docs/adr/0006-multi-product-sibling-repositories.md)：为什么多产品拆成 sibling Git 仓库，以及共用与隔离边界。
 
 ## 当前验证
 
@@ -70,12 +75,42 @@ HERMIT_MAC_RELEASE_SIGNING=skip corepack pnpm dist:desktop:mac
 corepack pnpm verify:desktop:packaged-runtime
 corepack pnpm test:m1:desktop:packaged
 corepack pnpm test:m1:replay:packaged
+corepack pnpm test:dsh:long-session
 corepack pnpm test:smart-clipboard:product-surface
 corepack pnpm test:smart-clipboard:packaged-ui
 corepack pnpm --filter @hermit/desktop test:conversation:quick:packaged
 corepack pnpm test:smart-clipboard:native
 corepack pnpm qualification:desktop:mac-login:status
 ```
+
+### DSH 长会话性能测试
+
+该测试只使用本地 `@deepseek-ai/dsh-llm-replay`，不会调用真实模型或消耗 API token。它会
+动态生成约 10 万字符、128 轮的会话 fixture，启动已打包 Hermit，逐轮写入并流式回放；随后
+关闭进程、重新打开同一个 userData，在原 Session 上追加一轮，再进行第三次冷启动读取。
+
+首次运行前准备本机目录包和 bundled runtime：
+
+```sh
+corepack pnpm --filter @hermit/desktop package:dir
+corepack pnpm test:dsh:long-session
+```
+
+性能基线默认使用 `paceMs=2` 和 32 字符/chunk。先做小规模试跑时可以使用：
+
+```sh
+HERMIT_DSH_LONG_TARGET_CHARS=2000 \
+HERMIT_DSH_LONG_TURNS=8 \
+HERMIT_DSH_LONG_CHUNK_CHARS=32 \
+HERMIT_DSH_LONG_PACE_MS=0 \
+corepack pnpm test:dsh:long-session
+```
+
+可调环境变量包括 `HERMIT_DSH_LONG_TARGET_CHARS`、`HERMIT_DSH_LONG_TURNS`、
+`HERMIT_DSH_LONG_SEED`、`HERMIT_DSH_LONG_CHUNK_CHARS`、`HERMIT_DSH_LONG_PACE_MS` 和
+`HERMIT_DSH_LONG_STREAM_TIMEOUT_MS`。成功后的结构化结果写入 `.hermit/artifacts/`；失败时会
+保留临时 userData、fixture 和 manifest，并在 stderr 输出诊断目录。设置
+`HERMIT_DSH_LONG_KEEP=1` 可在成功后也保留该临时目录。
 
 文档治理检查可单独运行：
 
