@@ -29,7 +29,9 @@ guarantee。
 Approval 必须 fail closed。只有一次 `allowed-once` decision 可以释放匹配的
 Session/call/tool/argument digest/provider operation。Rejected、cancelled、timeout、
 missing、throwing、malformed 或 unavailable answerer 全部 deny。执行前必须已经持久
-记录 asked/decided audit event。
+记录 asked/decided audit event。Desktop Surface 的 `approval.companion` 只是受信展示入口，
+沿用同一个 `PendingWait` 和 request/call 关联；它关闭、过期或 DSH 重启时仍按同一条拒绝路径
+结算，不得在 Quick 页面或插件中复制审批状态机。
 
 ## Capability、Secret 和日志
 

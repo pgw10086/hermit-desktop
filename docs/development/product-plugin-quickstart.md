@@ -20,7 +20,7 @@
 | 桌面应用生命周期 | 窗口、Tray、单实例、退出和 DSH 进程监督 | 无插件直接 API | Desktop Core 内部能力 |
 | 系统剪贴板 | 捕获、读取和写回剪贴板 | 当前没有通用插件 API | Smart Clipboard 专属 |
 | 全局快捷键 | 注册系统级快捷键 | Core `ShortcutRegistry` | 可申请，仍由 Core 统一注册 |
-| Desktop Surface / Quick Panel | 受控桌面窗口、对话或插件工作面 | `DesktopSurfaceClient` typed contract | `conversation.quick` 已接入并通过 packaged 验收 |
+| Desktop Surface / Quick Panel | 受控桌面窗口、对话或插件工作面 | `DesktopSurfaceClient` typed contract | `conversation.quick` 与 `approval.companion` 已接入，并通过 macOS packaged Quick 烟测 |
 | 绝对 Deadline | 等待插件已经计算好的一个绝对 UTC 时刻 | `getDesktopDeadlineClient()` | 可接入，Core bridge 已完成接口和失败测试 |
 | 系统通知 | 显示、替换、移除安全摘要并接收点击/动作/失败 | `getDesktopNotificationClient()` | 可接入，平台授权状态需按返回值处理 |
 
@@ -37,7 +37,7 @@ const surface = getDesktopSurfaceClient()
 if (surface !== undefined) {
   await surface.toggle('organizer.todo-glance', {
     preferredSize: { width: 420, height: 560 },
-    topmost: true,
+    alwaysOnTop: true,
   })
 }
 ```
@@ -47,8 +47,9 @@ if (surface !== undefined) {
 `session: { type: 'existing', sessionId }`。
 
 `openMainSession(sessionId)` 是对话类 Surface 把当前 DSH 会话交给主窗口的公开动作；它不读取主窗口
-内部状态，也不复制消息。`conversation.quick` 的具体行为（无标题栏、非置顶、草稿态/聊天态、
-每次重新打开新会话）由它自己的 Surface 定义决定，其他插件不需要照搬。
+内部状态，也不复制消息。Surface 的标题栏、拖动、缩放、置顶、位置记忆等行为由注册定义决定，
+插件不需要照搬 `conversation.quick` 的偏好；需要审批时使用 DSH 自己的 Approval 链路，不能伪造
+`approval.companion`。
 
 Reminder 插件只把已经算好的 `fireAt` 交给 `getDesktopDeadlineClient()`，把不含敏感业务正文
 的摘要交给 `getDesktopNotificationClient()`。这两个 client 在纯 Web 中可能不存在，插件必须

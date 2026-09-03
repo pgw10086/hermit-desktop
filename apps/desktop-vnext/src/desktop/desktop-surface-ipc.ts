@@ -122,15 +122,15 @@ function parseOpenOptions(value: unknown): DesktopSurfaceOpenOptions {
   const anchor = stringOption('anchor')
   const placement = stringOption('placement')
   const focus = stringOption('focus')
-  const topmost = record.topmost
-  if (topmost !== undefined && typeof topmost !== 'boolean') throw new Error('Desktop Surface topmost 无效')
+  const alwaysOnTop = record.alwaysOnTop
+  if (alwaysOnTop !== undefined && typeof alwaysOnTop !== 'boolean') throw new Error('Desktop Surface alwaysOnTop 无效')
   const session = record.session === undefined ? undefined : parseSession(record.session)
   return {
     ...(anchor === undefined ? {} : { anchor }),
     ...(placement === undefined ? {} : { placement }),
     ...(focus === undefined ? {} : { focus }),
     ...(preferredSize === undefined ? {} : { preferredSize }),
-    ...(topmost === undefined ? {} : { topmost }),
+    ...(alwaysOnTop === undefined ? {} : { alwaysOnTop }),
     ...(session === undefined ? {} : { session }),
   }
 }
@@ -154,5 +154,5 @@ function parseSession(value: unknown): DesktopSurfaceOpenOptions['session'] {
 }
 
 function positiveBounded(value: unknown): value is number {
-  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 160 && value <= 4096
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 64 && value <= 4096
 }

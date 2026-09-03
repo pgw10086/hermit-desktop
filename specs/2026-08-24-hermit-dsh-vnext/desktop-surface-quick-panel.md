@@ -1,14 +1,15 @@
 # Desktop Surface 与 Quick Panel
 
-状态：`IMPLEMENTED_V1_1`
+状态：`IMPLEMENTED_V1_2`
 
 更新时间：2026-09-02
 
 当前实现进度：S1 的 typed contract、Surface Manager、IPC 和能力 bridge 已落地；S3 的
 Smart Clipboard 窗口已迁移到统一宿主并通过 macOS packaged UI 验收；S2 的
 `conversation.quick` 已接入 DSH Web、正式 Session UI，并通过 macOS packaged Surface
-真实对话验收。当前 v1.1 补齐两态交互：无标题栏普通窗口、草稿态/聊天态、每次重新打开新会话、
-新建对话和打开主窗口。S4 暂不开发。
+真实对话验收。v1.2 的通用窗口策略、轻量独立 Quick Conversation 视图和独立的
+`approval.companion` 审批伴随窗口已落地，并通过模块测试、目录制品构建和 macOS packaged
+Quick Conversation 烟测。macOS 代码签名因本机没有 Developer ID 而跳过；S4 暂不开发。
 
 本文是 Hermit 将 Quick Panel 从 Smart Clipboard 专属窗口能力调整为 Desktop Core 通用桌面
 能力的变更 spec。它承接[核心需求](core-requirements.md)中的长期边界，并作为后续代码开发、
@@ -29,8 +30,9 @@ Quick Panel 不再被定义为剪贴板能力，而是 Desktop Core 提供的桌
 真实产品闭环是 `conversation.quick`：一个可由全局快捷键唤起的紧凑 DSH 对话工作面。
 
 这次变更不建立第二套 AI runtime，也不把 Desktop Core 变成插件可以自由创建 Electron 窗口的
-SDK。目标是让 Core 统一管理桌面资源，让 DSH 继续管理 AI 和 Session，让 Product Plugin 继续
-管理自己的业务。
+SDK。目标是让 Core 统一管理桌面资源和可配置的窗口行为，让 DSH 继续管理 AI、Session 和
+Approval，让 Product Plugin 继续管理自己的业务。确认框属于独立 Surface，不嵌进 Quick 输入框，
+也不强制跳回主窗口。
 
 ## 2. 为什么要调整
 
@@ -78,8 +80,9 @@ SDK。目标是让 Core 统一管理桌面资源，让 DSH 继续管理 AI 和 S
 3. Core 不保存插件业务状态、对话消息、模型凭据或第二份 Session；
 4. 每个 Surface 必须有明确 owner、停用/卸载清理方式和平台不可用结果。
 
-以下内容不是全局硬编码清单，而是可协商的 Surface 配置：位置、尺寸、是否置顶、是否获取
-焦点、内容区域和业务动作。Core 可以根据平台和安全策略返回实际生效值。
+以下内容不是全局硬编码清单，而是可协商的 Surface 配置：标题栏、是否可拖动、是否可缩放、
+是否置顶、位置、尺寸、焦点、Esc/失焦行为、位置/尺寸记忆、内容区域和业务动作。Core 可以根据
+平台和安全策略返回实际生效值；插件只依赖 typed contract，不感知 Electron 细节。
 
 ## 5. Surface 模型
 
@@ -114,11 +117,20 @@ interface DesktopSurfaceDefinition {
     contract?: number
   }
   window?: {
+    chrome?: 'system' | 'none'
+    movable?: 'allowed' | 'locked'
+    resizable?: boolean
+    alwaysOnTop?: boolean
     anchor?: string
     placement?: string
     preferredSize?: { width: number; height: number }
+    minSize?: { width: number; height: number }
+    maxSize?: { width: number; height: number }
     focus?: string
-    topmost?: boolean
+    escape?: 'hide' | 'close' | 'ignore'
+    blur?: 'hide' | 'keep'
+    rememberPosition?: boolean
+    rememberSize?: boolean
   }
   session?: {
     type: 'new-on-submit' | 'last-bound' | 'existing'
@@ -141,7 +153,7 @@ interface DesktopSurfaceOpenOptions {
   placement?: string
   preferredSize?: { width: number; height: number }
   focus?: string
-  topmost?: boolean
+  alwaysOnTop?: boolean
   session?: DesktopSurfaceDefinition['session']
 }
 
@@ -171,8 +183,11 @@ type DesktopSurfaceErrorCode =
 
 - Surface 类型是可扩展的，不要求 Core 为每个未来功能预建一个专用方法；
 - `resize` 只改变已存在窗口的尺寸，不重新加载内容或改变 Session；
-- `anchor`、`placement`、`preferredSize`、`focus` 和 `topmost` 表达业务意图，不暴露平台
-  坐标、窗口层级或 native handle；
+- `anchor`、`placement`、`preferredSize`、`focus` 和 `alwaysOnTop` 表达业务意图，不暴露平台
+  坐标、窗口层级或 native handle；注册时的窗口策略还可声明标题栏、拖动、缩放、边界和
+  记忆行为；
+- 无标题栏 Surface 由内容声明公开拖动区域（例如 `data-hermit-drag-region`），交互控件声明
+  `data-hermit-no-drag`；Core 只负责把这些声明映射到宿主窗口，不让插件拿到原生窗口对象；
 - `content` 使用已经注册的 DSH Conversation 或 Product Plugin View；
 - `actions` 引用已经注册的命令或 typed action，不传任意 IPC 回调；
 - owner 从插件运行时作用域推导，`register` 返回 disposer；
@@ -198,12 +213,12 @@ authority、原生模块实例或私有 IPC。这是跨边界的通用安全规�
 
 ### 默认行为
 
-- `conversation.quick` 使用一个无标题栏的普通窗口，不是系统级最上层窗口，不依附主窗口，
+- `conversation.quick` 默认使用无标题栏、可拖动、不可缩放、非置顶的普通窗口，不依附主窗口，
   也不因失去焦点自动隐藏；这些是该 Surface 的偏好，不是所有 Surface 的硬编码规则；
 - Surface 有三个可观察状态：`HIDDEN`（窗口不可见）、`COMPOSER`（刚打开，只显示紧凑输入框）和
   `CHAT(sessionId)`（首条消息被 DSH 接收后显示聊天内容）；`HIDDEN` 只是窗口可见性，不是会话状态；
-- 每次从 `HIDDEN` 重新打开都从新的 DSH 会话草稿开始；Core 不预先创建 Session，首次提交由 DSH
-  正式流程创建。当前已经打开时再次触发快捷键只聚焦，不重置正在进行的对话；
+- 每次从 `HIDDEN` 重新打开都从新的 DSH 会话草稿开始；Quick 页面通过 DSH 公开的 `sessions.create`
+  建立空白 Session，Core 不创建或镜像 Session。当前已经打开时再次触发快捷键只聚焦，不重置正在进行的对话；
 - `COMPOSER` 按 `Esc` 隐藏窗口，不删除草稿或已存在的 Session；聊天态也允许按 `Esc` 隐藏，重新打开
   仍按“新打开即新会话”处理；
 - `CHAT` 右上角只提供“新建对话”和“打开主窗口”。“新建对话”清空当前小窗回到 `COMPOSER`，
@@ -212,7 +227,10 @@ authority、原生模块实例或私有 IPC。这是跨边界的通用安全规�
   也不复制消息、模型或 Session 存储；
 - 小窗默认获取输入焦点，但不强行抢回用户主动切换后的其他应用焦点；
 - DSH 的 Tool、Skill、Approval、取消、重试和错误状态保持原有语义，不在 Quick Panel
-  里另建一套操作流程。
+  里另建一套操作流程。Quick 页面只使用公开的 DSH Session/Input/Conversation snapshot，
+  不复用完整 DSH Web 的标题栏、侧栏和详情布局。
+- v1 的 `rememberPosition`/`rememberSize` 只保证同一窗口实例隐藏后重开时恢复；跨应用重启的
+  持久化存储留给后续明确的 Core 状态需求，不由本次 Surface contract 默默扩展。
 
 窗口是否有标题栏、是否置顶、失焦是否隐藏、草稿态和聊天态的具体布局，都由
 `conversation.quick` 自己声明。其他插件只复用 Desktop Surface 的通用生命周期，不被这些偏好绑定。
@@ -220,13 +238,28 @@ authority、原生模块实例或私有 IPC。这是跨边界的通用安全规�
 Quick Conversation 不需要因为“未来可能支持截图、语音或文件”而提前申请对应系统权限。
 这些能力以后各自声明、各自申请、各自返回结果。
 
+### 7.1 独立 Approval companion
+
+- DSH 的 `ApprovalRequest` 仍只有一个回答者；`approval.companion` 只是 Core 托管的独立展示与
+  回答入口，沿用同一个 `PendingWait`、`requestId` 和 `callId`，不复制审批状态机；
+- 它可以靠近 Quick 窗口显示，待审批时获取焦点；默认不嵌在 Quick 面板内，也不把用户赶回主窗口；
+- 允许一次、拒绝、Esc、关闭、过期、DSH 重启都走同一个 fail-closed 结算路径；审批消失后伴随窗口自动关闭；
+- 这是 DSH/受信任宿主路径。普通 Product Plugin 不能伪造 DSH Approval 响应，只能声明自己的普通 Surface。
+
+### 7.2 轻量 Quick 页面
+
+Quick 页面由 Hermit layout 自己绘制：草稿态只有紧凑输入框，聊天态显示消息流、输入框和右上角
+“新建对话／打开主窗口”。它可以使用 DSH 的公开原语和快照类型，但不依赖 DSH Web 的私有 DOM、
+Router、store 或 CSS 选择器。页面状态变化通过 `DesktopSurfaceClient.resize` 告知 Core，Core 按
+Surface 的 min/max 约束生效。
+
 ## 8. Smart Clipboard 迁移
 
 迁移只改变窗口宿主，不改变剪贴板业务：
 
 | 内容 | 迁移后的负责人 |
 | --- | --- |
-| 窗口创建、定位、显示、焦点、置顶和清理 | Desktop Core Surface Manager |
+| 窗口创建、定位、显示、焦点、窗口策略和清理 | Desktop Core Surface Manager |
 | 快捷键注册和冲突状态 | Desktop Core `ShortcutRegistry` |
 | ClipboardEntry、历史、SQLite/FTS、搜索 | Smart Clipboard |
 | TEXT/IMAGE/FILE_LIST 规则 | Smart Clipboard |
@@ -261,7 +294,8 @@ Surface API 必须区分：
 - 当前平台完全不可用；
 - owner 已停用或 renderer 启动失败。
 
-第一阶段优先完成 macOS 真实闭环，Windows、Linux X11 和 Wayland 按平台能力逐步补证。
+第一阶段优先完成 macOS 真实闭环，Windows、Linux X11 和 Wayland 按平台能力逐步补证；Wayland
+对移动、置顶和位置恢复的有效性以实际运行时能力为准，不能把请求值当成生效值。
 不得为了声称跨平台一致而偷偷启用另一套未验证的窗口实现。
 
 ## 11. 分阶段开发顺序
@@ -281,6 +315,16 @@ Surface API 必须区分：
   新会话、Esc 隐藏和主窗口显式交接；
 - 完成 macOS packaged smoke 和小窗内真实 DSH 对话验收；已有 Session 的显式绑定按公开
   `session` 选项扩展，不把主窗口当前选择暗含成跨边界依赖。
+
+### S2.1：轻量页面与审批伴随窗口
+
+- 加入可拖动的轻量 Quick 页面，保持 `conversation.quick` 的两态尺寸和通用窗口策略；
+- 加入独立 `approval.companion`，沿用 DSH `PendingWait`，验证审批只有一个回答者且不跳主窗口；
+
+状态：`IMPLEMENTED`。Quick 页面、窗口策略和 companion 已进入布局包与 Desktop Core；
+macOS packaged Quick Conversation 烟测覆盖草稿态、聊天态、Esc、新建对话和主窗口交接。
+Approval companion 的专门 packaged replay 留作后续资格补证；当前实现和 typed PendingWait
+路径已通过构建与模块检查，不读取主窗口私有 React 状态来伪造测试输入。
 
 ### S3：Smart Clipboard 迁移
 

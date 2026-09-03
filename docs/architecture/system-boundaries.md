@@ -14,7 +14,7 @@
 Electron Desktop Shell
 |-- 主窗口、Tray、开机启动、更新、单实例
 |-- 通过 Hermit carrier 启动并监管自带、经过兼容性验证的 Node/DSH 运行时
-|-- Desktop Surface Manager：受控窗口、定位、焦点、置顶和平台降级
+|-- Desktop Surface Manager：受控窗口、定位、焦点、窗口策略和平台降级
 |-- Desktop deadline / notification facade：绝对时刻等待和系统投递
 |-- Smart Clipboard 桌面运行单元与主进程专用 macOS native micro-adapter
 `-- 通过 127.0.0.1 + OS 随机端口加载 DSH Web
@@ -39,7 +39,9 @@ Hermit carrier 是 Electron 与 DSH 之间的一次性生命周期载体。它�
 
 Quick Panel 现在按独立模块设计为 Desktop Surface 能力，仍不属于 M1 已完成的资格范围。
 Desktop Core 提供统一的 Surface Manager 和 typed contract；第一条产品闭环是
-`conversation.quick`，它通过正常 DSH Session 承载对话，不创建第二套 AI runtime。Smart
+`conversation.quick`，它通过正常 DSH Session 承载对话，不创建第二套 AI runtime。Quick 页面
+由 Hermit layout 独立绘制，`approval.companion` 是不嵌入 Quick 的独立审批入口。
+Smart
 Clipboard 的快速取回和未来 Product Plugin 小窗复用窗口宿主，但继续拥有自己的数据、领域
 服务和动作语义，不能因为都使用浮层而合并业务状态。
 
@@ -57,7 +59,7 @@ Clipboard 的快速取回和未来 Product Plugin 小窗复用窗口宿主，但
   登录项或关机的控制入口，也不能替代真实系统级验收；
 - 携带通过兼容性资格检查的 Node、pnpm、DSH 组合，并负责启动、就绪探测、退出、崩溃恢复和进程树清理；
 - 创建受限 renderer，加载经过允许的 DSH loopback origin；
-- 提供 Desktop Surface Manager，统一创建、定位、显示、隐藏、焦点、置顶、窗口状态和
+- 提供 Desktop Surface Manager，统一创建、定位、显示、隐藏、焦点、窗口策略和
   renderer 清理；Surface 内容和业务状态由 DSH 或对应 Product Plugin 提供；
 - 为使用 Surface 的插件提供经过 sender/schema 校验的窄 facade；Smart Clipboard 的快速
   取回只调用自己的业务 facade，`conversation.quick` 只绑定 DSH Session；

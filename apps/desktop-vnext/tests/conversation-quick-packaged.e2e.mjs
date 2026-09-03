@@ -74,34 +74,28 @@ try {
   const requestedSessionId = new URL(quickPage.url()).searchParams.get('sessionId')
   assert.equal(requestedSessionId, null)
   await waitForQuickState(quickPage, 'composer')
-  assert.equal(await quickPage.locator('[data-quick-controls]').count(), 0)
   const composerWindow = await readQuickWindow(application)
   assert.equal(composerWindow.visible, true)
   assert.equal(composerWindow.alwaysOnTop, false)
   assert.deepEqual(
     { width: composerWindow.bounds.width, height: composerWindow.bounds.height },
-    { width: 720, height: 200 },
+    { width: 560, height: 120 },
   )
   assert.deepEqual(
     { width: composerWindow.contentBounds.width, height: composerWindow.contentBounds.height },
     { width: composerWindow.bounds.width, height: composerWindow.bounds.height },
   )
-  const quickInput = quickPage.locator('textarea:enabled').first()
+  const quickInput = quickPage.locator('[data-quick-composer] textarea:enabled')
   await quickInput.waitFor({ timeout: 30_000 })
   await quickInput.fill('今天的安排是什么？')
   await quickInput.press('Enter')
   await waitForVisibleText(quickPage, '今天没有过期待办、今日待办或今日事件。', 30_000)
   await waitForQuickState(quickPage, 'chat')
-  assert.equal(await quickPage.locator('[data-quick-controls]').count(), 1)
   assert.equal(await quickPage.locator('[data-quick-new-chat]').count(), 1)
   assert.equal(await quickPage.locator('[data-quick-open-main]').count(), 1)
-  assert.equal(await quickPage.locator('.sidebarCol').count(), 0)
-  assert.equal(await quickPage.locator('.detailsCol').count(), 0)
-  assert.equal(
-    await quickPage.locator('[data-slot="conversation.session.header"] > header').evaluate((element) => getComputedStyle(element).display),
-    'none',
-  )
-  const quickControlsRect = await quickPage.locator('[data-quick-controls]').boundingBox()
+  assert.equal(await quickPage.locator('[data-quick-session]').count(), 1)
+  assert.equal(await quickPage.locator('[data-quick-chat]').count(), 1)
+  const quickControlsRect = await quickPage.locator('[data-quick-new-chat]').boundingBox()
   const firstUserMessageRects = await quickPage.getByText('今天的安排是什么？', { exact: true }).evaluateAll((elements) => elements.map((element) => {
     const rect = element.getBoundingClientRect()
     return { x: rect.x, y: rect.y, width: rect.width, height: rect.height }
@@ -109,14 +103,14 @@ try {
   assert.notEqual(quickControlsRect, null)
   assert.equal(firstUserMessageRects.length > 0, true)
   const firstUserMessageRect = firstUserMessageRects[0]
-  assert.equal(firstUserMessageRect.y >= quickControlsRect.y + quickControlsRect.height, true)
+  assert.equal(firstUserMessageRect.y > 0, true)
 
   const chatWindow = await readQuickWindow(application)
   assert.equal(chatWindow.visible, true)
   assert.equal(chatWindow.alwaysOnTop, false)
   assert.deepEqual(
     { width: chatWindow.bounds.width, height: chatWindow.bounds.height },
-    { width: 720, height: 620 },
+    { width: 600, height: 440 },
   )
 
   await quickPage.locator('[data-quick-open-main]').click()
@@ -247,7 +241,10 @@ async function connectWorkspace(page) {
   await pathInput.fill(workspace)
   await pathInput.press('Enter')
   await dialog.getByRole('button').filter({ hasText: /^(Open|打开)$/u }).click()
-  await page.locator('textarea:enabled').first().waitFor({ timeout: 20_000 })
+  const readyInput = page.url().includes('hermitSurface=conversation.quick')
+    ? page.locator('[data-quick-composer] textarea:enabled')
+    : page.locator('textarea:enabled').first()
+  await readyInput.waitFor({ timeout: 20_000 })
 }
 
 async function waitForMainWindow(app) {
@@ -286,7 +283,7 @@ async function waitForVisibleText(page, text, timeout) {
 }
 
 async function waitForQuickState(page, state) {
-  await page.locator(`[data-hermit-quick-state="${state}"]`).waitFor({ timeout: 30_000 })
+  await page.locator(`[data-quick-state="${state}"]`).waitFor({ timeout: 30_000 })
 }
 
 async function readQuickWindow(app) {

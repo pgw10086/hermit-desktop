@@ -118,68 +118,28 @@
   pointer-events: auto;
 }
 
-/* conversation.quick reuses the DSH Conversation tree but removes desktop
-   navigation chrome; the host window owns the outer size and focus policy. */
+.overlayLayer [data-quick-surface-overlay] {
+  position: absolute;
+  inset: 0;
+}
+
+/* Desktop surfaces remove navigation columns; their own page is rendered in
+   shell.overlay and owns the compact visual hierarchy. */
 .frame[data-hermit-surface='conversation.quick'] .sidebarCol,
 .frame[data-hermit-surface='conversation.quick'] .detailsCol,
-.frame[data-hermit-surface='conversation.quick'] .overlayLayer {
+.frame[data-hermit-surface='approval.companion'] .sidebarCol,
+.frame[data-hermit-surface='approval.companion'] .detailsCol {
   display: none;
 }
 
-/* 侧栏隐藏后不再参与网格自动排位，Conversation 必须明确跨过整个宿主窗口。 */
-.frame[data-hermit-surface='conversation.quick'] .centerCol {
+/* Keep the DSH shell mounted for its runtime, but place the custom surface on
+   top once a session exists. The blank state leaves the normal workspace
+   picker reachable so a new session can be selected. */
+.frame[data-hermit-surface='conversation.quick'] .centerCol,
+.frame[data-hermit-surface='approval.companion'] .centerCol {
   grid-column: 1 / -1;
 }
 
-.frame[data-hermit-surface='conversation.quick'] .quickControls {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  z-index: 10;
-  display: flex;
-  gap: 4px;
-}
-
-.frame[data-hermit-surface='conversation.quick'][data-hermit-quick-state='composer'] [data-phase='hero'] [data-composer-seat] > :not(:has([data-composer-card])) {
-  display: none;
-}
-
-.frame[data-hermit-surface='conversation.quick'][data-hermit-quick-state='composer'] [data-phase='hero'] [data-composer-seat] [data-chain-overlay-fallback='conversation.composer'] > :has([data-composer-card]) > :not(:has([data-composer-card])) {
-  display: none;
-}
-
-.frame[data-hermit-surface='conversation.quick'][data-hermit-quick-state='composer'] [data-phase='hero'] [data-composer-seat] {
-  width: 100%;
-}
-
-.frame[data-hermit-surface='conversation.quick'][data-hermit-quick-state='composer'] [data-phase='hero'] [data-composer-seat] > :has([data-composer-card]) {
-  width: 100%;
-  padding-bottom: 0;
-}
-
-.frame[data-hermit-surface='conversation.quick'][data-hermit-quick-state='composer'] [data-phase='hero'] [data-composer-seat] [data-chain-overlay-fallback='conversation.composer'] > :has([data-composer-card]) {
-  width: 100%;
-  gap: 0;
-  padding-bottom: 0;
-}
-
-.frame[data-hermit-surface='conversation.quick'][data-hermit-quick-state='composer'] [data-phase='hero'] [data-composer-seat] [data-composer-card] {
-  max-width: none;
-}
-
-/* Quick chat has its own two actions; the stock Conversation header would
-   duplicate them and consume the compact window's top row. */
-.frame[data-hermit-surface='conversation.quick'][data-hermit-quick-state='chat'] [data-slot='conversation.session.header'] {
-  display: contents;
-}
-
-.frame[data-hermit-surface='conversation.quick'][data-hermit-quick-state='chat'] [data-slot='conversation.session.header'] > header {
-  display: none;
-}
-
-/* Reserve the compact window's top-right action strip so the first message
-   bubble cannot scroll underneath it after the stock header is removed. */
-.frame[data-hermit-surface='conversation.quick'][data-hermit-quick-state='chat'] [data-conversation-scroll] {
-  box-sizing: border-box;
-  padding-top: 72px;
+.frame[data-hermit-surface][data-hermit-quick-session] .centerCol {
+  visibility: hidden;
 }

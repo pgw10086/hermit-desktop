@@ -8,12 +8,13 @@
  * by the runtime sessions service. A second effect seats the theme presenter,
  * which projects ctx.theme snapshots onto document.body.
  */
-import type { ClientContext, SessionId } from '@deepseek-ai/dsh-client-runtime/client'
+import type { ClientContext, SessionId, WorkspaceId } from '@deepseek-ai/dsh-client-runtime/client'
 import type {} from '@deepseek-ai/dsh-client-runtime/client'
 import type {} from '@deepseek-ai/dsh-client-ui-theme/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
-import { type ProductSurfaceOwnerProps } from './contract.ts'
+import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
+import { type ProductSurfaceOwnerProps, type QuickSessionOwnerProps } from './contract.ts'
 import type { PanelActions } from './service.ts'
 import { AppFrame } from './AppFrame.tsx'
 import { ProductNavigation } from './ProductNavigation.tsx'
@@ -21,6 +22,8 @@ import { ShortcutCenter } from './ShortcutCenter.tsx'
 import { createLayoutStore } from './stores.ts'
 import { LayoutController } from './service.ts'
 import { ThemePresenter } from './theme-presenter.ts'
+import { QuickSurfaceOverlay } from './QuickSurfaceOverlay.tsx'
+import { QuickConversationSession } from './QuickConversationSession.tsx'
 
 // Contract exports only (export-convergence rule: cross-package consumers
 // keep a symbol exported; test-only/package-internal symbols live off /src).
@@ -33,6 +36,8 @@ export {
   type DesktopSurfaceCapabilities,
   type DesktopSurfaceClient,
   type DesktopMainSessionResult,
+  type DesktopSurfaceSize,
+  type DesktopSurfaceWindowPolicy,
   type DesktopSurfaceOpenOptions,
   type DesktopSurfaceResult,
   type ILayout,
@@ -40,6 +45,7 @@ export {
   type ProductEntryIcon,
   type ProductNavigationState,
   type ProductSurfaceOwnerProps,
+  type QuickSessionOwnerProps,
 } from './contract.ts'
 export {
   getDesktopDeadlineClient,
@@ -61,6 +67,15 @@ declare module '@deepseek-ai/cordis' {
   interface Context {
     /** The outward face only; the concrete service stays inside this plugin. */
     layout: import('./contract.ts').ILayout
+  }
+}
+
+// DSH SessionRuntime 负责创建空白会话，但基础 ISessions 对同级包只开放导航能力。
+// Quick Surface 属于受信的 DSH layout 集成，因此使用公开的创建方法完成每次新打开的交接；
+// 这条边界不允许 Electron 或宿主专属 API 穿透。
+declare module '@deepseek-ai/dsh-client-runtime/client' {
+  interface ISessions {
+    create(options?: { workspaceId?: WorkspaceId; cwd?: string; sessionId?: SessionId }): Promise<SessionId>
   }
 }
 
@@ -121,6 +136,8 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      * `id` is added beside the shipped entries instead of replacing them.
      */
     'shell.overlay': { kind: 'list'; scope: 'root' }
+    /** Independent lightweight Quick/Approval content, kept inside the generic frame overlay. */
+    'conversation.quick.session': { kind: 'single'; scope: 'session-maybe'; owner: QuickSessionOwnerProps }
   }
 }
 
@@ -146,7 +163,7 @@ export interface DetailsOwnerProps {}
 
 /** Required services (cordis fiber inject — the loader passes all module exports as an object plugin). */
 /** 布局插件需要的 slot 注册和主题快照服务。 */
-export const inject = ['slots', 'theme', 'sessions']
+export const inject = ['slots', 'theme', 'sessions', 'workspaces']
 
 /**
  * Client plugin body: provide ctx.layout, then one register() call — AppFrame
@@ -177,6 +194,17 @@ export function apply(ctx: ClientContext): void {
         return {}
       },
     }, AppFrame)
+    const disposeQuickSurface = ctx.slots.register({
+      name: 'shell.overlay',
+      id: 'conversation.quick.overlay',
+      order: -100,
+      children: {
+        'conversation.quick.session': { kind: 'single', scope: 'session-maybe' },
+      },
+    }, QuickSurfaceOverlay)
+    const disposeQuickSession = ctx.slots.register({
+      name: 'conversation.quick.session',
+    }, QuickConversationSession)
     const disposeProductNavigation = ctx.slots.inject('sidebar.footer.action', () => ctx.slots.register({
       name: 'sidebar.footer.action',
       id: 'hermit-product-navigation',
@@ -194,6 +222,8 @@ export function apply(ctx: ClientContext): void {
       disposeSessionNavigation()
       disposeShortcutCenter()
       disposeProductNavigation()
+      disposeQuickSession()
+      disposeQuickSurface()
       disposeRegistration()
       // provide()'s disposer settles asynchronously; teardown is synchronous fire-and-forget.
       void disposeService()
@@ -226,13 +256,28 @@ export function apply(ctx: ClientContext): void {
     }, 'ui-layout: requested Surface Session')
   }
 
-  // A Quick Conversation fresh-open is an explicit no-session request. Clear
-  // only this renderer's current selection through the official DSH service;
-  // the Core never creates or mirrors a Session to implement this behavior.
+  // Quick Conversation 每次重新打开都明确请求一个空白会话。由 DSH 公开服务创建，Core 不创建
+  // 或镜像 Session 来实现这个行为。
   if (new URLSearchParams(window.location.search).get('hermitNewSession') === '1') {
     ctx.effect(() => {
+      let live = true
+      const sessionList = ctx.sessions.list.getSnapshot()
+      const workspaceList = ctx.workspaces.list.getSnapshot()
+      const currentSessionId = sessionList.current
+      const currentWorkspace = currentSessionId === undefined
+        ? undefined
+        : workspaceList.items.find((workspace) => workspace.sessionIds.includes(currentSessionId))
+      const workspace = currentWorkspace
+        ?? workspaceList.items.find((item) => item.workspaceId === workspaceList.recentWorkspaceId)
+        ?? workspaceList.items[0]
       ctx.sessions.clear()
-      return () => undefined
+      const createOptions = workspace === undefined ? {} : { workspaceId: workspace.workspaceId }
+      void ctx.sessions.create(createOptions).then((sessionId) => {
+        if (live) ctx.sessions.open(sessionId)
+      }).catch((error: unknown) => {
+        console.error(`创建 Quick Session 失败: ${error instanceof Error ? error.message : String(error)}`)
+      })
+      return () => { live = false }
     }, 'ui-layout: fresh Surface Session')
   }
 

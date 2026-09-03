@@ -86,10 +86,10 @@ test('preload 将 Quick Panel 布局对象转换为主进程请求字段', async
     channel: 'hermit:smart-clipboard',
     request: { op: 'set-quick-panel-layout', rows: 5, previewOpen: true },
   })
-  await surfaceExposed.toggle('conversation.quick', { topmost: true })
+  await surfaceExposed.toggle('conversation.quick', { alwaysOnTop: true })
   assert.deepEqual(calls.at(-1), {
     channel: 'hermit:desktop-surface',
-    request: { op: 'toggle', id: 'conversation.quick', options: { topmost: true } },
+    request: { op: 'toggle', id: 'conversation.quick', options: { alwaysOnTop: true } },
   })
   await shortcutExposed.list()
   assert.deepEqual(calls.at(-1), {

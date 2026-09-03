@@ -51,15 +51,17 @@ Desktop Surface 是 Desktop Core 对外提供的受控桌面工作面能力。�
 进入前台会话时，Core 负责关闭 Product Surface。当前会话的身份和历史仍归 DSH `sessions`
 service，Core 不复制一份 `sessionId`，也不把插件页面改造成第二套路由。
 
-Core 负责窗口宿主、屏幕和工作区、焦点、置顶、可见性、平台降级以及停用/卸载清理；DSH 或
-插件负责 Surface 内的会话、业务数据、业务动作和状态。Surface API 允许插件表达位置、尺寸、
-焦点和置顶偏好，Core 返回当前平台实际生效的结果，不把每种未来窗口形态提前写成固定枚举。
+Core 负责窗口宿主、屏幕和工作区、焦点、窗口策略、可见性、平台降级以及停用/卸载清理；DSH 或
+插件负责 Surface 内的会话、业务数据、业务动作和状态。Surface API 允许插件表达标题栏、拖动、
+缩放、位置、尺寸、焦点、置顶、Esc/失焦和记忆偏好，Core 返回当前平台实际生效的结果，不把
+每种未来窗口形态提前写成固定枚举。
 
-第一条实现是 `conversation.quick`：它使用无标题栏、非置顶、失焦不自动隐藏的普通窗口，刚打开
+第一条实现是 `conversation.quick`：它使用无标题栏、可拖动、不可缩放、非置顶、失焦不自动隐藏的普通窗口，刚打开
 是紧凑草稿态，首条消息提交后切换到聊天态；从隐藏状态再次打开和点击“新建对话”都回到新的
 DSH 会话草稿。聊天态的“打开主窗口”通过公开 `openMainSession(sessionId)` 交接当前会话。
 这些是该 Surface 的具体偏好。Smart Clipboard 的快速取回和未来 Organizer Todo 小窗可以复用
-同一个 Manager，但不能因此共享业务状态或互相调用内部实现。
+同一个 Manager，但不能因此共享业务状态或互相调用内部实现。审批使用独立的
+`approval.companion` Surface，不嵌进 Quick 页面，也不强制跳回主窗口。
 
 ### Deadline 与系统通知
 
@@ -107,14 +109,20 @@ quickSurface.open(options)
 
 插件侧的 Desktop Surface contract 位于 Hermit DSH layout client 公共出口，可通过
 `getDesktopSurfaceClient()` 取得 `open/toggle/resize/close/openMainSession/capabilities`。其中 `resize`
-只调整已有窗口尺寸，不触发页面加载或 Session 选择。桌面壳缺少该 bridge 时
+只调整已有窗口尺寸，不触发页面加载或 Session 选择。Surface 注册时可声明 `chrome`、`movable`、
+`resizable`、`alwaysOnTop`、最小/最大尺寸、Esc/失焦行为以及位置/尺寸记忆；打开时只覆盖
+位置、尺寸、焦点、置顶和 Session 等请求级偏好。桌面壳缺少该 bridge 时
 返回 `undefined`。窗口注册、renderer loader 和 Electron 句柄仍只在 Desktop Core 内部；
 `ShortcutRegistry` 也继续由 Core 持有；快捷键中心只消费 Core 的列表、更新、恢复和变化通知，
 不把 Electron 句柄或插件回调暴露给 DSH Client。
 
 不要向插件暴露 `BrowserWindow`、`ipcRenderer`、Node 文件系统、原生模块实例或通用 IPC
-转发器。Core 内部可以使用这些实现，但它们不属于插件契约；插件通过公开的 Surface、快捷键
+转发器。无标题栏 Surface 的拖动区域由页面用公开 `data-hermit-drag-region` 声明，按钮等交互区
+用 `data-hermit-no-drag` 标记；Core 内部可以使用 Electron，但插件只能通过公开的 Surface、快捷键
 或其他 typed capability 表达意图即可。
+
+当前 Surface 的位置/尺寸记忆只覆盖同一窗口实例隐藏后的重开；跨应用重启持久化需要单独的 Core
+状态设计和验收，不能从 `rememberPosition`/`rememberSize` 字段名推断已经支持。
 
 ### 快捷键 Registry
 

@@ -3,6 +3,7 @@ import type { ShortcutRegistry } from '../core/shortcut-registry.js'
 import type { NavigationActions } from './window-policy.js'
 import {
   CONVERSATION_QUICK_SURFACE_ID,
+  createConversationApprovalCompanionSurface,
   createConversationQuickSurface,
 } from './conversation-quick-panel.js'
 
@@ -16,6 +17,7 @@ export class ConversationQuickRuntime {
     readonly actions: NavigationActions
   }
   #disposeSurface: (() => void) | undefined
+  #disposeApprovalSurface: (() => void) | undefined
   #disposeShortcut: (() => void) | undefined
 
   constructor(options: {
@@ -30,6 +32,8 @@ export class ConversationQuickRuntime {
     if (this.#disposeSurface !== undefined) return
     const surface = createConversationQuickSurface(this.#options.actions)
     this.#disposeSurface = this.#options.surfaceManager.register(surface.definition, surface.host)
+    const approvalSurface = createConversationApprovalCompanionSurface(this.#options.actions)
+    this.#disposeApprovalSurface = this.#options.surfaceManager.register(approvalSurface.definition, approvalSurface.host)
     const registration = this.#options.shortcutRegistry.register({
       id: 'conversation.quick.open',
       pluginId: 'conversation',
@@ -50,5 +54,7 @@ export class ConversationQuickRuntime {
     this.#disposeShortcut = undefined
     this.#disposeSurface?.()
     this.#disposeSurface = undefined
+    this.#disposeApprovalSurface?.()
+    this.#disposeApprovalSurface = undefined
   }
 }

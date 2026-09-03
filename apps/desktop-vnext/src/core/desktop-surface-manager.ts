@@ -4,6 +4,7 @@ import type {
   DesktopSurfaceDefinition,
   DesktopSurfaceHandle,
   DesktopSurfaceOpenOptions,
+  DesktopSurfaceSize,
 } from './desktop-surface-contract.js'
 import { DesktopSurfaceError } from './desktop-surface-contract.js'
 
@@ -32,6 +33,7 @@ interface SurfaceEntry {
   visible: boolean
   closingUntil: number
   disposed: boolean
+  rememberedBounds: { readonly x: number; readonly y: number; readonly width: number; readonly height: number } | undefined
 }
 
 /**
@@ -57,7 +59,7 @@ export class DesktopSurfaceManager {
       throw new DesktopSurfaceError('INVALID_DEFINITION', `Surface "${definition.id}" 已注册`)
     }
 
-    const window = this.#createWindow(host.window)
+    const window = this.#createWindow(windowOptions(host.window, definition.window))
     const entry: SurfaceEntry = {
       definition,
       host,
@@ -70,6 +72,7 @@ export class DesktopSurfaceManager {
       visible: false,
       closingUntil: 0,
       disposed: false,
+      rememberedBounds: undefined,
     }
     this.#entries.set(definition.id, entry)
     if (typeof host.window.title === 'string') {
@@ -90,6 +93,8 @@ export class DesktopSurfaceManager {
       this.#entries.delete(definition.id)
       this.emit(entry, 'destroyed', undefined)
     })
+    window.on('move', () => this.rememberBounds(entry))
+    window.on('resize', () => this.rememberBounds(entry))
     if (host.hideOnBlur === true) window.on('blur', () => {
       if (!window.isDestroyed()) void this.close(definition.id)
     })
@@ -123,10 +128,20 @@ export class DesktopSurfaceManager {
       if (entry.disposed || entry.window.isDestroyed()) {
         throw new DesktopSurfaceError('OWNER_UNLOADED', `Surface "${id}" 已被销毁`)
       }
-      entry.host.position?.(entry.window, { ...entry.definition.window, ...options })
-      const preferredSize = options.preferredSize ?? entry.definition.window?.preferredSize
-      if (preferredSize !== undefined) entry.window.setSize(preferredSize.width, preferredSize.height)
-      if (options.topmost !== undefined) entry.window.setAlwaysOnTop(options.topmost)
+      const policy = entry.definition.window
+      const remembered = entry.rememberedBounds
+      if (policy?.rememberPosition === true && remembered !== undefined
+        && options.anchor === undefined && options.placement === undefined) {
+        entry.window.setPosition(remembered.x, remembered.y)
+      } else {
+        entry.host.position?.(entry.window, { ...policy, ...options })
+      }
+      const preferredSize = options.preferredSize
+        ?? policy?.preferredSize
+        ?? (policy?.rememberSize === true && remembered !== undefined ? remembered : undefined)
+      if (preferredSize !== undefined) this.setSize(entry, preferredSize)
+      const alwaysOnTop = options.alwaysOnTop ?? policy?.alwaysOnTop
+      if (alwaysOnTop !== undefined) entry.window.setAlwaysOnTop(alwaysOnTop)
       entry.window.show()
       if (options.focus !== 'no-activate' && entry.definition.window?.focus !== 'no-activate') entry.window.focus()
       entry.host.onShown?.(entry.window)
@@ -145,10 +160,10 @@ export class DesktopSurfaceManager {
     return this.open(id, options)
   }
 
-  resize(id: string, size: { readonly width: number; readonly height: number }): void {
+  resize(id: string, size: DesktopSurfaceSize): void {
     const entry = this.require(id)
     if (entry.window.isDestroyed()) throw new DesktopSurfaceError('OWNER_UNLOADED', `Surface "${id}" 已被销毁`)
-    entry.window.setSize(size.width, size.height)
+    this.setSize(entry, size)
   }
 
   async close(id: string): Promise<void> {
@@ -191,6 +206,9 @@ export class DesktopSurfaceManager {
         'multi-surface': true,
         'cursor-anchor': true,
         'always-on-top': process.platform !== 'linux',
+        'window-movable': process.platform !== 'linux',
+        'window-resizable': true,
+        'window-chrome': true,
         'focus-restore': true,
       },
     }
@@ -254,6 +272,43 @@ export class DesktopSurfaceManager {
 
   private emit(entry: SurfaceEntry, event: string, payload: unknown): void {
     for (const listener of entry.listeners.get(event) ?? []) listener(payload)
+  }
+
+  private setSize(entry: SurfaceEntry, size: DesktopSurfaceSize): void {
+    const policy = entry.definition.window
+    const min = policy?.minSize
+    const max = policy?.maxSize
+    const width = Math.min(max?.width ?? Number.POSITIVE_INFINITY, Math.max(min?.width ?? 1, size.width))
+    const height = Math.min(max?.height ?? Number.POSITIVE_INFINITY, Math.max(min?.height ?? 1, size.height))
+    entry.window.setSize(Math.round(width), Math.round(height))
+  }
+
+  private rememberBounds(entry: SurfaceEntry): void {
+    const policy = entry.definition.window
+    if (policy?.rememberPosition !== true && policy?.rememberSize !== true) return
+    if (entry.window.isDestroyed()) return
+    const bounds = entry.window.getBounds()
+    entry.rememberedBounds = {
+      ...(entry.rememberedBounds ?? bounds),
+      ...(policy.rememberPosition ? { x: bounds.x, y: bounds.y } : {}),
+      ...(policy.rememberSize ? { width: bounds.width, height: bounds.height } : {}),
+    }
+  }
+}
+
+function windowOptions(
+  host: BrowserWindowConstructorOptions,
+  policy: DesktopSurfaceDefinition['window'],
+): BrowserWindowConstructorOptions {
+  if (policy === undefined) return host
+  return {
+    ...host,
+    ...(policy.chrome === 'none' ? { frame: false } : {}),
+    ...(policy.movable === undefined ? {} : { movable: policy.movable === 'allowed' }),
+    ...(policy.resizable === undefined ? {} : { resizable: policy.resizable }),
+    ...(policy.alwaysOnTop === undefined ? {} : { alwaysOnTop: policy.alwaysOnTop }),
+    ...(policy.minSize === undefined ? {} : { minWidth: policy.minSize.width, minHeight: policy.minSize.height }),
+    ...(policy.maxSize === undefined ? {} : { maxWidth: policy.maxSize.width, maxHeight: policy.maxSize.height }),
   }
 }
 

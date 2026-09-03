@@ -78,6 +78,9 @@ Product Plugin 组件所有权和资格流程见
 - 长中文、窄窗口、200% zoom、空数据和大量数据不能造成遮挡、跳动或操作不可达。
 - 展开、收起、选择、编辑和保存状态由单一业务状态驱动，不能为不同入口维护重复副本。
 - 宿主负责全局导航、窗口布局和 Product Surface；业务模块只渲染自己的内容区域。
+- Quick/Approval 这类桌面 Surface 可以由 layout 绘制轻量独立页面，但必须继续使用 DSH 的公开
+  Session、Input、Conversation snapshot 和 UI 原语；无标题栏拖动区用公开标记声明，按钮等交互
+  区必须排除拖动，不能依赖 Electron 私有 DOM 或复制完整 Web shell。
 
 ## 原型与验收
 

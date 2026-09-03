@@ -54,6 +54,8 @@ sandbox vocabulary 不能证明 network/process/credential 已隔离。
 - Client code 不直接调用 Electron、`ipcRenderer`、Node 或私有 preload；若某个 Core 能力必须
   经过 renderer 承载，必须使用该插件专属、最小化、sender 校验的公开 facade（例如
   Smart Clipboard 的 `hermitSmartClipboard`），并为 facade 单独做 schema 与生命周期测试；
+- 插件不能伪造 DSH Approval 或直接操作 `approval.companion` 的结算；审批伴随窗口属于
+  DSH/受信宿主路径，插件只能通过公开 Surface contract 表达自己的普通工作面；
   Host code 经过 Broker/provider contract；
 - 每个 registration 和后台资源都属于 activation generation，并可确定性 dispose；
 - 卸载默认删除 code/derived state、保留 Canonical data，历史 Session 由 Core 渲染。

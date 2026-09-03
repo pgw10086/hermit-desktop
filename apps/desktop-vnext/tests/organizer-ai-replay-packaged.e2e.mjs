@@ -55,11 +55,8 @@ try {
   const secondInput = page.locator('textarea:enabled').first()
   await secondInput.fill('帮我记一个待办：准备二期验收，检查三个插件和 AI 闭环')
   await secondInput.press('Enter')
-  const approval = page.locator('[data-approval-key]')
-  await approval.waitFor({ timeout: 90_000 })
-  assert.match(await approval.innerText(), /记录待办|本地数据/u)
-  await approval.getByRole('button', { name: /Allow once|允许一次/u }).click()
   await waitForCanonicalTodo()
+  assert.equal(await page.locator('[data-approval-key]').count(), 0)
 
   const followUpInput = page.locator('textarea:enabled').first()
   await followUpInput.waitFor({ timeout: 20_000 })
@@ -77,7 +74,7 @@ try {
   assert.equal(await surface.getByText('检查三个插件和 AI 闭环', { exact: true }).count(), 1)
   assertPersistedSession()
   await captureSuccessScreenshot(page)
-  console.log('Organizer AI Replay passed: same DSH Session read -> approval -> write -> follow-up -> Canonical readback')
+  console.log('Organizer AI Replay passed: same DSH Session read -> normal write -> follow-up -> Canonical readback')
   succeeded = true
 } catch (cause) {
   const page = application?.windows().find((candidate) => /^http:\/\/127\.0\.0\.1:\d+/u.test(candidate.url()))
@@ -226,7 +223,7 @@ async function waitForCanonicalTodo() {
     }
     await new Promise((resolve) => setTimeout(resolve, 100))
   }
-  throw new Error('Organizer Canonical storage did not contain the approved Todo')
+  throw new Error('Organizer Canonical storage did not contain the created Todo')
 }
 
 function findFiles(rootPath, suffix) {

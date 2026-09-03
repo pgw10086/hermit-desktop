@@ -24,13 +24,38 @@ export interface ProductNavigationState {
 /** 外部 Product Surface 工作面收到的公共 owner props。 */
 export interface ProductSurfaceOwnerProps {}
 
+/** Quick Surface 的会话槽不携带业务 owner 状态，Session 事实由 DSH 标准 kit 提供。 */
+export interface QuickSessionOwnerProps {}
+
 /** DSH Client 可消费的 Desktop Core Surface contract，不暴露宿主窗口对象。 */
+export interface DesktopSurfaceSize {
+  readonly width: number
+  readonly height: number
+}
+
+export interface DesktopSurfaceWindowPolicy {
+  readonly chrome?: 'system' | 'none'
+  readonly movable?: 'allowed' | 'locked'
+  readonly resizable?: boolean
+  readonly alwaysOnTop?: boolean
+  readonly anchor?: string
+  readonly placement?: string
+  readonly preferredSize?: DesktopSurfaceSize
+  readonly minSize?: DesktopSurfaceSize
+  readonly maxSize?: DesktopSurfaceSize
+  readonly focus?: string
+  readonly escape?: 'hide' | 'close' | 'ignore'
+  readonly blur?: 'hide' | 'keep'
+  readonly rememberPosition?: boolean
+  readonly rememberSize?: boolean
+}
+
 export interface DesktopSurfaceOpenOptions {
   readonly anchor?: string
   readonly placement?: string
-  readonly preferredSize?: { readonly width: number; readonly height: number }
+  readonly preferredSize?: DesktopSurfaceSize
   readonly focus?: string
-  readonly topmost?: boolean
+  readonly alwaysOnTop?: boolean
   readonly session?: {
     readonly type: 'new-on-submit' | 'last-bound' | 'existing'
     readonly sessionId?: string
@@ -56,7 +81,7 @@ export type DesktopMainSessionResult =
 export interface DesktopSurfaceClient {
   open(id: string, options?: DesktopSurfaceOpenOptions): Promise<DesktopSurfaceResult>
   toggle(id: string, options?: DesktopSurfaceOpenOptions): Promise<DesktopSurfaceResult>
-  resize(id: string, size: { readonly width: number; readonly height: number }): Promise<DesktopSurfaceResult>
+  resize(id: string, size: DesktopSurfaceSize): Promise<DesktopSurfaceResult>
   close(id: string): Promise<DesktopSurfaceResult>
   openMainSession(sessionId: string): Promise<DesktopMainSessionResult>
   capabilities(): Promise<DesktopSurfaceCapabilities>

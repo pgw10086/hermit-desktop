@@ -173,8 +173,10 @@ component 或自定义 click handler。现有语义包括 `clipboard`、`organiz
 
 Desktop Surface 的 `getDesktopSurfaceClient()` 也从同一公共 client 出口提供。它只返回
 `open/toggle/resize/close/openMainSession/capabilities` 等语义化 API；窗口宿主、renderer loader、Electron
-和原生窗口句柄仍由 Hermit Desktop Core 内部持有。`openMainSession(sessionId)` 只用于把当前
-对话会话显式交给主窗口，仍由 DSH 负责会话历史。
+和原生窗口句柄仍由 Hermit Desktop Core 内部持有。Surface 定义可公开声明标题栏、拖动、缩放、
+置顶、边界和位置/尺寸记忆等窗口策略，打开请求只覆盖允许的运行时偏好。`openMainSession(sessionId)`
+只用于把当前对话会话显式交给主窗口，仍由 DSH 负责会话历史；`approval.companion` 沿用同一个
+DSH `PendingWait`，不是第二套 Approval runtime。
 
 主窗口内点击会话、搜索结果、分叉后的新会话或“新会话”都属于前台会话导航，结果必须回到
 `conversation` 主工作区。为覆盖同一会话重复点击这一条不会改变 `sessions.current` 的情况，

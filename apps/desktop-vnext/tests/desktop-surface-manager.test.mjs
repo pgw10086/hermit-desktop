@@ -133,6 +133,46 @@ test('重复 id 和无效定义在注册时失败', () => {
   )
 })
 
+test('Surface Window Policy 映射宿主行为并裁剪运行时尺寸', async () => {
+  const windows = []
+  const manager = new DesktopSurfaceManager({ createWindow: (options) => {
+    const window = new FakeWindow(options)
+    windows.push(window)
+    return window
+  } })
+  manager.register({
+    id: 'conversation.quick',
+    kind: 'conversation.quick',
+    content: { type: 'dsh-conversation' },
+    window: {
+      chrome: 'none',
+      movable: 'allowed',
+      resizable: false,
+      alwaysOnTop: false,
+      minSize: { width: 320, height: 180 },
+      maxSize: { width: 640, height: 480 },
+      rememberPosition: true,
+      rememberSize: true,
+    },
+  }, { window: { show: false }, load: async () => undefined })
+  assert.deepEqual(windows[0].options, {
+    show: false,
+    frame: false,
+    movable: true,
+    resizable: false,
+    alwaysOnTop: false,
+    minWidth: 320,
+    minHeight: 180,
+    maxWidth: 640,
+    maxHeight: 480,
+  })
+  await manager.open('conversation.quick', { preferredSize: { width: 100, height: 800 } })
+  assert.deepEqual(windows[0].size, { width: 320, height: 480 })
+  manager.resize('conversation.quick', { width: 640, height: 180 })
+  assert.deepEqual(windows[0].size, { width: 640, height: 180 })
+  assert.equal(manager.capabilities().features['window-movable'], true)
+})
+
 class FakeWindow extends EventEmitter {
   visible = false
   destroyed = false
@@ -151,5 +191,10 @@ class FakeWindow extends EventEmitter {
   isDestroyed() { return this.destroyed }
   setAlwaysOnTop(value) { this.alwaysOnTop = value }
   setBounds(bounds) { this.bounds = bounds }
-  setSize(width, height) { this.size = { width, height } }
+  setSize(width, height) {
+    this.size = { width, height }
+    this.bounds = { ...(this.bounds ?? { x: 0, y: 0 }), width, height }
+  }
+  setPosition(x, y) { this.bounds = { ...(this.bounds ?? { width: 0, height: 0 }), x, y } }
+  getBounds() { return this.bounds ?? { x: 0, y: 0, width: this.size?.width ?? 0, height: this.size?.height ?? 0 } }
 }

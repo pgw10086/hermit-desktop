@@ -20,8 +20,8 @@
 当前实现进度：前两条 vertical slice 已接入正式 DSH Host/Client。唯一的
 `personal-organizer` Skill 根据明确类型分别调用 `organizer_create_todo` 或
 `organizer_create_note`，写入同一个 `personal_organizer` Canonical domain；同时提供
-`organizer_list_today` 只读摘要 Tool，创建类 Tool 通过 DSH `tools/pre-execute` 返回一次性
-`ask`，由 Core 审批服务决定是否继续。Note 默认进入
+`organizer_list_today` 只读摘要 Tool，创建类 Tool 是否需要一次性 `ask` 由 DSH/Core 的
+permission/Approval policy 决定，插件不强制普通创建逐次询问。Note 默认进入
 active 状态和“最近便签”投影，用户可在同一个右侧单实例抽屉中把 active Note 草稿改为 Todo，
 保留同一 `itemId`、正文、标签、提醒、来源和原始输入，置顶不带入并记录在类型历史中。两种
 创建都使用 `callId` 幂等映射、`revision` 冲突检查和稳定 `itemId`；创建 Tool 已支持结构化
@@ -31,7 +31,7 @@ active 状态和“最近便签”投影，用户可在同一个右侧单实例�
 编辑、完成、类型纠正和重启恢复。插件已用同一 `.tgz` 通过 stock DSH capability 缺失检查以及
 Hermit bundled DSH 的入口、Todo/Note 创建、Note -> Todo、详情读取和重启持久化资格测试。
 Host 集成测试还直接验证了 `apply -> Skill/Tool 注册 -> Tool.execute -> Canonical`，以及摘要
-投影和审批门。模型凭据下的真实 Conversation 调用尚未纳入当前资格。当前 pinned DSH RC 的通用 Tool Card 没有
+投影和 DSH permission/Approval pipeline。模型凭据下的真实 Conversation 调用尚未纳入当前资格。当前 pinned DSH RC 的通用 Tool Card 没有
 “打开 Product Surface 并定位 item”的公开动作契约，Tool Result 先返回稳定 `itemId` 和明确
 的“打开：个人事项”提示；交互式打开仍是 DSH typed contract gate，当前不能宣称完整 P0 已完成。
 

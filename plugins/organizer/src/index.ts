@@ -1,7 +1,7 @@
 import type { Context } from '@deepseek-ai/cordis'
 import type { ConnectionRpcHandler } from '@deepseek-ai/dsh-client-connection'
 import type {} from '@deepseek-ai/dsh-skill'
-import { defineTool, type PreToolDecision, type ToolExecution } from '@deepseek-ai/dsh-tools'
+import { defineTool, type ToolExecution } from '@deepseek-ai/dsh-tools'
 import { OrganizerService } from './domain/service.js'
 import type { OrganizerCommand, OrganizerItem, ReminderRuleDraft, TemporalPoint } from './client/contracts.js'
 import { organizerRequestSchema, type OrganizerRpcRequest } from './domain/wire.js'
@@ -17,9 +17,6 @@ const CREATE_TODO_TOOL = 'organizer_create_todo'
 const CREATE_NOTE_TOOL = 'organizer_create_note'
 /** 读取今日事项摘要的工具名称，作为 AI 只读入口。 */
 const LIST_TODAY_TOOL = 'organizer_list_today'
-/** 只有会改动 Canonical 数据的 AI 工具需要一次性审批。 */
-const APPROVAL_REQUIRED_TOOLS = new Set([CREATE_TODO_TOOL, CREATE_NOTE_TOOL])
-
 /** AI 创建参数中的结构化日期时间；relativeDays 以当前用户消息的本地日期为基准。 */
 const AI_TEMPORAL_SCHEMA = {
   type: 'object',
@@ -187,11 +184,7 @@ export function apply(ctx: Context): void {
       presentCall: () => ({ card: 'generic', kind: 'read', title: '读取今日事项' }),
       presentResult: (_args, result) => ({ card: 'generic', title: result.isError ? '今日事项读取失败' : '今日事项已读取' }),
     }))
-    // 审批由 DSH tools 根据 ask 统一处理；插件只声明哪些业务动作需要确认。
-    ctx.on('tools/pre-execute', async (exec: ToolExecution, next): Promise<PreToolDecision> => {
-      if (!APPROVAL_REQUIRED_TOOLS.has(exec.name)) return next()
-      return { kind: 'ask', reason: '这次操作会在个人事项中写入本地数据，需要你的确认。' }
-    })
+    // 创建工具只声明业务语义；是否需要确认由 DSH/Core 的 permission/Approval policy 决定。
     return async () => {
       disposeListTodayTool()
       disposeTool()
@@ -323,7 +316,7 @@ const PERSONAL_ORGANIZER_SKILL = `
 5. “在某时提醒我记住/保存一条信息”时调用 organizer_create_note，并只在提醒日期和 HH:mm 都明确时填写 reminders。提醒时间不完整时不要猜钟点，也不要创建待补全提醒。
 6. todoStart、todoDue 和 reminders 必须传结构化日期时间：绝对日期用 YYYY-MM-DD，相对日期用 relativeDays（今天为 0，明天为 1）；时间使用 HH:mm。不要把时间事实只放在 detail 或 originalInput 中。
 7. 用户明确说“清单”“步骤”或“子任务”并列出内容时，才把这些内容按原顺序作为 Checklist；否则放在详情中。创建 Todo 时提炼简洁行动作为 title，把明确补充放进 detail，并把完整原话作为 originalInput。
-8. 创建类 Tool 需要 DSH 一次性审批；没有成功的审批和写入结果，不得声称已保存。结果中的 itemId 是后续打开、完成和修改的唯一引用。
+8. 创建类 Tool 是否需要一次性审批由 DSH/Core 的 permission/Approval policy 决定；无论是否弹出审批，没有成功的写入结果都不得声称已保存。结果中的 itemId 是后续打开、完成和修改的唯一引用。
 
 不要创建第二个聊天入口、不要自行写数据库、不要为同一用户 turn 做相似内容去重。
 `

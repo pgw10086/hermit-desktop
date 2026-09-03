@@ -2,6 +2,32 @@
 
 export type SurfaceKind = string
 
+export interface DesktopSurfaceSize {
+  readonly width: number
+  readonly height: number
+}
+
+export type DesktopSurfaceChrome = 'system' | 'none'
+export type DesktopSurfaceMovement = 'allowed' | 'locked'
+export type DesktopSurfaceDismiss = 'hide' | 'close' | 'ignore'
+
+export interface DesktopSurfaceWindowPolicy {
+  readonly chrome?: DesktopSurfaceChrome
+  readonly movable?: DesktopSurfaceMovement
+  readonly resizable?: boolean
+  readonly alwaysOnTop?: boolean
+  readonly anchor?: string
+  readonly placement?: string
+  readonly preferredSize?: DesktopSurfaceSize
+  readonly minSize?: DesktopSurfaceSize
+  readonly maxSize?: DesktopSurfaceSize
+  readonly focus?: string
+  readonly escape?: DesktopSurfaceDismiss
+  readonly blur?: 'hide' | 'keep'
+  readonly rememberPosition?: boolean
+  readonly rememberSize?: boolean
+}
+
 export interface DesktopSurfaceDefinition {
   readonly id: string
   readonly kind: SurfaceKind
@@ -10,13 +36,7 @@ export interface DesktopSurfaceDefinition {
     readonly viewId?: string
     readonly contract?: number
   }
-  readonly window?: {
-    readonly anchor?: string
-    readonly placement?: string
-    readonly preferredSize?: { readonly width: number; readonly height: number }
-    readonly focus?: string
-    readonly topmost?: boolean
-  }
+  readonly window?: DesktopSurfaceWindowPolicy
   readonly session?: {
     readonly type: 'new-on-submit' | 'last-bound' | 'existing'
     readonly sessionId?: string
@@ -27,9 +47,9 @@ export interface DesktopSurfaceDefinition {
 export interface DesktopSurfaceOpenOptions {
   readonly anchor?: string
   readonly placement?: string
-  readonly preferredSize?: { readonly width: number; readonly height: number }
+  readonly preferredSize?: DesktopSurfaceSize
   readonly focus?: string
-  readonly topmost?: boolean
+  readonly alwaysOnTop?: boolean
   readonly session?: DesktopSurfaceDefinition['session']
 }
 
@@ -70,7 +90,7 @@ export interface DesktopSurfaceService {
   register(definition: DesktopSurfaceDefinition): () => void
   open(id: string, options?: DesktopSurfaceOpenOptions): Promise<DesktopSurfaceHandle>
   toggle(id: string, options?: DesktopSurfaceOpenOptions): Promise<DesktopSurfaceHandle | null>
-  resize(id: string, size: { readonly width: number; readonly height: number }): void
+  resize(id: string, size: DesktopSurfaceSize): void
   close(id: string): Promise<void>
   capabilities(): DesktopSurfaceCapabilities
 }
@@ -79,7 +99,7 @@ export interface DesktopSurfaceService {
 export interface DesktopSurfaceClient {
   open(id: string, options?: DesktopSurfaceOpenOptions): Promise<DesktopSurfaceResult>
   toggle(id: string, options?: DesktopSurfaceOpenOptions): Promise<DesktopSurfaceResult>
-  resize(id: string, size: { readonly width: number; readonly height: number }): Promise<DesktopSurfaceResult>
+  resize(id: string, size: DesktopSurfaceSize): Promise<DesktopSurfaceResult>
   close(id: string): Promise<DesktopSurfaceResult>
   openMainSession(sessionId: string): Promise<DesktopMainSessionResult>
   capabilities(): Promise<DesktopSurfaceCapabilities>
