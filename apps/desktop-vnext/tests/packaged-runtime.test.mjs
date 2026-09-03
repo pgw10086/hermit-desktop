@@ -56,6 +56,8 @@ test("DSH runtime bundle manifest 明确列出每个随包 package 和构建哈�
     }
   }
   for (const spec of manifest.bundledPackages) {
+    assert.match(spec.repository, /^https:\/\/github\.com\/pgw10086\/[^/]+\.git$/u);
+    assert.match(spec.sourceCommit, /^[a-f0-9]{40}$/u);
     const artifact = path.resolve(repositoryRoot, spec.artifact);
     assert.equal(artifact.startsWith(`${repositoryRoot}${path.sep}`), true);
     assert.equal(fs.existsSync(artifact), true);

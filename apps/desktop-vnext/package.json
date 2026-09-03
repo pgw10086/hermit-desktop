@@ -23,7 +23,7 @@
     "package:dir": "node scripts/package-desktop.mjs dir",
     "dist:mac:smoke": "node scripts/package-desktop.mjs mac-smoke",
     "dist:mac": "node scripts/package-desktop.mjs mac-release",
-    "dist:win": "node scripts/assert-native-target.mjs --platform win32 --arch x64 && corepack pnpm run prepare:native && corepack pnpm run prepare:runtime && corepack pnpm run build && electron-builder --win nsis",
+    "dist:win": "node scripts/assert-native-target.mjs --platform win32 --arch x64 && corepack pnpm run prepare:electron && corepack pnpm run prepare:native && corepack pnpm run prepare:runtime && corepack pnpm run build && electron-builder --win nsis",
     "verify:packaged-runtime": "node scripts/verify-packaged-runtime.mjs",
     "verify:mac:smoke": "node scripts/verify-mac-artifact.mjs smoke",
     "verify:mac:release": "node scripts/verify-mac-artifact.mjs release",

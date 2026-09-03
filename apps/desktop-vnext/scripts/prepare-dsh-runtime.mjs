@@ -144,6 +144,8 @@ const runtimePackageEvidence = [
   ...bundledPackages.map(({ spec, source }) => ({
     role: 'bundled-plugin',
     packageName: spec.packageName,
+    repository: spec.repository,
+    sourceCommit: spec.sourceCommit,
     version: readPackageVersion(source),
     packageContentSha256: packageDigest(spec, source),
   })),
@@ -426,6 +428,9 @@ function readRuntimeBundleManifest(file) {
     if (spec.artifact === undefined || spec.artifactSha256 === undefined) {
       throw new Error(`bundledPackages[${index}] 必须声明固定 artifact 和 SHA-256`);
     }
+    if (spec.repository === undefined || spec.sourceCommit === undefined) {
+      throw new Error(`bundledPackages[${index}] 必须声明来源 repository 和 sourceCommit`);
+    }
   }
   return { schemaVersion: 2, productSurfacePackage, bundledPackages };
 }
@@ -457,8 +462,25 @@ function validateManifestPackage(spec, label) {
   if ((spec.artifact === undefined) !== (spec.artifactSha256 === undefined)) {
     throw new Error(`${label}.artifact 和 artifactSha256 必须同时声明`);
   }
+  if (
+    spec.repository !== undefined &&
+    (typeof spec.repository !== 'string' || spec.repository.length === 0)
+  ) {
+    throw new Error(`${label}.repository 必须是非空字符串`);
+  }
+  if (
+    spec.sourceCommit !== undefined &&
+    (typeof spec.sourceCommit !== 'string' || !/^[a-f0-9]{40}$/u.test(spec.sourceCommit))
+  ) {
+    throw new Error(`${label}.sourceCommit 必须是完整 Git commit`);
+  }
+  if ((spec.repository === undefined) !== (spec.sourceCommit === undefined)) {
+    throw new Error(`${label}.repository 和 sourceCommit 必须同时声明`);
+  }
   return {
     packageName: spec.packageName,
+    ...(spec.repository === undefined ? {} : { repository: spec.repository }),
+    ...(spec.sourceCommit === undefined ? {} : { sourceCommit: spec.sourceCommit }),
     source: spec.source,
     hashPaths: [...spec.hashPaths],
     ...(spec.artifact === undefined ? {} : { artifact: spec.artifact }),

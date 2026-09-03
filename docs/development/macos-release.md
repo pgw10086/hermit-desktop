@@ -63,6 +63,11 @@ export HTTP_PROXY=http://127.0.0.1:7897
 export HTTPS_PROXY=http://127.0.0.1:7897
 ```
 
+安装命令可以继续使用 `--ignore-scripts`。正式打包入口会先通过 Electron 自带的安装脚本
+显式准备 lockfile 锁定的原生 Electron；检测到 `HTTP_PROXY` 或 `HTTPS_PROXY` 时会同步开启
+`@electron/get` 的代理支持。electron-builder 随后只从本地 `node_modules/electron/dist`
+组装应用，不再为同一个版本发起第二次下载。
+
 ## 2. 版本和源码
 
 桌面版本取自 `apps/desktop-vnext/package.json`，文件名固定为

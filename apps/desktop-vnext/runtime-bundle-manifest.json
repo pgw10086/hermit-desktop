@@ -8,23 +8,29 @@
   "bundledPackages": [
     {
       "packageName": "@hermit/organizer",
+      "repository": "https://github.com/pgw10086/plugin-organizer.git",
+      "sourceCommit": "1e4b0c69ec4b6b7afae37f0c614bb19309b053f2",
       "source": "apps/desktop-vnext/node_modules/@hermit/organizer",
       "artifact": "vendor/hermit-organizer-0.2.2.tgz",
-      "artifactSha256": "9f75a4e9c5309bfdd454a2886e8a352d79e65ad3754a4ee34d5cd42f712c224c",
+      "artifactSha256": "17bf9d1bcbeaed23fca6a7450856f95681942f01400d5770c07c7f17e8dd033c",
       "hashPaths": ["package.json", "cordis.patch.yml", "lib"]
     },
     {
       "packageName": "@hermit/smart-clipboard",
+      "repository": "https://github.com/pgw10086/plugin-smart-clipboard.git",
+      "sourceCommit": "606894603ede431850d8d4c5d0c40bd5c398247f",
       "source": "apps/desktop-vnext/node_modules/@hermit/smart-clipboard",
       "artifact": "vendor/hermit-smart-clipboard-0.2.2.tgz",
-      "artifactSha256": "9f0a10a3ea1ae749dbb45034f7c0e2ac87341775d5d25503d9c53cfbcb182ba3",
+      "artifactSha256": "0d33bebb4f7906714c201d4bce00f71bcea1cf2e8f24f5eab62b33d191a3d8a1",
       "hashPaths": ["package.json", "cordis.patch.yml", "lib"]
     },
     {
       "packageName": "@hermit/file-workspace",
+      "repository": "https://github.com/pgw10086/plugin-file-workspace.git",
+      "sourceCommit": "fc1c83e4b6337488d2b610feef4b6d377b3ae8a4",
       "source": "apps/desktop-vnext/node_modules/@hermit/file-workspace",
       "artifact": "vendor/hermit-file-workspace-0.2.2.tgz",
-      "artifactSha256": "00fb7646f92586d6cb13cb02d5b6e9db2fd18f09d39f5ea844b4333f58f5f9e3",
+      "artifactSha256": "ecb1ef3f9477200f9437ab9c3cbf3f4a415d25958b5884c00b99803a22f5e347",
       "hashPaths": ["package.json", "cordis.patch.yml", "lib"]
     }
   ]

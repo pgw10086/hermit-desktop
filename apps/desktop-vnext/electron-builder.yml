@@ -1,6 +1,8 @@
 appId: io.github.pgw10086.hermit
 asar: true
 npmRebuild: false
+# package-desktop.mjs 会先准备锁定版本，Builder 只消费本地发行目录，避免二次下载。
+electronDist: node_modules/electron/dist
 afterPack: ./scripts/after-pack.mjs
 afterSign: ./scripts/after-sign.mjs
 files:

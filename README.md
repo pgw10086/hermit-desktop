@@ -10,7 +10,7 @@ bundled DSH generation 在必要时可按 [ADR-0003](docs/adr/0003-hermit-bundle
 携带经过审计的最小 source patch；Product Surface v1 已完成源码、许可证、摘要门禁和
 Smart Clipboard 同制品双宿主验证。macOS Apple Silicon 的本地资格已通过真实菜单栏交互和注销后自动启动；版本发布统一按
 [macOS 发布流程](docs/development/macos-release.md)执行，某一版是否签名、公证及其实际制品
-以 [GitHub Releases](https://github.com/pgw10086/hermit-vnext/releases) 和随包发布清单为准。
+以 [GitHub Releases](https://github.com/pgw10086/hermit-desktop/releases) 和随包发布清单为准。
 runtime closure、app-dir、DMG 只读挂载冷启动、官方 UI、keyless
 Tool/Approval、插件双端、Electron main 强杀清理、预置 generation 回滚，以及 packaged
 Tray/登录项读写/正常退出证据已通过；Hermit 自有图标和第三方 attribution 已进入产物。
@@ -29,7 +29,8 @@ Pasteboard；真实复制/自动粘贴/物理快捷键仍待 disposable 资格�
 
 ## 文档入口
 
-本仓库只负责 Hermit 产品。共享桌面平台位于同级独立 `desktop-core` 仓库，并通过
+本仓库只负责 Hermit 产品。共享桌面平台位于同级独立
+[`desktop-core`](https://github.com/pgw10086/desktop-core) 仓库，并通过
 `vendor/hermit-desktop-core-0.1.0.tgz` 的固定制品接入；不从 sibling 目录导入源码。
 
 - [Agent 规则](AGENTS.md)：编码任务的入口和红线；

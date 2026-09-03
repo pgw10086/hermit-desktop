@@ -2442,14 +2442,14 @@ packages:
         optional: true
 
   '@hermit/desktop-core@file:vendor/hermit-desktop-core-0.1.0.tgz':
-    resolution: {integrity: sha512-JcV5gliI56Z91p/AQ2aBT80n3XXLLczjiO8U9NhoGNQo6htIlWYH/lQhwVQUMdlB4k6gTzX3I8XvtcWrBtupbw==, tarball: file:vendor/hermit-desktop-core-0.1.0.tgz}
+    resolution: {integrity: sha512-E6UfqHawzJsjg7pDE8RXSiYGNBfAcPG4NC4/zunrbyKT9/KHuY7d1T7FlmZCIoDGe7qkBACJYpajZxeythckdQ==, tarball: file:vendor/hermit-desktop-core-0.1.0.tgz}
     version: 0.1.0
     engines: {node: '>=24.0.0 <25', pnpm: '>=11.0.0 <12'}
     peerDependencies:
       electron: '>=43.0.0 <44'
 
   '@hermit/file-workspace@file:vendor/hermit-file-workspace-0.2.2.tgz':
-    resolution: {integrity: sha512-wkzAPz9t+O+ybVqPnJQgk4yyvNQe6DfsQmq3migq5Al5yx24UA9uFWhDbHl3vsVkhQdDtvEOriAG3k9Iws//+Q==, tarball: file:vendor/hermit-file-workspace-0.2.2.tgz}
+    resolution: {integrity: sha512-UovMZ4wFIZZPe/MN+ZozstOSAFN4WLV3jTSNJSd6QWUCZPUxLXJIdIURZUyU7nsWQSyN5JgJZPfu3a1IBL7j5Q==, tarball: file:vendor/hermit-file-workspace-0.2.2.tgz}
     version: 0.2.2
     engines: {node: '>=24.0.0 <27'}
     peerDependencies:
@@ -2481,7 +2481,7 @@ packages:
         optional: true
 
   '@hermit/organizer@file:vendor/hermit-organizer-0.2.2.tgz':
-    resolution: {integrity: sha512-euigMZUue/5gotK7TQpJEF4DQLRIyqG7Fu6wi6uS9uGCNwD3gXTIvwJfYv83uueAER7dtZl+NV4hkX8hp8hB5A==, tarball: file:vendor/hermit-organizer-0.2.2.tgz}
+    resolution: {integrity: sha512-+9xxWb4k8NhPU5L/yet5SstGBTeenquqn7M0PVSWnXUzC9XnBWwBTlIJgD1uf1OqkEHVZyO+Yl2eNU6qRY3Teg==, tarball: file:vendor/hermit-organizer-0.2.2.tgz}
     version: 0.2.2
     engines: {node: '>=24.0.0 <27'}
     peerDependencies:
@@ -2500,7 +2500,7 @@ packages:
         optional: true
 
   '@hermit/smart-clipboard@file:vendor/hermit-smart-clipboard-0.2.2.tgz':
-    resolution: {integrity: sha512-+hl0v8OdsMIJ8ztiyMSjBXNcAEyQZmLBYYUCJxYX6L5+W2rxqO6TrsPoxcvjz9/5alixFmL+z8iJXC6EappYHg==, tarball: file:vendor/hermit-smart-clipboard-0.2.2.tgz}
+    resolution: {integrity: sha512-jq90uLVsuANrRxnK2NKixbbAo1RYpWpstdpYvG2auXSVzv2W8hZAZ2jfcGHN7EZoIGk2fxk7aBSvB4mbHZWQgA==, tarball: file:vendor/hermit-smart-clipboard-0.2.2.tgz}
     version: 0.2.2
     engines: {node: '>=24.0.0 <27'}
     peerDependencies:

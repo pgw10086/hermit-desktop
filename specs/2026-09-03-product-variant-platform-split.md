@@ -38,8 +38,9 @@ Conversation、Session、Settings、Approval 或导航交互时的候选架构�
 - 不把 DSH 私有 Router、Store、DOM、CSS 或 React root 暴露给产品插件；
 - 不在两个产品之间复制 Session、Approval、模型凭据或业务数据库；
 - 不在没有真实使用者前创建 `ui-patterns`、`ui-desktop` 等空的公共仓库；
-- 不在本方案中创建远端仓库、push、发布或签名；本轮只创建本地 sibling Git 仓库和可验证
-  的候选制品。
+- 初始物理拆仓不包含远端写入；用户在本地验证通过后另行授权创建并 push 当前 Hermit、
+  Desktop Core 和三个插件的私有 GitHub 仓库。仍不在本方案中发布 package、tag、Release
+  或签名制品。
 
 ## 当前进度
 
@@ -67,6 +68,9 @@ Conversation、Session、Settings、Approval 或导航交互时的候选架构�
   tarball 获取公开扩展类型，不再使用 `../../packages/...` 源码路径。
 - Smart Clipboard 的 SQLite、捕获编排、业务 IPC 和 native bridge 先留在 Hermit Desktop
   的产品专属适配层，不进入共享 Desktop Core；完成公开 desktop-adapter contract 后再迁移。
+- 当前项目的 `desktop-core`、`hermit-desktop` 和三个插件仓库已创建为
+  `github.com/pgw10086/*` 私有仓库并 push `main`；`new-product-desktop` 按用户要求只保留在
+  本地，不属于本次上传范围。
 
 ## 4. 产品形态判断
 

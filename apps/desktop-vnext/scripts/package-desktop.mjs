@@ -22,6 +22,7 @@ const pnpmCli = path.join(appRoot, "node_modules", "pnpm", "bin", "pnpm.cjs");
 const typescriptCli = path.join(appRoot, "node_modules", "typescript", "bin", "tsc");
 const tsdownCli = path.join(appRoot, "node_modules", "tsdown", "dist", "run.mjs");
 const builderCli = path.join(appRoot, "node_modules", "electron-builder", "out", "cli", "cli.js");
+const electronInstallScript = path.join(appRoot, "node_modules", "electron", "install.js");
 const verifier = path.join(appRoot, "scripts", "verify-mac-artifact.mjs");
 const expectedNodeVersion = fs.readFileSync(path.join(repositoryRoot, ".node-version"), "utf8").trim();
 
@@ -43,7 +44,7 @@ function packageDesktop(selectedMode) {
       `Qualified packaging requires bundled Node ${expectedNodeVersion}; received ${process.version}`,
     );
   }
-  for (const required of [pnpmCli, typescriptCli, tsdownCli, builderCli]) {
+  for (const required of [pnpmCli, typescriptCli, tsdownCli, builderCli, electronInstallScript]) {
     if (!fs.existsSync(required)) {
       throw new Error(`Desktop dependencies are not installed: ${required}`);
     }
@@ -69,6 +70,8 @@ function packageDesktop(selectedMode) {
     runDesktopTests(buildEnvironment);
   }
 
+  // 安装阶段允许跳过依赖脚本；打包入口必须显式准备锁定版本的 Electron。
+  run(bundledNode, [electronInstallScript], appRoot, buildEnvironment);
   run(bundledNode, [prepareDshScript], repositoryRoot, buildEnvironment);
   run(bundledNode, [nativeBridgeBuildScript], repositoryRoot, buildEnvironment);
   run(bundledNode, [typescriptCli, "-p", "tsconfig.json"], appRoot, buildEnvironment);
@@ -143,6 +146,12 @@ function qualifiedEnvironment(environment) {
       .filter(Boolean)
       .join(path.delimiter),
   };
+  if (
+    qualified.ELECTRON_GET_USE_PROXY === undefined &&
+    (qualified.HTTPS_PROXY !== undefined || qualified.HTTP_PROXY !== undefined)
+  ) {
+    qualified.ELECTRON_GET_USE_PROXY = "true";
+  }
   delete qualified.Path;
   return qualified;
 }
