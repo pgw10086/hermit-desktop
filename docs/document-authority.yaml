@@ -29,8 +29,8 @@ topics:
     authority: plugins/development-guidelines.md
   desktop-core-development:
     authority: docs/development/desktop-core-development.md
-  multi-product-repository-split:
-    authority: specs/2026-09-03-product-variant-platform-split.md
+  agent-desktop-core-runtime:
+    authority: docs/adr/0007-agent-desktop-core-runtime-adapters.md
   dsh-plugin-development-and-packaging:
     authority: docs/development/dsh-plugin-development-and-packaging.md
   macos-release:
@@ -45,3 +45,7 @@ superseded:
     by: docs/adr/0002-electron-loopback-dsh-carrier.md
   docs/adr/0002-electron-loopback-dsh-carrier.md:
     by: docs/adr/0003-hermit-bundled-dsh-web-source-patch.md
+  docs/adr/0006-multi-product-sibling-repositories.md:
+    by: docs/adr/0007-agent-desktop-core-runtime-adapters.md
+  specs/2026-09-03-product-variant-platform-split.md:
+    by: docs/adr/0007-agent-desktop-core-runtime-adapters.md

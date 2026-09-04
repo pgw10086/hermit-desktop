@@ -11,20 +11,19 @@
 ## 长期运行形态
 
 ```text
-共享 Desktop Core
+Agent Desktop Core (`@platform/agent-desktop-core`)
 |-- 窗口、Tray、Surface、快捷键、通知、系统能力、受控 IPC 和退出生命周期
-|-- DSH 进程启动、监督、崩溃恢复和进程树清理
-`-- 不拥有任何产品的 DSH Web/Layout 或业务状态
+|-- Agent Runtime 生命周期契约和通用桌面证据
+`-- 不拥有任何 Agent 的 Web/Layout、会话或业务状态
+
+DSH Runtime Adapter (`@platform/dsh-runtime-adapter`)
+|-- DSH 命令、ready 探测、carrier、崩溃恢复和 DSH generation
+`-- 依赖 Agent Desktop Core，不反向进入 Core
 
 Hermit Desktop
 |-- Hermit 产品壳、Hermit layout/source patch、Hermit DSH generation/profile
 |-- Hermit Product Plugin 组合和 Hermit 打包发布
-`-- 通过 Desktop Core 承载自己的 Electron + DSH runtime
-
-New Product Desktop
-|-- 新产品壳、自己的 Conversation/Session/Settings/Approval/导航组合
-|-- 新产品 layout/source patch、DSH generation/profile 和插件组合
-`-- 通过同一个 Desktop Core package 承载自己的 Electron + DSH runtime
+`-- 组合 Agent Desktop Core、DSH Runtime Adapter 和自己的 Electron + DSH runtime
 
 Bundled DSH Web/Runtime
 |-- 官方 Web shell、Conversation、Session、Settings
@@ -35,15 +34,15 @@ Bundled DSH Web/Runtime
     `-- Smart Clipboard
 ```
 
-Electron/Desktop Core 是桌面平台层，不承载产品业务和 DSH 私有实现。DSH 是唯一的 AI 与插件运行底座。
+Electron/Agent Desktop Core 是桌面平台层，不承载产品业务和 DSH 私有实现。DSH 是当前 Hermit 的 AI 与插件运行底座。
 stock DSH 是插件 artifact 的兼容基线；Hermit bundled DSH generation 可以携带经过审计
 的最小 source patch 来补齐公开 Product Surface，但插件仍是标准 DSH 插件，只依赖 patch
 暴露的公开 typed contract。stock DSH 没有该能力时，插件必须确定性 unavailable，不能靠
 运行时私有实现继续工作。
 
-两个产品可以复用同一个上游 DSH commit 和底层 AI/Session/Tool/Approval 语义，但每个产品
-自己拥有最终的 DSH generation、profile、layout 制品和打包清单。产品 Web/Layout 不能放入
-Desktop Core，也不能让两个不同 layout 在同一套 runtime 中共存。
+Hermit 自己决定 DSH 上游 commit、generation、profile、layout 制品和打包清单。DSH Web/Layout
+不能放入 Agent Desktop Core；未来其他 Agent 只通过自己的 Runtime Adapter 接入，不改变 Core
+对 Conversation、Session、Tool、Approval 等业务语义的不了解。
 
 Hermit carrier 是 Electron 与 DSH 之间的一次性生命周期载体。它只转发输出、监听父进程
 管道并回收一个 DSH 进程树；不读取 DSH 配置或 Session，不解释协议，也不拥有重启策略。
@@ -68,8 +67,8 @@ Clipboard 的快速取回和未来 Product Plugin 小窗复用窗口宿主，但
   不保存 Session 或业务数据；
 - 可选的桌面 evidence sink 只追加记录生产路径观察到的 OS/API 结果，不提供触发 Tray、
   登录项或关机的控制入口，也不能替代真实系统级验收；
-- 每个 Product Desktop 携带自己的、通过兼容性资格检查的 Node、pnpm、DSH 组合，并由
-  Desktop Core 提供启动、就绪探测、退出、崩溃恢复和进程树清理能力；
+- Hermit 携带自己通过兼容性资格检查的 Node、pnpm、DSH 组合；Agent Desktop Core 提供
+  通用生命周期能力，DSH Runtime Adapter 提供 DSH 启动、就绪探测、退出、崩溃恢复和进程树清理；
 - 创建受限 renderer，加载经过允许的 DSH loopback origin；
 - 提供 Desktop Surface Manager，统一创建、定位、显示、隐藏、焦点、窗口策略和
   renderer 清理；Surface 内容和业务状态由 DSH 或对应 Product Plugin 提供；
@@ -99,9 +98,9 @@ Clipboard 的快速取回和未来 Product Plugin 小窗复用窗口宿主，但
 - bundled DSH 通过 Hermit layout patch 承载 Core-owned 产品入口和“设置 -> 快捷键”页面；
 - 负责插件的激活、停用、卸载和生命周期资源清理。
 
-每个 Product Desktop 独立拥有自己的 DSH profile/home、runtime generation、layout/source
-patch 和插件清单。DSH upstream 版本可以相同或不同，但都必须由各自的 lockfile、manifest
-和资格证据锁定；Desktop Core 只监管进程，不替产品选择 DSH Web 或业务插件。
+Hermit 独立拥有自己的 DSH profile/home、runtime generation、layout/source patch 和插件清单。
+这些输入必须由 Hermit 的 lockfile、manifest 和资格证据锁定；Adapter 只执行 DSH 运行时契约，
+不替产品选择 DSH Web 或业务插件。
 
 ### Product Plugin
 
@@ -131,15 +130,15 @@ Product Plugin -/-> Electron private API
 Product Plugin -/-> another Product Plugin internals
 ```
 
-多产品的物理依赖方向为：
+当前物理依赖方向为：
 
 ```text
-hermit-desktop      -> @platform/desktop-core + Hermit DSH generation + Hermit plugins
-new-product-desktop -> @platform/desktop-core + New Product DSH generation + New Product plugins
-plugin              -> DSH public contract + declared Hermit/Desktop capability
+hermit-desktop      -> @platform/agent-desktop-core + @platform/dsh-runtime-adapter + Hermit DSH generation + Hermit plugins
+@platform/dsh-runtime-adapter -> @platform/agent-desktop-core
+plugin              -> DSH public contract + declared Desktop capability
 ```
 
-两个 Product Desktop 不互相依赖；sibling 仓库不通过相对路径导入对方源码。
+插件和平台仓库不通过相对路径导入对方源码；产品组合根负责把 Core、Adapter、DSH 和插件制品组装起来。
 
 跨插件协作通过 DSH/Hermit public service、resource、tool 或 domain event 完成。任何需要
 桌面特权的动作都经过 DSH/Hermit capability contract，不由插件直接访问文件系统、网络、

@@ -6,7 +6,7 @@ import {
 } from "electron";
 import { createRequire } from "node:module";
 import path from "node:path";
-import { ActivationLease } from "@platform/desktop-core";
+import { ActivationLease } from "@platform/agent-desktop-core";
 import { FOUNDATION_SHORTCUT } from "./fixture.js";
 import type {
   QualificationResult,

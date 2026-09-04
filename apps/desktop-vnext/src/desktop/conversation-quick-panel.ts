@@ -1,4 +1,4 @@
-import type { DesktopSurfaceHostDefinition, DesktopSurfaceDefinition, DesktopSurfaceOpenOptions } from '@platform/desktop-core'
+import type { DesktopSurfaceHostDefinition, DesktopSurfaceDefinition, DesktopSurfaceOpenOptions } from '@platform/agent-desktop-core'
 import { screen, type BrowserWindow } from 'electron'
 import { fileURLToPath } from 'node:url'
 import type { NavigationActions } from './window-policy.js'
@@ -22,7 +22,7 @@ export function createConversationQuickSurface(
     definition: {
       id: CONVERSATION_QUICK_SURFACE_ID,
       kind: 'conversation.quick',
-      content: { type: 'dsh-conversation', viewId: 'dsh.conversation', contract: 1 },
+      content: { type: 'runtime-view', runtimeId: 'dsh', viewId: 'dsh.conversation', contract: 1 },
       window: {
         chrome: 'none',
         movable: 'allowed',
@@ -86,7 +86,7 @@ export function createConversationApprovalCompanionSurface(
     definition: {
       id: APPROVAL_COMPANION_SURFACE_ID,
       kind: 'approval.companion',
-      content: { type: 'dsh-conversation', viewId: 'dsh.approval-companion', contract: 1 },
+      content: { type: 'runtime-view', runtimeId: 'dsh', viewId: 'dsh.approval-companion', contract: 1 },
       window: {
         chrome: 'none',
         movable: 'allowed',

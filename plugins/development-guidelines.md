@@ -4,11 +4,11 @@
 
 本文是 Hermit 第一方 Product Plugin 的共同入口。它只写 Hermit 自己的约定；DSH 的官方
 API、生命周期和打包规则见[DSH 官方资料](../DEEPSEEK-HARNESS-UPSTREAM.md)，桌面能力见
-[Desktop Core 开发规范](../docs/development/desktop-core-development.md)。
+[Agent Desktop Core 开发规范](../docs/development/desktop-core-development.md)。
 
 ## 一个插件是什么
 
-一个插件是一套完整业务，可以有自己的 Host、Client、Tool 或 Desktop Core 接入，但不要求
+一个插件是一套完整业务，可以有自己的 Host、Client、Tool 或 Agent Desktop Core 接入，但不要求
 每个插件都具备全部角色。
 
 插件负责自己的：
@@ -30,13 +30,13 @@ API、生命周期和打包规则见[DSH 官方资料](../DEEPSEEK-HARNESS-UPSTR
 实现新能力时按下面的顺序判断：
 
 ```text
-DSH 官方公开能力 -> 插件自己的业务代码 -> Desktop Core
+DSH 官方公开能力 -> 插件自己的业务代码 -> Agent Desktop Core
 ```
 
 - 生命周期、Host/Client、Storage、Filesystem、Remote/RPC、Tool 和公开 UI 能力，优先用
   DSH；
 - 业务模型和业务流程留在插件里；
-- 只有必须使用系统资源或 Electron 的场景，才申请 Desktop Core capability；
+- 只有必须使用系统资源或 Electron 的场景，才申请 Agent Desktop Core capability；
 - “DSH 没有现成函数”不等于可以读取 DSH 私有实现。确有缺口时先补公开 contract，再让
   插件使用它。
 
@@ -70,11 +70,11 @@ DSH 官方公开能力 -> 插件自己的业务代码 -> Desktop Core
 插件声明实际用到的 capability，并对不可用状态给出清楚提示。
 
 - 普通文件和业务存储先用 DSH；
-- 系统剪贴板、全局快捷键、原生窗口、通知和焦点恢复使用 Desktop Core；
+- 系统剪贴板、全局快捷键、原生窗口、通知和焦点恢复使用 Agent Desktop Core；
 - 插件只依赖公开的 typed API，不依赖 `apps/desktop-vnext` 的实现文件；
 - 不为了“所有插件统一”给纯 Web 插件增加桌面依赖。
 
-Desktop Core 的能力边界、API 形式和打包后的桌面验证见[Desktop Core 开发规范](../docs/development/desktop-core-development.md)。
+Agent Desktop Core 的能力边界、API 形式和打包后的桌面验证见[Agent Desktop Core 开发规范](../docs/development/desktop-core-development.md)。
 
 ## 页面和 UI
 
@@ -92,7 +92,7 @@ Desktop Core 的能力边界、API 形式和打包后的桌面验证见[Desktop 
   metadata；
 - DSH、React 和 ReactDOM 使用宿主提供的版本，不在插件制品里复制；
 - 普通插件至少验证 clean build、主要业务流程、停用和数据回读；
-- 使用 Product Surface 或 Desktop Core 的插件，再增加对应的真实宿主/打包验证；
+- 使用 Product Surface 或 Agent Desktop Core 的插件，再增加对应的真实宿主/打包验证；
 - 测试业务规则、权限拒绝、旧 revision、取消、重复调用和生命周期释放，不测试 padding、
   颜色或 README 快照。
 

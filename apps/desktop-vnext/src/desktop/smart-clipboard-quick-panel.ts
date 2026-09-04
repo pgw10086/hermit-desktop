@@ -1,6 +1,6 @@
 import { BrowserWindow, screen } from 'electron'
 import { fileURLToPath } from 'node:url'
-import type { DesktopSurfaceHostDefinition, DesktopSurfaceDefinition } from '@platform/desktop-core'
+import type { DesktopSurfaceHostDefinition, DesktopSurfaceDefinition } from '@platform/agent-desktop-core'
 import type { NavigationActions } from './window-policy.js'
 import { installNavigationPolicy } from './window-policy.js'
 import { hardenedWebPreferences } from './window-options.js'

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { DesktopDeadlineService } from '@platform/desktop-core'
+import { DesktopDeadlineService } from '@platform/agent-desktop-core'
 
 test('绝对 deadline 可重设、取消，并只触发当前注册', () => {
   const clock = createClock()

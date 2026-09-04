@@ -1,14 +1,15 @@
 # 新产品变体与 Desktop Core/DSH 平台拆分
 
-状态：`ACCEPTED`
+状态：`superseded by ADR-0007`
 
 更新时间：2026-09-03
 
-本文记录一个新产品在复用 Hermit Desktop Core 和 DSH 能力、但需要大幅调整
+本文记录一个已取消的新产品方案。它曾讨论新产品复用 Hermit Desktop Core 和 DSH 能力、但需要大幅调整
 Conversation、Session、Settings、Approval 或导航交互时的候选架构。本文是方案和
 迁移门槛，不覆盖现有 Hermit 产品需求。用户已确认本方案；本轮将先同步权威文档，再
 创建同一父文件夹下的 sibling Git 仓库。旧 `hermit-vnext` 保留为迁移源和回滚参考，直到
-所有独立仓库完成构建和集成验收。
+所有独立仓库完成构建和集成验收。该方案已由
+[ADR-0007](../docs/adr/0007-agent-desktop-core-runtime-adapters.md) 取代，当前只保留作历史追溯。
 
 ## 1. 背景和问题
 
@@ -44,7 +45,7 @@ Conversation、Session、Settings、Approval 或导航交互时的候选架构�
 
 ## 当前进度
 
-- 已创建独立 sibling `desktop-core` 仓库，提供中性的 `@platform/desktop-core` package；
+- 已创建独立 sibling `desktop-core` 仓库，提供中性的 `@platform/agent-desktop-core` package；
   通用 Surface、快捷键、deadline、notification、evidence、生命周期和受信 IPC 能力已移入
   其中，Electron 原生通知工厂通过显式子路径加载。
 - 已从桌面主进程抽出 `HermitProductComposition`，集中装配 Hermit 的 Conversation Quick、
@@ -59,8 +60,8 @@ Conversation、Session、Settings、Approval 或导航交互时的候选架构�
 - 已在普通父文件夹 `hermit-platform/` 下创建 `desktop-core`、`hermit-desktop`、
   `new-product-desktop`、`plugin-organizer`、`plugin-file-workspace` 和
   `plugin-smart-clipboard` 六个本地独立 Git 仓库；父文件夹不是 Git 或 pnpm workspace。
-- 独立 Desktop Core 已通过 20 项测试并生成 `platform-desktop-core-0.1.0.tgz`（包名
-  `@platform/desktop-core@0.1.0`）；
+- 独立 Desktop Core 已通过 20 项测试并生成 `agent-desktop-core-0.1.0.tgz`（包名
+  `@platform/agent-desktop-core@0.1.0`）；
   Hermit Desktop 已改为从固定 Core/插件 tarball 构建，不再包含三个插件源码目录，并通过
   全仓门禁、83 项 Desktop 测试、三个 Product Surface 资格和 macOS arm64 目录包 after-pack。
 - 新产品仓库当前是可运行的 stock DSH 开发底座，已验证独立 profile 以及通过同一 Desktop

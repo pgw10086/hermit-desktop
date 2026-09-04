@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { EventEmitter } from 'node:events'
 import test from 'node:test'
-import { DesktopSurfaceError, DesktopSurfaceManager } from '@platform/desktop-core'
+import { DesktopSurfaceError, DesktopSurfaceManager } from '@platform/agent-desktop-core'
 
 test('Surface Manager 统一管理注册、打开、toggle、关闭和 owner 注销', async () => {
   const windows = []
@@ -57,7 +57,7 @@ test('Surface Manager 统一管理注册、打开、toggle、关闭和 owner 注
 test('渲染加载失败返回明确的 RENDERER_FAILED，不伪造 opened 状态', async () => {
   const manager = new DesktopSurfaceManager({ createWindow: (options) => new FakeWindow(options) })
   manager.register(
-    { id: 'conversation.quick', kind: 'conversation.quick', content: { type: 'dsh-conversation' } },
+    { id: 'conversation.quick', kind: 'conversation.quick', content: { type: 'runtime-view', runtimeId: 'dsh' } },
     {
       window: { title: 'Conversation', show: false },
       load: async () => { throw new Error('DSH unavailable') },
@@ -73,7 +73,7 @@ test('显式切换已有 Session 时只重载会话绑定，不重复重载普�
   const loads = []
   const manager = new DesktopSurfaceManager({ createWindow: (options) => new FakeWindow(options) })
   manager.register(
-    { id: 'conversation.quick', kind: 'conversation.quick', content: { type: 'dsh-conversation' } },
+    { id: 'conversation.quick', kind: 'conversation.quick', content: { type: 'runtime-view', runtimeId: 'dsh' } },
     {
       window: { title: 'Conversation', show: false },
       load: async (_window, options) => { loads.push(options.session) },
@@ -96,7 +96,7 @@ test('声明 new-on-submit 的 Surface 每次从隐藏状态打开都重新开�
     {
       id: 'conversation.quick',
       kind: 'conversation.quick',
-      content: { type: 'dsh-conversation' },
+      content: { type: 'runtime-view', runtimeId: 'dsh' },
       session: { type: 'new-on-submit' },
     },
     {
@@ -130,6 +130,10 @@ test('重复 id 和无效定义在注册时失败', () => {
     () => manager.register({ id: ' ', kind: 'product.panel', content: { type: 'plugin-view' } }, { window: {}, load: async () => undefined }),
     (error) => error instanceof DesktopSurfaceError && error.code === 'INVALID_DEFINITION',
   )
+  assert.throws(
+    () => manager.register({ id: 'runtime.missing-id', kind: 'runtime.panel', content: { type: 'runtime-view' } }, { window: {}, load: async () => undefined }),
+    (error) => error instanceof DesktopSurfaceError && error.code === 'INVALID_DEFINITION',
+  )
 })
 
 test('Surface Window Policy 映射宿主行为并裁剪运行时尺寸', async () => {
@@ -142,7 +146,7 @@ test('Surface Window Policy 映射宿主行为并裁剪运行时尺寸', async (
   manager.register({
     id: 'conversation.quick',
     kind: 'conversation.quick',
-    content: { type: 'dsh-conversation' },
+    content: { type: 'runtime-view', runtimeId: 'dsh' },
     window: {
       chrome: 'none',
       movable: 'allowed',

@@ -42,7 +42,8 @@
   },
   "dependencies": {
     "@deepseek-ai/dsh": "0.1.1-rc.2",
-    "@platform/desktop-core": "file:../../vendor/platform-desktop-core-0.1.0.tgz",
+    "@platform/agent-desktop-core": "file:../../vendor/agent-desktop-core-0.1.0.tgz",
+    "@platform/dsh-runtime-adapter": "file:../../vendor/dsh-runtime-adapter-0.1.0.tgz",
     "@hermit/file-workspace": "file:../../vendor/hermit-file-workspace-0.2.2.tgz",
     "@hermit/organizer": "file:../../vendor/hermit-organizer-0.2.2.tgz",
     "@hermit/smart-clipboard": "file:../../vendor/hermit-smart-clipboard-0.2.2.tgz",

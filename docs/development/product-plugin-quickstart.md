@@ -3,21 +3,23 @@
 状态：`current`
 
 本文是新 Product Plugin 接入 Hermit vNext 的唯一 `Start Here` 页面。先在这里确认平台
-能提供什么，再决定插件应该使用 DSH、自己的业务代码，还是 Desktop Core。本文只引用已经
+能提供什么，再决定插件应该使用 DSH、自己的业务代码，还是 Agent Desktop Core。本文只引用已经
 被三个业务插件和 [`@hermit/dsh-plugin-reference`](../../packages/dsh-plugin-reference/README.md)
 验证过的公开契约，不提供业务基类，也不复制 DSH 私有实现。
 
 ## Core 能力一览
 
-这里的 Core 分成两层：DSH Core 负责插件运行时和 AI；Desktop Core 负责 Electron、操作系统
-和桌面资源。能力“已经存在”不等于“插件可以直接调用”，以“插件接入状态”为准。
+这里的平台分成三层：DSH 负责插件运行时和 AI；Agent Desktop Core 负责 Electron、操作系统
+和桌面资源；具体 DSH 启停、ready 和 generation 由 `@platform/dsh-runtime-adapter` 负责。能力
+“已经存在”不等于“插件可以直接调用”，以“插件接入状态”为准。
 
 | 能力 | 主要用途 | 插件接入方式 | 插件接入状态 |
 | --- | --- | --- | --- |
 | DSH 插件运行时 | Host、Client、Settings、Tool、Skill、Storage、Connection | DSH 官方 package、service、slot | 可接入，按 DSH 官方资料执行 |
 | Product Navigation v1 | 注册产品入口，统一处理 active、排序和收起状态 | `ctx.get('layout')`、`registerProductEntry()` | 可接入，仅 Hermit patched DSH |
 | Product Surface v1 | 提供插件自己的产品工作面 | `product.surface` typed slot | 可接入，仅 Hermit patched DSH |
-| 桌面应用生命周期 | 窗口、Tray、单实例、退出和 DSH 进程监督 | 无插件直接 API | Desktop Core 内部能力 |
+| 桌面应用生命周期 | 窗口、Tray、单实例和退出 | 无插件直接 API | Agent Desktop Core 内部能力 |
+| Agent Runtime 生命周期 | 启动、ready、停止、崩溃恢复和 generation | 产品组合根创建具体 adapter | DSH 由 `@platform/dsh-runtime-adapter` 提供 |
 | 系统剪贴板 | 捕获、读取和写回剪贴板 | 当前没有通用插件 API | Smart Clipboard 专属 |
 | 全局快捷键 | 注册系统级快捷键 | Core `ShortcutRegistry` | 可申请，仍由 Core 统一注册 |
 | Desktop Surface / Quick Panel | 受控桌面窗口、对话或插件工作面 | `DesktopSurfaceClient` typed contract | `conversation.quick` 与 `approval.companion` 已接入，并通过 macOS packaged Quick 烟测 |
@@ -30,7 +32,7 @@
 [Desktop Surface 与 Quick Panel spec](../../specs/2026-08-24-hermit-dsh-vnext/desktop-surface-quick-panel.md)。
 插件在 DSH Client 中通过 `getDesktopSurfaceClient()` 获取可用的
 `open/toggle/resize/close/openMainSession/capabilities` 能力；桌面壳缺少该 bridge 时返回 `undefined`。
-窗口注册和 renderer loader 仍由 Desktop Core 持有，插件不自行创建窗口。
+窗口注册和 renderer loader 仍由 Agent Desktop Core 持有，插件不自行创建窗口。
 
 ```ts
 const surface = getDesktopSurfaceClient()
@@ -55,7 +57,7 @@ Reminder 插件只把已经算好的 `fireAt` 交给 `getDesktopDeadlineClient()
 的摘要交给 `getDesktopNotificationClient()`。这两个 client 在纯 Web 中可能不存在，插件必须
 保留应用内业务结果并显示 `unavailable`，不能把 Core facade 当作 Reminder store 或通用调度器。
 
-有真实系统级动作时，插件在 Desktop Core 生命周期中注册一个带有 `pluginId`、`pluginName`、
+有真实系统级动作时，插件在 Agent Desktop Core 生命周期中注册一个带有 `pluginId`、`pluginName`、
 `commandName`、`defaultAccelerator` 和 `onTrigger` 的快捷键定义。用户统一在 DSH“设置 ->
 快捷键”中按插件查看、修改或恢复默认值；插件自己的 settings 页面不重复编辑全局快捷键。
 注册失败会显示为冲突或不可用，不影响插件其他业务能力。具体字段和状态见
@@ -66,11 +68,11 @@ Reminder 插件只把已经算好的 `fireAt` 交给 `getDesktopDeadlineClient()
 ```text
 DSH 已有公开能力
         -> 插件自己的业务能力
-                -> 确实需要系统或 Electron 能力时，才进入 Desktop Core
+                -> 确实需要系统或 Electron 能力时，才进入 Agent Desktop Core
 ```
 
 - 普通业务数据、页面、搜索和 AI，优先使用 DSH 或插件自己的业务代码。
-- 只有系统剪贴板、全局快捷键、原生窗口、绝对 Deadline 或系统通知等桌面能力，才考虑 Desktop Core。
+- 只有系统剪贴板、全局快捷键、原生窗口、绝对 Deadline 或系统通知等桌面能力，才考虑 Agent Desktop Core。
 - 插件不能直接导入 Electron、Node、`ipcRenderer`、DSH `src/*`、私有 Router 或私有 DOM。
 - stock DSH 没有 Hermit layout service 时，只使用它已有的官方接入面，不注册产品入口。
 - Surface 的业务内容和状态仍归插件或 DSH；Core 只提供窗口宿主和平台能力。

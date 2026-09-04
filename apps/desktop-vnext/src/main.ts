@@ -24,22 +24,24 @@ import {
   DesktopDeadlineService,
   DesktopNotificationService,
   DesktopSurfaceManager,
-  DshRuntimeController,
-  DshSupervisor,
   FileShortcutSettingsStore,
-  FileGenerationStateStore,
   registerDesktopDeadlineIpc,
   registerDesktopNotificationIpc,
   registerDesktopShortcutIpc,
   registerDesktopSurfaceIpc,
-  RuntimeGenerationCatalog,
-  RuntimeGenerationManager,
   ShortcutRegistry,
   SURFACE_ACTIVATION_GUARD_MS,
+} from "@platform/agent-desktop-core";
+import { createElectronNotificationFactory } from "@platform/agent-desktop-core/electron-notification-factory";
+import {
+  DshRuntimeController,
+  DshSupervisor,
+  FileGenerationStateStore,
+  RuntimeGenerationCatalog,
+  RuntimeGenerationManager,
   type DshReadyEvent,
   type DshUnavailableEvent,
-} from "@platform/desktop-core";
-import { createElectronNotificationFactory } from "@platform/desktop-core/electron-notification-factory";
+} from "@platform/dsh-runtime-adapter";
 import { ShutdownCoordinator } from "./desktop/shutdown-coordinator.js";
 import {
   FileMainWindowStateStore,

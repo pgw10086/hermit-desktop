@@ -1,12 +1,12 @@
-# Desktop Core 开发规范
+# Agent Desktop Core 开发规范
 
 状态：`current`
 
-本文面向 Hermit Desktop Core 维护者，只说明 Desktop Core 什么时候存在、应该提供什么，
-以及插件怎样安全地使用它。新 Product Plugin 开发者应先阅读
+本文面向 Agent Desktop Core 和 Runtime Adapter 维护者，只说明共享桌面 Core 什么时候存在、
+应该提供什么，以及插件怎样安全地使用它。新 Product Plugin 开发者应先阅读
 [Product Plugin 最小接入](product-plugin-quickstart.md)。
 
-本文不是 Electron 教程，也不复制 DSH 官方插件文档。本文只定义 Desktop Core 的长期职责
+本文不是 Electron 教程，也不复制 DSH 官方插件文档。本文只定义 Agent Desktop Core 的长期职责
 和通用规则；具体 Surface 的接口形状、阶段范围和验收以
 [Desktop Surface 与 Quick Panel spec](../../specs/2026-08-24-hermit-dsh-vnext/desktop-surface-quick-panel.md)、
 [DSH 桌面快捷键中心 spec](../../specs/2026-08-24-hermit-dsh-vnext/desktop-shortcut-center.md)
@@ -17,7 +17,7 @@
 遇到一个新需求时，按这个顺序判断：
 
 ```text
-DSH 官方公开能力 -> Product Plugin 业务代码 -> Desktop Core 桌面能力
+DSH 官方公开能力 -> Product Plugin 业务代码 -> Agent Desktop Core 桌面能力
 ```
 
 - DSH 已经有合适、公开并经过 Hermit 验证的能力，就直接使用 DSH。
@@ -27,9 +27,9 @@ DSH 官方公开能力 -> Product Plugin 业务代码 -> Desktop Core 桌面能�
 “进入 Core 比较方便”不是理由。新增能力时要能说清楚 DSH 为什么不够，以及哪个真实产品
 流程正在使用它。
 
-## Desktop Core 负责什么
+## Agent Desktop Core 负责什么
 
-Desktop Core 是桌面外壳和原生能力的负责人，常见范围包括：
+Agent Desktop Core 是桌面外壳和原生能力的负责人，常见范围包括：
 
 - Electron 应用生命周期、窗口、Tray、单实例和退出协调；
 - 系统剪贴板读写或监听；
@@ -41,11 +41,15 @@ Desktop Core 是桌面外壳和原生能力的负责人，常见范围包括：
 普通业务文件读写、业务存储、业务搜索、页面列表和编辑器不属于 Core，优先走 DSH 或插件
 自己的业务代码。
 
-## 多产品使用边界
+## Agent Runtime Adapter 边界
 
-Desktop Core 是可以被多个 Product Desktop 消费的版本化 package。它只提供稳定的桌面
-平台能力和 typed contract，不拥有某个产品的 DSH Web/Layout、Conversation、Session、
-Settings、Approval、导航、插件清单或业务数据库。
+`@platform/agent-desktop-core` 是可以被多个 Agent Desktop 消费的版本化 package。它只提供稳定的
+桌面平台能力和 typed contract，不拥有某个 Agent 的 Web/Layout、Conversation、Session、Settings、
+Approval、导航、插件清单或业务数据库。
+
+`@platform/dsh-runtime-adapter` 是当前 DSH 的具体 runtime adapter。它依赖 Core，负责 DSH command、
+ready 探测、carrier、崩溃恢复和 generation。未来其他 Agent 只能通过自己的 adapter 接入，不把
+Agent 的 Conversation、Session、Tool、Approval 或模型 API 塞进 Core。
 
 每个 Product Desktop 自己决定：
 
@@ -54,14 +58,15 @@ Settings、Approval、导航、插件清单或业务数据库。
 - 装配哪些 Product Plugin；
 - 如何打包、发布和回滚自己的产品。
 
-Desktop Core 可以提供“启动、监督、停止 DSH runtime”的平台能力，但不能决定所有产品
-都使用同一套 DSH Web、layout patch 或插件集合。Smart Clipboard 等单一产品的 SQLite、
+Agent Desktop Core 可以提供通用运行时生命周期契约；DSH adapter 才负责“启动、监督、停止 DSH runtime”。
+它们都不能决定产品使用哪套 DSH Web、layout patch 或插件集合。Smart Clipboard 等单一产品的 SQLite、
 捕获编排和 native bridge 属于产品专属 desktop-adapter，不进入共享 Core。
 
 ## Desktop Surface
 
-Desktop Surface 是 Desktop Core 对外提供的受控桌面工作面能力。它可以承载 DSH Conversation
-或 Product Plugin 已注册的工作面，具体 `kind` 和内容由各自的 typed contract 决定。
+Desktop Surface 是 Agent Desktop Core 对外提供的受控桌面工作面能力。它可以承载某个 Agent 的
+`runtime-view` 或 Product Plugin 已注册的工作面；具体 `runtimeId`、`kind` 和内容由各自的 typed
+contract 决定，Core 不绑定 DSH。
 
 主窗口的主工作区由 layout Core 统一建模为“会话区”或“一个 Product Surface”二选一。插件
 入口点击只负责打开自己的 Surface；用户从 DSH 的会话列表、搜索结果、分叉结果或新会话入口
@@ -132,7 +137,7 @@ quickSurface.open(options)
 只调整已有窗口尺寸，不触发页面加载或 Session 选择。Surface 注册时可声明 `chrome`、`movable`、
 `resizable`、`alwaysOnTop`、最小/最大尺寸、Esc/失焦行为以及位置/尺寸记忆；打开时只覆盖
 位置、尺寸、焦点、置顶和 Session 等请求级偏好。桌面壳缺少该 bridge 时
-返回 `undefined`。窗口注册、renderer loader 和 Electron 句柄仍只在 Desktop Core 内部；
+返回 `undefined`。窗口注册、renderer loader 和 Electron 句柄仍只在 Agent Desktop Core 内部；
 `ShortcutRegistry` 也继续由 Core 持有；快捷键中心只消费 Core 的列表、更新、恢复和变化通知，
 不把 Electron 句柄或插件回调暴露给 DSH Client。
 
@@ -146,7 +151,7 @@ quickSurface.open(options)
 
 ### 快捷键 Registry
 
-快捷键是共享的系统资源，不能由每个插件各自调用 Electron。插件桌面适配层向 Core 提交
+快捷键是共享的系统资源，不能由每个插件各自调用 Electron。插件桌面适配层向 Agent Desktop Core 提交
 `id`、`pluginId`、插件/命令展示名称、默认 accelerator 和触发回调，Core 负责读取
 `userData/desktop/shortcuts.json`、检查 Hermit 内部重复、调用系统注册并在停用时释放。
 

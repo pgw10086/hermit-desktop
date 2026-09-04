@@ -112,7 +112,8 @@ interface DesktopSurfaceDefinition {
   id: string
   kind: SurfaceKind
   content: {
-    type: 'dsh-conversation' | 'plugin-view'
+    type: 'runtime-view' | 'plugin-view'
+    runtimeId?: string
     viewId?: string
     contract?: number
   }

@@ -7,21 +7,20 @@ Electron 与 DSH Web/Runtime 对接时双方必须遵守的具体规则。stock 
 bundled DSH 可以在同一 pinned generation 上携带经过审计的最小 source patch，但插件仍
 只能消费 patch 暴露的公开 typed contract。
 
-## 多产品 runtime 边界
+## Agent Runtime Adapter 边界
 
-`desktop-core` 只提供桌面平台能力和 DSH 进程监管，不拥有 DSH Web/Layout、DSH 版本选择或
-任何产品插件清单。`hermit-desktop` 和 `new-product-desktop` 各自维护自己的 runtime
-generation、lockfile、profile/home、layout/source patch、插件 artifact 和打包 manifest。
+`@platform/agent-desktop-core` 只提供通用桌面能力和 Agent Runtime 生命周期契约，不认识 DSH
+ready 协议、DSH generation 或产品插件清单。`@platform/dsh-runtime-adapter` 依赖 Core，负责
+DSH 命令、ready 探测、carrier、崩溃恢复和 DSH generation。
 
-两个产品可以锁定同一个上游 DSH commit，也可以在各自完成资格后使用不同 commit。共享的是
-上游能力语义和 Desktop Core public contract，不是一个可变的 DSH checkout。一个 runtime
-内的所有 DSH consumer 必须解析到同一份 layout 制品；不同产品的 layout 必须进入不同
-generation，不能混装。
+Hermit Desktop 负责选择 DSH 上游 commit、版本、profile/home、layout/source patch、插件
+artifact 和打包 manifest。未来其他 Agent Runtime 只能通过自己的 adapter 接入；Core 不统一
+Conversation、Session、Tool、Skill、Approval、模型或凭据 API。
 
-正式依赖通过发布 package 或固定 tarball 连接。多个 sibling Git 仓库可以放在一个父文件夹
-中，但不组成超级 pnpm workspace；禁止跨仓库相对路径导入源码、`workspace:*`、`link:` 或
-隐式 hoist 作为 CI/Release 依赖。本地联调可以使用明确的 dev tarball，最终构建必须恢复
-版本化输入。
+正式依赖通过发布 package 或固定 tarball 连接。Agent Desktop Core 仓库内部的两个 package
+使用 workspace 依赖；Hermit 等 sibling 仓库只消费固定 tarball，禁止跨仓库相对路径导入源码、
+`workspace:*`、`link:` 或隐式 hoist 作为 CI/Release 依赖。本地联调可以使用明确的 dev tarball，
+最终构建必须恢复版本化输入。
 
 ## 运行时闭包
 

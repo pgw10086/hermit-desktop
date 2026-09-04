@@ -1,10 +1,18 @@
 # 固定平台制品
 
-`platform-desktop-core-0.1.0.tgz` 是 Hermit Desktop 当前消费的 Desktop Core 候选制品。
+`agent-desktop-core-0.1.0.tgz` 是 Hermit Desktop 当前消费的 Agent Desktop Core 候选制品。
 
-- package：`@platform/desktop-core@0.1.0`
-- SHA-256：`cf88a01fcd3009a883ddbe6fac48d6d418ccea24b5f50963e363dd7844781663`
-- 构建来源：[`desktop-core@8dcfc8d`](https://github.com/pgw10086/desktop-core/commit/8dcfc8d4c6964338ed4f7b3680b2b0ad8e783850)
+- package：`@platform/agent-desktop-core@0.1.0`
+- SHA-256：`93fd3e912e6d60666d6456ba958ab7b34549388fb544579f39ea482b4fce66a8`
+- 构建来源：[`agent-desktop-core@7bcbb16a188e28da57c3555c70797cf4542d0c1a`](https://github.com/pgw10086/agent-desktop-core/commit/7bcbb16a188e28da57c3555c70797cf4542d0c1a)
+
+`dsh-runtime-adapter-0.1.0.tgz` 是 DSH Runtime Adapter 候选制品，依赖同一批次的
+`@platform/agent-desktop-core@0.1.0`。
+
+- SHA-256：`033e97604db0bd7f76ca4c4b8b146320f416c65bd60db533543281b2dc483a17`
+- 构建来源：[`agent-desktop-core@7bcbb16a188e28da57c3555c70797cf4542d0c1a`](https://github.com/pgw10086/agent-desktop-core/commit/7bcbb16a188e28da57c3555c70797cf4542d0c1a)
+
+两个 tarball 必须一起更新，不能只换其中一个。
 
 该 tarball 让干净安装不依赖 sibling 源码路径。正式发布前应替换为私有 registry 版本或由
 发布清单锁定的正式制品，并重新记录摘要。

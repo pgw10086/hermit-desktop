@@ -11,7 +11,7 @@ import {
   FileGenerationStateStore,
   RuntimeGenerationCatalog,
   RuntimeGenerationManager,
-} from "@platform/desktop-core";
+} from "@platform/dsh-runtime-adapter";
 
 const appRoot = path.resolve(".");
 const repositoryRoot = path.resolve(appRoot, "..", "..");

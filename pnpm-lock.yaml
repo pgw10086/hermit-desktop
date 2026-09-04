@@ -62,9 +62,12 @@ importers:
       '@hermit/smart-clipboard':
         specifier: file:../../vendor/hermit-smart-clipboard-0.2.2.tgz
         version: file:vendor/hermit-smart-clipboard-0.2.2.tgz(@deepseek-ai/dsh-client-ui-layout@0.1.1-rc.2(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-client-runtime@0.1.1-rc.2(601e9129357dc48738583e18d75d19b2))(@deepseek-ai/dsh-client-ui-theme@0.1.1-rc.2(a6c39110759121c55549be9a5dac7bf7))(@deepseek-ai/dsh-invariants@0.1.1-rc.2(@deepseek-ai/cordis@4.0.1)))(react@18.3.1)
-      '@platform/desktop-core':
-        specifier: file:../../vendor/platform-desktop-core-0.1.0.tgz
-        version: file:vendor/platform-desktop-core-0.1.0.tgz(electron@43.4.0(supports-color@7.2.0))
+      '@platform/agent-desktop-core':
+        specifier: file:../../vendor/agent-desktop-core-0.1.0.tgz
+        version: file:vendor/agent-desktop-core-0.1.0.tgz(electron@43.4.0(supports-color@7.2.0))
+      '@platform/dsh-runtime-adapter':
+        specifier: file:../../vendor/dsh-runtime-adapter-0.1.0.tgz
+        version: file:vendor/dsh-runtime-adapter-0.1.0.tgz(@platform/agent-desktop-core@file:vendor/agent-desktop-core-0.1.0.tgz(electron@43.4.0(supports-color@7.2.0)))
       pnpm:
         specifier: '>=11.0.0 <12'
         version: 11.7.0
@@ -2922,12 +2925,19 @@ packages:
     resolution: {integrity: sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==}
     engines: {node: '>=14'}
 
-  '@platform/desktop-core@file:vendor/platform-desktop-core-0.1.0.tgz':
-    resolution: {integrity: sha512-KJqymsY1Sj2MkR4p9qOd872Syooh3IL5jFXE2CTpE+eRrPlhKdtJi9EcldWzlcUjfOVUde/2DEu1vPV3mnLiMg==, tarball: file:vendor/platform-desktop-core-0.1.0.tgz}
+  '@platform/agent-desktop-core@file:vendor/agent-desktop-core-0.1.0.tgz':
+    resolution: {integrity: sha512-ZWG/+PN2UekYKRQXli6oCtypJndNbDJuurgXeKgCuzG2v6oUlxVvAP9N4j7CUuO35tx+uomzMLxl0rDCo7/0fQ==, tarball: file:vendor/agent-desktop-core-0.1.0.tgz}
     version: 0.1.0
     engines: {node: '>=24.0.0 <25', pnpm: '>=11.0.0 <12'}
     peerDependencies:
       electron: '>=43.0.0 <44'
+
+  '@platform/dsh-runtime-adapter@file:vendor/dsh-runtime-adapter-0.1.0.tgz':
+    resolution: {integrity: sha512-h+h0kW4kTJx9+bRg+IrF6bi18BmiDGfqg0lC9DLQ3UGbnKH4Eb0BGbtO4U61R0fJp8ot2Q22598mkKNvFTk+rQ==, tarball: file:vendor/dsh-runtime-adapter-0.1.0.tgz}
+    version: 0.1.0
+    engines: {node: '>=24.0.0 <25', pnpm: '>=11.0.0 <12'}
+    peerDependencies:
+      '@platform/agent-desktop-core': 0.1.0
 
   '@protobufjs/aspromise@1.1.2':
     resolution: {integrity: sha512-j+gKExEuLmKwvz3OgROXtrJ2UG2x8Ch2YZUxahh+s1F2HZ+wAceUNLkvy6zKCPVRkU++ZWQrdxsUeQXmcg4uoQ==}
@@ -8567,9 +8577,13 @@ snapshots:
   '@pkgjs/parseargs@0.11.0':
     optional: true
 
-  '@platform/desktop-core@file:vendor/platform-desktop-core-0.1.0.tgz(electron@43.4.0(supports-color@7.2.0))':
+  '@platform/agent-desktop-core@file:vendor/agent-desktop-core-0.1.0.tgz(electron@43.4.0(supports-color@7.2.0))':
     dependencies:
       electron: 43.4.0(supports-color@7.2.0)
+
+  '@platform/dsh-runtime-adapter@file:vendor/dsh-runtime-adapter-0.1.0.tgz(@platform/agent-desktop-core@file:vendor/agent-desktop-core-0.1.0.tgz(electron@43.4.0(supports-color@7.2.0)))':
+    dependencies:
+      '@platform/agent-desktop-core': file:vendor/agent-desktop-core-0.1.0.tgz(electron@43.4.0(supports-color@7.2.0))
 
   '@protobufjs/aspromise@1.1.2': {}
 

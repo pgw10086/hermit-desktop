@@ -13,11 +13,11 @@
 5. package、插件和原生辅助模块的具体清单由真实 manifest/workspace 配置负责，本文
    不复制容易过期的目录快照。
 
-## 多产品拆仓状态
+## 当前拆仓状态
 
 本仓库是拆分后的 `hermit-desktop` 产品仓库，保留 Hermit 的完整构建、测试和发布流程。
-共享 Desktop Core、新产品和后续插件仓库与本仓库位于同一个普通父文件夹中；父文件夹本身
-不是 Git 仓库，也不是一个超级 pnpm workspace。
+共享 Agent Desktop Core 和插件仓库与本仓库按平台/业务分组放置；各父目录本身不是 Git 仓库，
+也不是一个超级 pnpm workspace。
 
 拆仓后的每个仓库拥有自己的 Git、lockfile、依赖版本、构建和发布边界。代码目录可以相邻，
 正式依赖必须通过已发布的 package 或固定 tarball 连接；不能跨仓库引用兄弟仓库的 `src/*`。
@@ -41,16 +41,16 @@
 | `.codex/` | Developer Experience 负责 Codex 专用适配 | 确有 Codex 专用配置时 | 随适配维护 |
 | `.hermit/` | 本地运行者拥有 cache、tmp 和 artifacts | 工具运行时按需创建 | 始终忽略，不提交 |
 
-`apps/desktop-vnext/` 是 Hermit 产品 Desktop，不是两个产品共用的产品壳。共享 Desktop
-Core 已经迁到 sibling 仓库，本仓库只通过固定 package 制品消费它。
+`apps/desktop-vnext/` 是 Hermit 产品 Desktop。共享 Agent Desktop Core 已经迁到
+`platform-core/agent-desktop-core` sibling 仓库，本仓库只通过固定 package 制品消费它。
 
 ## 拆仓后的 sibling 责任
 
 | 仓库 | 负责什么 | 明确不负责什么 |
 | --- | --- | --- |
-| `desktop-core/` | Electron 窗口、Tray、Surface、快捷键、通知、系统能力、受控 IPC、安全、生命周期和 DSH 进程监督 | DSH Web/Layout、Conversation/Session/Settings/Approval UI、业务插件清单和业务数据 |
+| `agent-desktop-core/` | 通用 Electron 窗口、Tray、Surface、快捷键、通知、系统能力、受控 IPC、安全、生命周期和 Agent Runtime 契约 | DSH Web/Layout、DSH 协议、Conversation/Session/Settings/Approval UI、业务插件清单和业务数据 |
+| `dsh-runtime-adapter/`（同仓库 package） | DSH 命令、ready 探测、carrier、DSH 进程监督和 generation | 通用桌面能力、产品 UI、Conversation/Session/Settings/Approval 业务和插件数据 |
 | `hermit-desktop/` | Hermit 产品壳、Hermit layout/source patch、Hermit DSH generation/profile、插件组合、Hermit 打包和发布 | 新产品 UI、另一产品的 profile、共享 UI 壳 |
-| `new-product-desktop/` | 新产品壳、自己的 Conversation/Session/Settings/Approval/导航组合、自己的 layout/source patch、DSH generation/profile、插件组合和打包 | Hermit layout、另一个产品的业务数据和内部代码 |
 | `plugin-*/` | 一个业务的 Canonical 数据、规则、Host、Client、Tool、迁移和自己的桌面适配（如有） | 宿主全局导航、DSH 私有实现、另一个插件的数据库和 Electron 私有 API |
 | `integration/`（可选） | 跨仓库版本清单、固定制品、集成 E2E 和发布编排 | 产品业务代码、运行时私有状态和临时源码引用 |
 

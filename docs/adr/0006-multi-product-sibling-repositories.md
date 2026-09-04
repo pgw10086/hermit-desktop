@@ -1,8 +1,12 @@
 # ADR-0006：多产品采用 sibling Git 仓库并共享版本化 Desktop Core
 
-状态：`accepted`
+状态：`superseded by ADR-0007`
 
 日期：2026-09-03
+
+替代：[ADR-0007：Agent Desktop Core 与 Runtime Adapter 分层](0007-agent-desktop-core-runtime-adapters.md)
+
+以下正文保留原多产品拆仓决定，用于历史追溯；当前仓库不再维护 `new-product-desktop`。
 
 ## 背景
 
@@ -18,7 +22,7 @@ Hermit vNext 当前把 Desktop、DSH Layout 和三个 Product Plugin 放在同�
 采用同一普通父文件夹下的多个 sibling Git 仓库。父文件夹不是 Git 仓库，也不是超级
 pnpm workspace：
 
-- `desktop-core/` 提供版本化 `@platform/desktop-core` package，负责 Electron、系统能力、
+- `desktop-core/` 提供版本化 `@platform/agent-desktop-core` package，负责 Electron、系统能力、
   受控 IPC、生命周期、Surface 和 DSH 进程监管；
 - `hermit-desktop/` 独立拥有 Hermit 产品壳、Hermit DSH Layout/source patch、runtime
   generation、profile、插件组合、打包和发布；

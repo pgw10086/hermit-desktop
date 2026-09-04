@@ -11,7 +11,7 @@
 
 新增插件先看[Product Plugin 最小接入](../docs/development/product-plugin-quickstart.md)。开发
 规范见[Product Plugin 开发规范](development-guidelines.md)；需要系统剪贴板、全局快捷键、
-原生窗口等桌面能力时，再看[Desktop Core 开发规范](../docs/development/desktop-core-development.md)。
+原生窗口等桌面能力时，再看[Agent Desktop Core 开发规范](../docs/development/desktop-core-development.md)。
 
 ## 当前目录
 
@@ -36,7 +36,7 @@ plugins/
 | --- | --- |
 | 产品定位、插件划分、业务规则和发布验收 | [核心需求](../specs/2026-08-24-hermit-dsh-vnext/core-requirements.md) |
 | 所有插件共同遵循的开发方式 | [插件开发规范](development-guidelines.md) |
-| Desktop Core 的职责、桌面 API 和生命周期 | [Desktop Core 开发规范](../docs/development/desktop-core-development.md) |
+| Agent Desktop Core 的职责、桌面 API 和生命周期 | [Agent Desktop Core 开发规范](../docs/development/desktop-core-development.md) |
 | DSH 官方插件 API、生命周期、Bundle/Profile、CLI 和 Client 资料版本 | [DSH 官方上游资料](../DEEPSEEK-HARNESS-UPSTREAM.md) |
 | 所有前端共同遵循的布局、层级和交互规则 | [前端 UI 设计规范](../docs/development/frontend-ui-design.md) |
 | Product Plugin 的 DSH 接入和组件所有权 | [插件 UI 规范](ui-guidelines.md) |
@@ -49,7 +49,7 @@ plugins/
 
 拆仓后，插件仓库仍沿用本页和对应 `DESIGN.md` 的规则；插件可以被多个 Product Desktop
 消费，但不得依赖某个产品仓库的内部文件。需要桌面特权的插件只依赖发布后的
-Desktop Core contract，并把产品专属 desktop-adapter 留在自己的仓库。
+Agent Desktop Core contract，并把产品专属 desktop-adapter 留在自己的仓库。
 
 ## 设计会话规则
 

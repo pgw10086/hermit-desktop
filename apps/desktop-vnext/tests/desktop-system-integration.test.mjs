@@ -3,7 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { createEvidenceSink } from "@platform/desktop-core";
+import { createEvidenceSink } from "@platform/agent-desktop-core";
 import {
   createTrayMenuTemplate,
   loginItemLabel,

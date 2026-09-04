@@ -1,5 +1,5 @@
 import type { MenuItemConstructorOptions } from "electron";
-import type { EvidenceSink } from "@platform/desktop-core";
+import type { EvidenceSink } from "@platform/agent-desktop-core";
 
 /** Quick Panel 的全局快捷键；主进程和资格测试共用该固定值。 */
 export const QUICK_PANEL_SHORTCUT = "CommandOrControl+Shift+Space";

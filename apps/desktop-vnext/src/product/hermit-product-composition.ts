@@ -1,9 +1,9 @@
 import type { BrowserWindow, IpcMain } from 'electron'
 import type {
   DesktopSurfaceManager,
-  RuntimeGenerationManager,
   ShortcutRegistry,
-} from '@platform/desktop-core'
+} from '@platform/agent-desktop-core'
+import type { RuntimeGenerationManager } from '@platform/dsh-runtime-adapter'
 import type { NavigationActions } from '../desktop/window-policy.js'
 import { ConversationQuickRuntime } from '../desktop/conversation-quick-runtime.js'
 import { SmartClipboardDesktopRuntime } from '../desktop/smart-clipboard-runtime.js'

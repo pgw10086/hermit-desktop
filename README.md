@@ -29,14 +29,15 @@ Pasteboard；真实复制/自动粘贴/物理快捷键仍待 disposable 资格�
 
 ## 文档入口
 
-本仓库只负责 Hermit 产品。共享桌面平台位于同级独立
-[`desktop-core`](https://github.com/pgw10086/desktop-core) 仓库，并通过
-`vendor/platform-desktop-core-0.1.0.tgz` 的固定制品接入；不从 sibling 目录导入源码。
+本仓库只负责 Hermit 产品。共享 Agent Desktop 平台位于独立的
+[`agent-desktop-core`](https://github.com/pgw10086/agent-desktop-core) 仓库，提供
+`@platform/agent-desktop-core` 和 `@platform/dsh-runtime-adapter` 两个 package；Hermit 通过
+`vendor/` 中的固定 tarball 接入，不从 sibling 目录导入源码。
 
 - [Agent 规则](AGENTS.md)：编码任务的入口和红线；
 - [文档权威索引](docs/document-authority.yaml)：某类事实应该查哪份文档；
 - [系统边界](docs/architecture/system-boundaries.md)：Electron、DSH、插件的当前职责；
-- [Desktop Core 开发规范](docs/development/desktop-core-development.md)：桌面能力边界、desktop API 和生命周期；
+- [Agent Desktop Core 开发规范](docs/development/desktop-core-development.md)：桌面能力边界、desktop API 和生命周期；
 - [Product Plugin 最小接入](docs/development/product-plugin-quickstart.md)：新插件的唯一 `Start Here` 入口和当前 Core 能力一览；
 - [Product Plugin 开发规范](plugins/development-guidelines.md)：三个第一方插件共同遵循的开发方式；
 - [Product Plugin 入口](plugins/README.md)：三个插件的设计、开发和文档导航；
@@ -45,13 +46,12 @@ Pasteboard；真实复制/自动粘贴/物理快捷键仍待 disposable 资格�
 - [Desktop Surface 与 Quick Panel spec](specs/2026-08-24-hermit-dsh-vnext/desktop-surface-quick-panel.md)：Quick Panel、对话小窗口和剪贴板窗口迁移；
 - [M1 设计](specs/2026-08-24-hermit-dsh-vnext/m1-foundation-qualification.md)：M1 阶段、gate 和退出条件；
 - [仓库布局](docs/repository-layout.md)：目录所有权和生命周期；
-- [多产品拆仓方案](specs/2026-09-03-product-variant-platform-split.md)：Desktop Core、Hermit 和新产品的 sibling 仓库边界与迁移门槛；
+- [Agent Desktop Core 适配器 ADR](docs/adr/0007-agent-desktop-core-runtime-adapters.md)：通用桌面 Core、Agent Runtime Adapter 和当前 package 边界；
 - [DSH 官方上游资料](DEEPSEEK-HARNESS-UPSTREAM.md)：当前 DSH 文档快照、版本和更新规则；
 - [macOS 发布流程](docs/development/macos-release.md)：版本、DMG、可选签名、Draft、下载回验和正式发布；
 - [Smart Clipboard 打包与更新流程](docs/development/smart-clipboard-packaging-runbook.md)：插件制品、桌面包、DMG 和版本更新的执行清单；
 - [ADR-0002](docs/adr/0002-electron-loopback-dsh-carrier.md)：M1 为什么采用 Electron + stock DSH Web（历史底座决定）。
 - [ADR-0003](docs/adr/0003-hermit-bundled-dsh-web-source-patch.md)：何时允许 Hermit 自带 DSH Web 携带受控 source patch。
-- [ADR-0006](docs/adr/0006-multi-product-sibling-repositories.md)：为什么多产品拆成 sibling Git 仓库，以及共用与隔离边界。
 
 ## 当前验证
 
