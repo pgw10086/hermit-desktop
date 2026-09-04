@@ -3,7 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { DshSupervisor } from "@hermit/desktop-core";
+import { DshSupervisor } from "@platform/desktop-core";
 
 const fixture = path.resolve("tests/fixtures/fake-dsh.mjs");
 const carrier = path.resolve("lib/runtime/dsh-carrier.js");

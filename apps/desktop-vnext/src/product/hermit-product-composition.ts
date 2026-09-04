@@ -3,7 +3,7 @@ import type {
   DesktopSurfaceManager,
   RuntimeGenerationManager,
   ShortcutRegistry,
-} from '@hermit/desktop-core'
+} from '@platform/desktop-core'
 import type { NavigationActions } from '../desktop/window-policy.js'
 import { ConversationQuickRuntime } from '../desktop/conversation-quick-runtime.js'
 import { SmartClipboardDesktopRuntime } from '../desktop/smart-clipboard-runtime.js'

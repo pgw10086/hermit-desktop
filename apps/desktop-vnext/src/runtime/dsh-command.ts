@@ -2,9 +2,9 @@ import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import type { DshCommand } from "@hermit/desktop-core";
+import type { DshCommand } from "@platform/desktop-core";
 
-export type { DshCommand } from "@hermit/desktop-core";
+export type { DshCommand } from "@platform/desktop-core";
 
 export interface DshCommandOptions {
   /** 是否从 bundled runtime 解析路径。 */

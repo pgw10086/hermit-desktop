@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { registerDesktopDeadlineIpc, registerDesktopNotificationIpc, parseDeadlineRequest, parseNotificationRequest } from '@hermit/desktop-core'
+import { registerDesktopDeadlineIpc, registerDesktopNotificationIpc, parseDeadlineRequest, parseNotificationRequest } from '@platform/desktop-core'
 
 test('能力 IPC 解析 UTC deadline 和有限通知动作', () => {
   assert.deepEqual(parseDeadlineRequest({ op: 'arm', input: { id: 'occ-1', fireAt: '2026-09-02T00:00:00.000Z' } }), {
@@ -38,14 +38,14 @@ test('能力 IPC 只允许受信窗口，并把 fire/event 发回原窗口', asy
   const options = { ipcMain, trustedWindows: [main], resolveWindow: (contents) => contents === main.webContents ? main : other }
   const disposeDeadline = registerDesktopDeadlineIpc({ ...options, service: deadline })
   const disposeNotification = registerDesktopNotificationIpc({ ...options, service: notifications })
-  assert.deepEqual(await ipcMain.handlers.get('hermit:desktop-deadlines')({ sender: main.webContents }, { op: 'arm', input: { id: 'occ-1', fireAt: '2026-09-02T00:00:00Z' } }), { status: 'armed', id: 'occ-1', fireAt: '2026-09-02T00:00:00.000Z' })
-  assert.deepEqual(await ipcMain.handlers.get('hermit:desktop-notifications')({ sender: main.webContents }, { op: 'show', input: { id: 'occ-1', title: '个人事项', body: '吃饭' } }), { status: 'shown', id: 'occ-1' })
+  assert.deepEqual(await ipcMain.handlers.get('desktop:deadlines')({ sender: main.webContents }, { op: 'arm', input: { id: 'occ-1', fireAt: '2026-09-02T00:00:00Z' } }), { status: 'armed', id: 'occ-1', fireAt: '2026-09-02T00:00:00.000Z' })
+  assert.deepEqual(await ipcMain.handlers.get('desktop:notifications')({ sender: main.webContents }, { op: 'show', input: { id: 'occ-1', title: '个人事项', body: '吃饭' } }), { status: 'shown', id: 'occ-1' })
   assert.deepEqual(main.sent, [
-    ['hermit:desktop-deadlines', { kind: 'fired', id: 'occ-1', fireAt: '2026-09-02T00:00:00.000Z', firedAt: '2026-09-02T00:00:00.000Z' }],
-    ['hermit:desktop-notifications', { kind: 'clicked', id: 'occ-1' }],
+    ['desktop:deadlines', { kind: 'fired', id: 'occ-1', fireAt: '2026-09-02T00:00:00.000Z', firedAt: '2026-09-02T00:00:00.000Z' }],
+    ['desktop:notifications', { kind: 'clicked', id: 'occ-1' }],
   ])
   main.emit('closed')
-  assert.throws(() => ipcMain.handlers.get('hermit:desktop-deadlines')({ sender: other.webContents }, { op: 'cancel', id: 'occ-1' }), /受信窗口/u)
+  assert.throws(() => ipcMain.handlers.get('desktop:deadlines')({ sender: other.webContents }, { op: 'cancel', id: 'occ-1' }), /受信窗口/u)
   disposeDeadline()
   disposeNotification()
   assert.equal(ipcMain.handlers.size, 0)

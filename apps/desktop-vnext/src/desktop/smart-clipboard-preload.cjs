@@ -3,13 +3,13 @@ const { contextBridge, ipcRenderer } = require('electron')
 // preload 只负责把调用转发到受信 IPC channel，不在 Renderer 暴露 Electron API。
 const CHANNEL = 'hermit:smart-clipboard'
 const invoke = (request) => ipcRenderer.invoke(CHANNEL, request)
-const SURFACE_CHANNEL = 'hermit:desktop-surface'
+const SURFACE_CHANNEL = 'desktop:surface'
 const surfaceInvoke = (request) => ipcRenderer.invoke(SURFACE_CHANNEL, request)
-const SHORTCUT_CHANNEL = 'hermit:desktop-shortcuts'
+const SHORTCUT_CHANNEL = 'desktop:shortcuts'
 const shortcutInvoke = (request) => ipcRenderer.invoke(SHORTCUT_CHANNEL, request)
-const DEADLINE_CHANNEL = 'hermit:desktop-deadlines'
+const DEADLINE_CHANNEL = 'desktop:deadlines'
 const deadlineInvoke = (request) => ipcRenderer.invoke(DEADLINE_CHANNEL, request)
-const NOTIFICATION_CHANNEL = 'hermit:desktop-notifications'
+const NOTIFICATION_CHANNEL = 'desktop:notifications'
 const notificationInvoke = (request) => ipcRenderer.invoke(NOTIFICATION_CHANNEL, request)
 
 // 每个方法对应一个已声明的 Smart Clipboard operation，参数校验在主进程完成。

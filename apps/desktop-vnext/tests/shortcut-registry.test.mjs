@@ -6,7 +6,7 @@ import test from 'node:test'
 import {
   FileShortcutSettingsStore,
   ShortcutRegistry,
-} from '@hermit/desktop-core'
+} from '@platform/desktop-core'
 
 test('快捷键注册成功后才报告 registered，并且触发回调', () => {
   const port = createShortcutPort()

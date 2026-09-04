@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { EventEmitter } from 'node:events'
 import test from 'node:test'
-import { DesktopSurfaceError, DesktopSurfaceManager } from '@hermit/desktop-core'
+import { DesktopSurfaceError, DesktopSurfaceManager } from '@platform/desktop-core'
 
 test('Surface Manager 统一管理注册、打开、toggle、关闭和 owner 注销', async () => {
   const windows = []

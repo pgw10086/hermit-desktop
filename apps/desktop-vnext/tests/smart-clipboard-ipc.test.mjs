@@ -88,35 +88,35 @@ test('preload 将 Quick Panel 布局对象转换为主进程请求字段', async
   })
   await surfaceExposed.toggle('conversation.quick', { alwaysOnTop: true })
   assert.deepEqual(calls.at(-1), {
-    channel: 'hermit:desktop-surface',
+    channel: 'desktop:surface',
     request: { op: 'toggle', id: 'conversation.quick', options: { alwaysOnTop: true } },
   })
   await shortcutExposed.list()
   assert.deepEqual(calls.at(-1), {
-    channel: 'hermit:desktop-shortcuts',
+    channel: 'desktop:shortcuts',
     request: { op: 'list' },
   })
   await shortcutExposed.update('smart-clipboard.open', 'CommandOrControl+Shift+F12')
   assert.deepEqual(calls.at(-1), {
-    channel: 'hermit:desktop-shortcuts',
+    channel: 'desktop:shortcuts',
     request: { op: 'update', id: 'smart-clipboard.open', accelerator: 'CommandOrControl+Shift+F12' },
   })
   await shortcutExposed.reset('smart-clipboard.open')
   assert.deepEqual(calls.at(-1), {
-    channel: 'hermit:desktop-shortcuts',
+    channel: 'desktop:shortcuts',
     request: { op: 'reset', id: 'smart-clipboard.open' },
   })
   await deadlineExposed.arm({ id: 'occ-1', fireAt: '2026-09-02T00:00:00.000Z' })
   assert.deepEqual(calls.at(-1), {
-    channel: 'hermit:desktop-deadlines',
+    channel: 'desktop:deadlines',
     request: { op: 'arm', input: { id: 'occ-1', fireAt: '2026-09-02T00:00:00.000Z' } },
   })
   await deadlineExposed.cancel('occ-1')
-  assert.deepEqual(calls.at(-1), { channel: 'hermit:desktop-deadlines', request: { op: 'cancel', id: 'occ-1' } })
+  assert.deepEqual(calls.at(-1), { channel: 'desktop:deadlines', request: { op: 'cancel', id: 'occ-1' } })
   await notificationExposed.show({ id: 'occ-1', title: '个人事项', body: '吃饭' })
-  assert.deepEqual(calls.at(-1), { channel: 'hermit:desktop-notifications', request: { op: 'show', input: { id: 'occ-1', title: '个人事项', body: '吃饭' } } })
+  assert.deepEqual(calls.at(-1), { channel: 'desktop:notifications', request: { op: 'show', input: { id: 'occ-1', title: '个人事项', body: '吃饭' } } })
   await notificationExposed.replace({ id: 'occ-1', title: '个人事项', body: '晚餐' })
-  assert.deepEqual(calls.at(-1), { channel: 'hermit:desktop-notifications', request: { op: 'replace', input: { id: 'occ-1', title: '个人事项', body: '晚餐' } } })
+  assert.deepEqual(calls.at(-1), { channel: 'desktop:notifications', request: { op: 'replace', input: { id: 'occ-1', title: '个人事项', body: '晚餐' } } })
   await notificationExposed.remove('occ-1')
-  assert.deepEqual(calls.at(-1), { channel: 'hermit:desktop-notifications', request: { op: 'remove', id: 'occ-1' } })
+  assert.deepEqual(calls.at(-1), { channel: 'desktop:notifications', request: { op: 'remove', id: 'occ-1' } })
 })

@@ -3,7 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { createEvidenceSink } from "@hermit/desktop-core";
+import { createEvidenceSink } from "@platform/desktop-core";
 import {
   createTrayMenuTemplate,
   loginItemLabel,
@@ -61,10 +61,10 @@ test("Tray 菜单命令走唯一动作映射，checkbox 使用实际 login item 
 });
 
 test("JSONL evidence 只写入当前 userData 且记录失败不接管生产流程", () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "hermit-evidence-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "desktop-core-evidence-"));
   try {
     const file = path.join(root, "acceptance", "events.jsonl");
-    const sink = createEvidenceSink(root, { HERMIT_EVIDENCE_FILE: file });
+    const sink = createEvidenceSink(root, { DESKTOP_CORE_EVIDENCE_FILE: file });
     sink.record("desktop.test", { ok: true });
     const entries = fs.readFileSync(file, "utf8").trim().split("\n").map(JSON.parse);
     assert.equal(entries.length, 1);
@@ -77,12 +77,12 @@ test("JSONL evidence 只写入当前 userData 且记录失败不接管生产流�
     const errors = [];
     console.error = (message) => errors.push(message);
     try {
-      const rejected = createEvidenceSink(root, { HERMIT_EVIDENCE_FILE: outside });
+      const rejected = createEvidenceSink(root, { DESKTOP_CORE_EVIDENCE_FILE: outside });
       rejected.record("must-not-write");
     } finally {
       console.error = originalError;
     }
-    assert.match(errors[0], /必须位于当前 Hermit userData/u);
+    assert.match(errors[0], /必须位于当前 Product Desktop userData/u);
     assert.equal(fs.existsSync(outside), false);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });

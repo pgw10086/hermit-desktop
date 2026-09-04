@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import path from 'node:path'
 import { powerMonitor, type BrowserWindow, type IpcMain } from 'electron'
-import type { ShortcutRegistry, DesktopSurfaceManager } from '@hermit/desktop-core'
+import type { ShortcutRegistry, DesktopSurfaceManager } from '@platform/desktop-core'
 import { ElectronClipboardBridge } from '../core/smart-clipboard/electron-bridge.js'
 import { registerSmartClipboardIpc } from '../core/smart-clipboard/ipc.js'
 import {

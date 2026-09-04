@@ -53,9 +53,6 @@ importers:
       '@deepseek-ai/dsh':
         specifier: 0.1.1-rc.2
         version: 0.1.1-rc.2(523670bcdfe963e2e8414c5bfb7421e1)
-      '@hermit/desktop-core':
-        specifier: file:../../vendor/hermit-desktop-core-0.1.0.tgz
-        version: file:vendor/hermit-desktop-core-0.1.0.tgz(electron@43.4.0(supports-color@7.2.0))
       '@hermit/file-workspace':
         specifier: file:../../vendor/hermit-file-workspace-0.2.2.tgz
         version: file:vendor/hermit-file-workspace-0.2.2.tgz(0394e8698e0914bbae0b1408e9e8c8cf)
@@ -65,6 +62,9 @@ importers:
       '@hermit/smart-clipboard':
         specifier: file:../../vendor/hermit-smart-clipboard-0.2.2.tgz
         version: file:vendor/hermit-smart-clipboard-0.2.2.tgz(@deepseek-ai/dsh-client-ui-layout@0.1.1-rc.2(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-client-runtime@0.1.1-rc.2(601e9129357dc48738583e18d75d19b2))(@deepseek-ai/dsh-client-ui-theme@0.1.1-rc.2(a6c39110759121c55549be9a5dac7bf7))(@deepseek-ai/dsh-invariants@0.1.1-rc.2(@deepseek-ai/cordis@4.0.1)))(react@18.3.1)
+      '@platform/desktop-core':
+        specifier: file:../../vendor/platform-desktop-core-0.1.0.tgz
+        version: file:vendor/platform-desktop-core-0.1.0.tgz(electron@43.4.0(supports-color@7.2.0))
       pnpm:
         specifier: '>=11.0.0 <12'
         version: 11.7.0
@@ -2441,13 +2441,6 @@ packages:
       '@modelcontextprotocol/sdk':
         optional: true
 
-  '@hermit/desktop-core@file:vendor/hermit-desktop-core-0.1.0.tgz':
-    resolution: {integrity: sha512-E6UfqHawzJsjg7pDE8RXSiYGNBfAcPG4NC4/zunrbyKT9/KHuY7d1T7FlmZCIoDGe7qkBACJYpajZxeythckdQ==, tarball: file:vendor/hermit-desktop-core-0.1.0.tgz}
-    version: 0.1.0
-    engines: {node: '>=24.0.0 <25', pnpm: '>=11.0.0 <12'}
-    peerDependencies:
-      electron: '>=43.0.0 <44'
-
   '@hermit/file-workspace@file:vendor/hermit-file-workspace-0.2.2.tgz':
     resolution: {integrity: sha512-UovMZ4wFIZZPe/MN+ZozstOSAFN4WLV3jTSNJSd6QWUCZPUxLXJIdIURZUyU7nsWQSyN5JgJZPfu3a1IBL7j5Q==, tarball: file:vendor/hermit-file-workspace-0.2.2.tgz}
     version: 0.2.2
@@ -2928,6 +2921,13 @@ packages:
   '@pkgjs/parseargs@0.11.0':
     resolution: {integrity: sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==}
     engines: {node: '>=14'}
+
+  '@platform/desktop-core@file:vendor/platform-desktop-core-0.1.0.tgz':
+    resolution: {integrity: sha512-KJqymsY1Sj2MkR4p9qOd872Syooh3IL5jFXE2CTpE+eRrPlhKdtJi9EcldWzlcUjfOVUde/2DEu1vPV3mnLiMg==, tarball: file:vendor/platform-desktop-core-0.1.0.tgz}
+    version: 0.1.0
+    engines: {node: '>=24.0.0 <25', pnpm: '>=11.0.0 <12'}
+    peerDependencies:
+      electron: '>=43.0.0 <44'
 
   '@protobufjs/aspromise@1.1.2':
     resolution: {integrity: sha512-j+gKExEuLmKwvz3OgROXtrJ2UG2x8Ch2YZUxahh+s1F2HZ+wAceUNLkvy6zKCPVRkU++ZWQrdxsUeQXmcg4uoQ==}
@@ -8170,10 +8170,6 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  '@hermit/desktop-core@file:vendor/hermit-desktop-core-0.1.0.tgz(electron@43.4.0(supports-color@7.2.0))':
-    dependencies:
-      electron: 43.4.0(supports-color@7.2.0)
-
   '@hermit/file-workspace@file:vendor/hermit-file-workspace-0.2.2.tgz(0394e8698e0914bbae0b1408e9e8c8cf)':
     dependencies:
       '@deepseek-ai/cordis': 4.0.1(@deepseek-ai/cordis-plugin-include@1.0.6)(@deepseek-ai/cordis-plugin-loader@1.0.2)
@@ -8570,6 +8566,10 @@ snapshots:
 
   '@pkgjs/parseargs@0.11.0':
     optional: true
+
+  '@platform/desktop-core@file:vendor/platform-desktop-core-0.1.0.tgz(electron@43.4.0(supports-color@7.2.0))':
+    dependencies:
+      electron: 43.4.0(supports-color@7.2.0)
 
   '@protobufjs/aspromise@1.1.2': {}
 

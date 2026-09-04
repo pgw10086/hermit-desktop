@@ -11,7 +11,7 @@ import {
   FileGenerationStateStore,
   RuntimeGenerationCatalog,
   RuntimeGenerationManager,
-} from "@hermit/desktop-core";
+} from "@platform/desktop-core";
 
 const appRoot = path.resolve(".");
 const repositoryRoot = path.resolve(appRoot, "..", "..");

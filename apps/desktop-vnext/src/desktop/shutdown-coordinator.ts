@@ -1,4 +1,4 @@
-import type { EvidenceSink } from "@hermit/desktop-core";
+import type { EvidenceSink } from "@platform/desktop-core";
 
 export type ShutdownSource =
   | "app-quit"

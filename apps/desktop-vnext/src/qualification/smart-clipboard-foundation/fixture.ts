@@ -1,4 +1,4 @@
-import { ActivationLease } from "@hermit/desktop-core";
+import { ActivationLease } from "@platform/desktop-core";
 import type {
   ClipboardQualificationPort,
   LockQualificationPort,

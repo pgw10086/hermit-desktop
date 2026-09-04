@@ -1,6 +1,6 @@
 const { contextBridge, ipcRenderer } = require('electron')
 
-const CHANNEL = 'hermit:desktop-surface'
+const CHANNEL = 'desktop:surface'
 const invoke = (request) => ipcRenderer.invoke(CHANNEL, request)
 
 // 对话小窗只拿到 Desktop Core 的 typed surface facade；它没有 Node、Electron 或业务 API。

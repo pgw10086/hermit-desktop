@@ -102,10 +102,13 @@ import {
   `unknown`，不把“调用成功”伪装成用户已经授权。
 
 两项 facade 在纯 Web 或没有受信 preload 时返回 `undefined`。桌面壳通过独立的
-`hermit:desktop-deadlines` 和 `hermit:desktop-notifications` IPC channel 处理请求，主进程校验
+`desktop:deadlines` 和 `desktop:notifications` IPC channel 处理请求，主进程校验
 sender 和输入，事件只回发给发起窗口；这不是通用 IPC，也不允许插件传入 Electron 对象。
 `unavailable`、`permission denied`、单次通知 `failed` 和窗口/Core 停止都只是桌面渠道状态，
 调用方必须保留自己的业务事实。
+
+这些 `desktop:*` channel 是 Desktop Core 的平台契约，不带具体产品名。修改名称时必须同步
+更新 Core、preload、主进程注册和消费者测试；不保留旧 channel alias，避免两个事实入口长期并存。
 
 Organizer 的正确调用顺序是“自己从 Rule 算出下一次绝对时刻 -> arm deadline -> 收到 fire 后
 幂等认领 Occurrence -> show/replace 安全摘要 -> 记录 delivery 结果”。Core 不提供 Reminder

@@ -38,8 +38,8 @@ import {
   SURFACE_ACTIVATION_GUARD_MS,
   type DshReadyEvent,
   type DshUnavailableEvent,
-} from "@hermit/desktop-core";
-import { createElectronNotificationFactory } from "@hermit/desktop-core/electron-notification-factory";
+} from "@platform/desktop-core";
+import { createElectronNotificationFactory } from "@platform/desktop-core/electron-notification-factory";
 import { ShutdownCoordinator } from "./desktop/shutdown-coordinator.js";
 import {
   FileMainWindowStateStore,

@@ -31,7 +31,7 @@ Pasteboard；真实复制/自动粘贴/物理快捷键仍待 disposable 资格�
 
 本仓库只负责 Hermit 产品。共享桌面平台位于同级独立
 [`desktop-core`](https://github.com/pgw10086/desktop-core) 仓库，并通过
-`vendor/hermit-desktop-core-0.1.0.tgz` 的固定制品接入；不从 sibling 目录导入源码。
+`vendor/platform-desktop-core-0.1.0.tgz` 的固定制品接入；不从 sibling 目录导入源码。
 
 - [Agent 规则](AGENTS.md)：编码任务的入口和红线；
 - [文档权威索引](docs/document-authority.yaml)：某类事实应该查哪份文档；

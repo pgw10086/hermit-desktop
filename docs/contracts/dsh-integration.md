@@ -218,7 +218,7 @@ notification.remove(id)
 notification.observe(listener)      // clicked/action/failed
 ```
 
-这些 facade 对应独立的 `hermit:desktop-deadlines` 和 `hermit:desktop-notifications` channel。
+这些 facade 对应独立的 `desktop:deadlines` 和 `desktop:notifications` channel。
 主进程只接受受信 DSH 主窗口或 Core 管理的 Surface，校验 ID、UTC instant、标题、正文和动作
 长度，事件只回发给发起窗口。相同 ID 的 Deadline 会替换旧等待，相同 ID 的通知会替换旧
 通知；Core 停止或 owner 消失时两者都会清理。错误结果使用明确的

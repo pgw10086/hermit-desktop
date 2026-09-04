@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { parseDesktopSurfaceRequest } from '@hermit/desktop-core'
+import { parseDesktopSurfaceRequest } from '@platform/desktop-core'
 
 test('Desktop Surface IPC 只接受有限的生命周期操作和语义化选项', () => {
   assert.deepEqual(parseDesktopSurfaceRequest({ op: 'capabilities' }), { op: 'capabilities' })

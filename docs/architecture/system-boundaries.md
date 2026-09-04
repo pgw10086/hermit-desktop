@@ -134,8 +134,8 @@ Product Plugin -/-> another Product Plugin internals
 多产品的物理依赖方向为：
 
 ```text
-hermit-desktop      -> @hermit/desktop-core + Hermit DSH generation + Hermit plugins
-new-product-desktop -> @hermit/desktop-core + New Product DSH generation + New Product plugins
+hermit-desktop      -> @platform/desktop-core + Hermit DSH generation + Hermit plugins
+new-product-desktop -> @platform/desktop-core + New Product DSH generation + New Product plugins
 plugin              -> DSH public contract + declared Hermit/Desktop capability
 ```
 

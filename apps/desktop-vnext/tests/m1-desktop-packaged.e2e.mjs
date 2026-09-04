@@ -30,7 +30,7 @@ try {
     executablePath,
     args: [`--user-data-dir=${userData}`, "--lang=zh-CN"],
     cwd: root,
-    env: packagedElectronTestEnvironment({ HERMIT_EVIDENCE_FILE: evidenceFile }),
+    env: packagedElectronTestEnvironment({ DESKTOP_CORE_EVIDENCE_FILE: evidenceFile }),
     timeout: 60_000,
   });
   const mainPage = await waitForMainWindow(application);

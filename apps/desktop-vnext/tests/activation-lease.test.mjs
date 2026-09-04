@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { ActivationLease } from "@hermit/desktop-core";
+import { ActivationLease } from "@platform/desktop-core";
 
 test("ActivationLease 先使 generation 失效，再按逆序且仅一次回收资源", async () => {
   const events = [];

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { registerDesktopShortcutIpc } from '@hermit/desktop-core'
+import { registerDesktopShortcutIpc } from '@platform/desktop-core'
 
 test('快捷键 IPC 只允许 DSH 主窗口读取和修改 Core 目录', async () => {
   const calls = []
@@ -32,9 +32,9 @@ test('快捷键 IPC 只允许 DSH 主窗口读取和修改 Core 目录', async (
   dispose()
   assert.deepEqual(calls.map(([kind, value]) => [kind, value]), [
     ['subscribe', calls[0][1]],
-    ['handle', 'hermit:desktop-shortcuts'],
+    ['handle', 'desktop:shortcuts'],
     ['unsubscribe', undefined],
-    ['remove', 'hermit:desktop-shortcuts'],
+    ['remove', 'desktop:shortcuts'],
   ])
 })
 

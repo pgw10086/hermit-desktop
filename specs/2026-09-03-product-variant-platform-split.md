@@ -44,9 +44,9 @@ Conversation、Session、Settings、Approval 或导航交互时的候选架构�
 
 ## 当前进度
 
-- 已创建 workspace 内部的 `@hermit/desktop-core` package，并把通用 Surface、快捷键、
-  deadline、notification、evidence、生命周期和受信 IPC 能力移入其中；Electron 原生通知
-  工厂通过显式子路径加载。
+- 已创建独立 sibling `desktop-core` 仓库，提供中性的 `@platform/desktop-core` package；
+  通用 Surface、快捷键、deadline、notification、evidence、生命周期和受信 IPC 能力已移入
+  其中，Electron 原生通知工厂通过显式子路径加载。
 - 已从桌面主进程抽出 `HermitProductComposition`，集中装配 Hermit 的 Conversation Quick、
   Organizer、File Workspace 和 Smart Clipboard；主进程保留平台生命周期编排。
 - 已用本地资格工具链 Node 24.13.1 完成 Core 构建和 20 项 Core 测试，并完成桌面构建、
@@ -59,7 +59,8 @@ Conversation、Session、Settings、Approval 或导航交互时的候选架构�
 - 已在普通父文件夹 `hermit-platform/` 下创建 `desktop-core`、`hermit-desktop`、
   `new-product-desktop`、`plugin-organizer`、`plugin-file-workspace` 和
   `plugin-smart-clipboard` 六个本地独立 Git 仓库；父文件夹不是 Git 或 pnpm workspace。
-- 独立 Desktop Core 已通过 20 项测试并生成 `@hermit/desktop-core@0.1.0` tarball；
+- 独立 Desktop Core 已通过 20 项测试并生成 `platform-desktop-core-0.1.0.tgz`（包名
+  `@platform/desktop-core@0.1.0`）；
   Hermit Desktop 已改为从固定 Core/插件 tarball 构建，不再包含三个插件源码目录，并通过
   全仓门禁、83 项 Desktop 测试、三个 Product Surface 资格和 macOS arm64 目录包 after-pack。
 - 新产品仓库当前是可运行的 stock DSH 开发底座，已验证独立 profile 以及通过同一 Desktop
