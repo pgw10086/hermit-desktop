@@ -8,7 +8,7 @@ contextBridge.exposeInMainWorld('hermitDesktopSurface', {
   open: (id, options) => invoke({ op: 'open', id, ...(options === undefined ? {} : { options }) }),
   toggle: (id, options) => invoke({ op: 'toggle', id, ...(options === undefined ? {} : { options }) }),
   resize: (id, size) => invoke({ op: 'resize', id, size }),
-  close: (id) => invoke({ op: 'close', id }),
+  close: (id, options) => invoke({ op: 'close', id, ...(options === undefined ? {} : { options }) }),
   openMainSession: (sessionId) => invoke({ op: 'open-main-session', sessionId }),
   capabilities: () => invoke({ op: 'capabilities' }),
 })

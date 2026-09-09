@@ -1,4 +1,5 @@
 import { BrowserWindow, dialog, nativeImage, Notification, type IpcMain, type IpcMainInvokeEvent } from 'electron'
+import type { DesktopSurfaceCloseOptions } from '@platform/agent-desktop-core'
 import type { ClipboardEntry } from '@hermit/smart-clipboard/domain'
 import type { ClipboardCoreService } from './service.js'
 import { parseRequest, type ClipboardWireEntry, type SmartClipboardRequest } from './ipc-contract.js'
@@ -27,7 +28,7 @@ export function registerSmartClipboardIpc(options: {
   /** Quick Panel 窗口。 */
   readonly quickPanel: BrowserWindow
   /** 通过 Desktop Surface Manager 关闭 Quick Panel，避免绕过生命周期保护。 */
-  readonly closeQuickPanel: () => Promise<void>
+  readonly closeQuickPanel: (options?: DesktopSurfaceCloseOptions) => Promise<void>
   /** 通过 Desktop Surface Manager 重开 Quick Panel，确保 activate 看到 opening 状态。 */
   readonly openQuickPanel: () => Promise<void>
   /** 调整 Quick Panel 布局的宿主能力。 */
@@ -56,7 +57,7 @@ export function registerSmartClipboardIpc(options: {
       // 只有显式 paste 需要先让出 Quick Panel 的焦点；普通 copy 保持面板可见，
       // 等系统剪贴板写入成功后由 Renderer 关闭，失败时用户还能继续处理。
       const quickPaste = request.source === 'quick-panel' && request.action === 'paste'
-      if (quickPaste) await options.closeQuickPanel()
+      if (quickPaste) await options.closeQuickPanel({ disposition: 'external-handoff' })
       const result = await options.service.execute(request.id, request.action)
       if (quickPaste && result.status === 'unavailable') {
         await options.openQuickPanel()
@@ -88,7 +89,7 @@ export function registerSmartClipboardIpc(options: {
       return options.quickPanelLayout(request)
     }
     if (request.op === 'open-history') {
-      await options.closeQuickPanel()
+      await options.closeQuickPanel({ disposition: 'external-handoff' })
       options.mainWindow.show()
       options.mainWindow.focus()
       options.mainWindow.webContents.send('hermit:smart-clipboard:open-history')

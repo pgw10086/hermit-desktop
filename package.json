@@ -37,6 +37,7 @@
     "test:organizer:product-surface": "corepack pnpm --filter @hermit/desktop test:organizer:product-surface",
     "test:smart-clipboard:product-surface": "corepack pnpm --filter @hermit/desktop test:smart-clipboard:product-surface",
     "test:smart-clipboard:packaged-ui": "corepack pnpm --filter @hermit/desktop test:smart-clipboard:packaged-ui",
+    "test:smart-clipboard:focus-restore": "corepack pnpm --filter @hermit/desktop test:smart-clipboard:focus-restore",
     "test:smart-clipboard:native": "corepack pnpm --filter @hermit/macos-clipboard-bridge test",
     "verify:agent-contracts": "node scripts/verify-agent-contracts.mjs",
     "verify:document-governance": "node scripts/check-document-governance.mjs",

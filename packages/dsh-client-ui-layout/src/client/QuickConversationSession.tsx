@@ -91,7 +91,7 @@ function QuickHeader({ sessionId, desktopSurface }: { sessionId: string; desktop
   const openMain = (): void => {
     if (desktopSurface === undefined) return
     void desktopSurface.openMainSession(sessionId).then((result) => {
-      if (result.status === 'opened') void desktopSurface.close(QUICK_SURFACE)
+      if (result.status === 'opened') void desktopSurface.close(QUICK_SURFACE, { disposition: 'external-handoff' })
     })
   }
   return (

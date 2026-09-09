@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import path from 'node:path'
 import { powerMonitor, type BrowserWindow, type IpcMain } from 'electron'
-import type { ShortcutRegistry, DesktopSurfaceManager } from '@platform/agent-desktop-core'
+import type { ShortcutRegistry, DesktopSurfaceCloseOptions, DesktopSurfaceManager } from '@platform/agent-desktop-core'
 import { ElectronClipboardBridge } from '../core/smart-clipboard/electron-bridge.js'
 import { registerSmartClipboardIpc } from '../core/smart-clipboard/ipc.js'
 import {
@@ -86,7 +86,7 @@ export class SmartClipboardDesktopRuntime {
         service,
         mainWindow: this.#options.mainWindow,
         quickPanel: panel,
-        closeQuickPanel: () => this.#options.surfaceManager.close(SMART_CLIPBOARD_SURFACE_ID),
+        closeQuickPanel: (closeOptions?: DesktopSurfaceCloseOptions) => this.#options.surfaceManager.close(SMART_CLIPBOARD_SURFACE_ID, closeOptions),
         openQuickPanel: async () => { await this.#options.surfaceManager.open(SMART_CLIPBOARD_SURFACE_ID) },
         quickPanelLayout: (input) => configureSmartClipboardQuickPanel(panel, input),
       })
@@ -106,7 +106,7 @@ export class SmartClipboardDesktopRuntime {
       })
       disposeShortcut = shortcut.dispose
       onLockScreen = () => {
-        void this.#options.surfaceManager.close(SMART_CLIPBOARD_SURFACE_ID).catch(() => undefined)
+        void this.#options.surfaceManager.close(SMART_CLIPBOARD_SURFACE_ID, { disposition: 'keep-current' }).catch(() => undefined)
         this.#options.mainWindow.hide()
       }
       powerMonitor.on('lock-screen', onLockScreen)

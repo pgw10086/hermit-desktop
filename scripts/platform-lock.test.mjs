@@ -18,14 +18,13 @@ test("正式准备把 Core 和 Runtime Adapter 物化为可搬运的 App 依赖"
   const result = run(["prepare", "--mode", "release"]);
   assert.equal(result.status, 0, result.stderr);
   const nodeModules = path.join(repositoryRoot, ".hermit", "runtime", "app-dependencies", "node_modules");
-  for (const [packageName, version] of [
-    ["@platform/agent-desktop-core", "0.1.0"],
-    ["@platform/dsh-runtime-adapter", "0.1.0"],
-  ]) {
+  for (const packageName of ["@platform/agent-desktop-core", "@platform/dsh-runtime-adapter"]) {
+    const expected = readFixture().modules.find((module) => module.packageName === packageName)
+    assert.ok(expected, `platform-lock 缺少 ${packageName}`)
     const packageRoot = path.join(nodeModules, ...packageName.split("/"));
     const manifest = JSON.parse(fs.readFileSync(path.join(packageRoot, "package.json"), "utf8"));
     assert.equal(manifest.name, packageName);
-    assert.equal(manifest.version, version);
+    assert.equal(manifest.version, expected.version);
     assert.equal(fs.lstatSync(packageRoot).isSymbolicLink(), false);
   }
 });

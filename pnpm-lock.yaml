@@ -8,8 +8,8 @@ overrides:
   '@hermit/file-workspace': file:vendor/platform/file-workspace/ecb1ef3f9477200f9437ab9c3cbf3f4a415d25958b5884c00b99803a22f5e347.tgz
   '@hermit/organizer': file:vendor/platform/organizer/17bf9d1bcbeaed23fca6a7450856f95681942f01400d5770c07c7f17e8dd033c.tgz
   '@hermit/smart-clipboard': file:vendor/platform/smart-clipboard/0d33bebb4f7906714c201d4bce00f71bcea1cf2e8f24f5eab62b33d191a3d8a1.tgz
-  '@platform/agent-desktop-core': file:vendor/platform/agent-desktop-core/93fd3e912e6d60666d6456ba958ab7b34549388fb544579f39ea482b4fce66a8.tgz
-  '@platform/dsh-runtime-adapter': file:vendor/platform/dsh-runtime-adapter/033e97604db0bd7f76ca4c4b8b146320f416c65bd60db533543281b2dc483a17.tgz
+  '@platform/agent-desktop-core': file:vendor/platform/agent-desktop-core/8a081f75707b42508406ea34feb13af81ff30c69fd46e319e1a55190b4addeed.tgz
+  '@platform/dsh-runtime-adapter': file:vendor/platform/dsh-runtime-adapter/36d18e69494733c4f63c548591c1c26b8e56a95178f7815707e29690fec031da.tgz
 
 importers:
 
@@ -70,11 +70,11 @@ importers:
         specifier: file:../../vendor/platform/smart-clipboard/0d33bebb4f7906714c201d4bce00f71bcea1cf2e8f24f5eab62b33d191a3d8a1.tgz
         version: file:vendor/platform/smart-clipboard/0d33bebb4f7906714c201d4bce00f71bcea1cf2e8f24f5eab62b33d191a3d8a1.tgz(@deepseek-ai/dsh-client-ui-layout@0.1.1-rc.2(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-client-runtime@0.1.1-rc.2(601e9129357dc48738583e18d75d19b2))(@deepseek-ai/dsh-client-ui-theme@0.1.1-rc.2(a6c39110759121c55549be9a5dac7bf7))(@deepseek-ai/dsh-invariants@0.1.1-rc.2(@deepseek-ai/cordis@4.0.1)))(react@18.3.1)
       '@platform/agent-desktop-core':
-        specifier: file:../../vendor/platform/agent-desktop-core/93fd3e912e6d60666d6456ba958ab7b34549388fb544579f39ea482b4fce66a8.tgz
-        version: file:vendor/platform/agent-desktop-core/93fd3e912e6d60666d6456ba958ab7b34549388fb544579f39ea482b4fce66a8.tgz(electron@43.4.0(supports-color@7.2.0))
+        specifier: file:../../vendor/platform/agent-desktop-core/8a081f75707b42508406ea34feb13af81ff30c69fd46e319e1a55190b4addeed.tgz
+        version: file:vendor/platform/agent-desktop-core/8a081f75707b42508406ea34feb13af81ff30c69fd46e319e1a55190b4addeed.tgz(electron@43.4.0(supports-color@7.2.0))
       '@platform/dsh-runtime-adapter':
-        specifier: file:../../vendor/platform/dsh-runtime-adapter/033e97604db0bd7f76ca4c4b8b146320f416c65bd60db533543281b2dc483a17.tgz
-        version: file:vendor/platform/dsh-runtime-adapter/033e97604db0bd7f76ca4c4b8b146320f416c65bd60db533543281b2dc483a17.tgz(@platform/agent-desktop-core@file:vendor/platform/agent-desktop-core/93fd3e912e6d60666d6456ba958ab7b34549388fb544579f39ea482b4fce66a8.tgz(electron@43.4.0(supports-color@7.2.0)))
+        specifier: file:../../vendor/platform/dsh-runtime-adapter/36d18e69494733c4f63c548591c1c26b8e56a95178f7815707e29690fec031da.tgz
+        version: file:vendor/platform/dsh-runtime-adapter/36d18e69494733c4f63c548591c1c26b8e56a95178f7815707e29690fec031da.tgz(@platform/agent-desktop-core@file:vendor/platform/agent-desktop-core/8a081f75707b42508406ea34feb13af81ff30c69fd46e319e1a55190b4addeed.tgz(electron@43.4.0(supports-color@7.2.0)))
       pnpm:
         specifier: '>=11.0.0 <12'
         version: 11.7.0
@@ -2932,19 +2932,19 @@ packages:
     resolution: {integrity: sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==}
     engines: {node: '>=14'}
 
-  '@platform/agent-desktop-core@file:vendor/platform/agent-desktop-core/93fd3e912e6d60666d6456ba958ab7b34549388fb544579f39ea482b4fce66a8.tgz':
-    resolution: {integrity: sha512-ZWG/+PN2UekYKRQXli6oCtypJndNbDJuurgXeKgCuzG2v6oUlxVvAP9N4j7CUuO35tx+uomzMLxl0rDCo7/0fQ==, tarball: file:vendor/platform/agent-desktop-core/93fd3e912e6d60666d6456ba958ab7b34549388fb544579f39ea482b4fce66a8.tgz}
-    version: 0.1.0
+  '@platform/agent-desktop-core@file:vendor/platform/agent-desktop-core/8a081f75707b42508406ea34feb13af81ff30c69fd46e319e1a55190b4addeed.tgz':
+    resolution: {integrity: sha512-W72oGcpYfqiBrf4G1U7sXmoQhYwLAYbrjqzANh5fuZ2YSE5g3ypHZ1x6+9PaPPB3f6dXC+kagYZYIKNBbBmRAA==, tarball: file:vendor/platform/agent-desktop-core/8a081f75707b42508406ea34feb13af81ff30c69fd46e319e1a55190b4addeed.tgz}
+    version: 0.1.1
     engines: {node: '>=24.0.0 <25', pnpm: '>=11.0.0 <12'}
     peerDependencies:
       electron: '>=43.0.0 <44'
 
-  '@platform/dsh-runtime-adapter@file:vendor/platform/dsh-runtime-adapter/033e97604db0bd7f76ca4c4b8b146320f416c65bd60db533543281b2dc483a17.tgz':
-    resolution: {integrity: sha512-h+h0kW4kTJx9+bRg+IrF6bi18BmiDGfqg0lC9DLQ3UGbnKH4Eb0BGbtO4U61R0fJp8ot2Q22598mkKNvFTk+rQ==, tarball: file:vendor/platform/dsh-runtime-adapter/033e97604db0bd7f76ca4c4b8b146320f416c65bd60db533543281b2dc483a17.tgz}
-    version: 0.1.0
+  '@platform/dsh-runtime-adapter@file:vendor/platform/dsh-runtime-adapter/36d18e69494733c4f63c548591c1c26b8e56a95178f7815707e29690fec031da.tgz':
+    resolution: {integrity: sha512-EyHe55stlBVJu+eecaKoft9reiI5PIYY/bbQaF8sbgnV11A7dOBH9mE+mHIuCVwSEXWWyNQaECafaVE85PKEKA==, tarball: file:vendor/platform/dsh-runtime-adapter/36d18e69494733c4f63c548591c1c26b8e56a95178f7815707e29690fec031da.tgz}
+    version: 0.1.1
     engines: {node: '>=24.0.0 <25', pnpm: '>=11.0.0 <12'}
     peerDependencies:
-      '@platform/agent-desktop-core': 0.1.0
+      '@platform/agent-desktop-core': 0.1.1
 
   '@protobufjs/aspromise@1.1.2':
     resolution: {integrity: sha512-j+gKExEuLmKwvz3OgROXtrJ2UG2x8Ch2YZUxahh+s1F2HZ+wAceUNLkvy6zKCPVRkU++ZWQrdxsUeQXmcg4uoQ==}
@@ -8584,13 +8584,13 @@ snapshots:
   '@pkgjs/parseargs@0.11.0':
     optional: true
 
-  '@platform/agent-desktop-core@file:vendor/platform/agent-desktop-core/93fd3e912e6d60666d6456ba958ab7b34549388fb544579f39ea482b4fce66a8.tgz(electron@43.4.0(supports-color@7.2.0))':
+  '@platform/agent-desktop-core@file:vendor/platform/agent-desktop-core/8a081f75707b42508406ea34feb13af81ff30c69fd46e319e1a55190b4addeed.tgz(electron@43.4.0(supports-color@7.2.0))':
     dependencies:
       electron: 43.4.0(supports-color@7.2.0)
 
-  '@platform/dsh-runtime-adapter@file:vendor/platform/dsh-runtime-adapter/033e97604db0bd7f76ca4c4b8b146320f416c65bd60db533543281b2dc483a17.tgz(@platform/agent-desktop-core@file:vendor/platform/agent-desktop-core/93fd3e912e6d60666d6456ba958ab7b34549388fb544579f39ea482b4fce66a8.tgz(electron@43.4.0(supports-color@7.2.0)))':
+  '@platform/dsh-runtime-adapter@file:vendor/platform/dsh-runtime-adapter/36d18e69494733c4f63c548591c1c26b8e56a95178f7815707e29690fec031da.tgz(@platform/agent-desktop-core@file:vendor/platform/agent-desktop-core/8a081f75707b42508406ea34feb13af81ff30c69fd46e319e1a55190b4addeed.tgz(electron@43.4.0(supports-color@7.2.0)))':
     dependencies:
-      '@platform/agent-desktop-core': file:vendor/platform/agent-desktop-core/93fd3e912e6d60666d6456ba958ab7b34549388fb544579f39ea482b4fce66a8.tgz(electron@43.4.0(supports-color@7.2.0))
+      '@platform/agent-desktop-core': file:vendor/platform/agent-desktop-core/8a081f75707b42508406ea34feb13af81ff30c69fd46e319e1a55190b4addeed.tgz(electron@43.4.0(supports-color@7.2.0))
 
   '@protobufjs/aspromise@1.1.2': {}
 

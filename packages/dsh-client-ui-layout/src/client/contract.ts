@@ -46,6 +46,7 @@ export interface DesktopSurfaceWindowPolicy {
   readonly focus?: string
   readonly escape?: 'hide' | 'close' | 'ignore'
   readonly blur?: 'hide' | 'keep'
+  readonly dismiss?: DesktopSurfaceDismissDisposition
   readonly rememberPosition?: boolean
   readonly rememberSize?: boolean
 }
@@ -60,6 +61,13 @@ export interface DesktopSurfaceOpenOptions {
     readonly type: 'new-on-submit' | 'last-bound' | 'existing'
     readonly sessionId?: string
   }
+}
+
+/** 关闭临时 Surface 时对焦点的处理方式。 */
+export type DesktopSurfaceDismissDisposition = 'restore-previous' | 'keep-current' | 'external-handoff'
+
+export interface DesktopSurfaceCloseOptions {
+  readonly disposition?: DesktopSurfaceDismissDisposition
 }
 
 export interface DesktopSurfaceCapabilities {
@@ -82,7 +90,7 @@ export interface DesktopSurfaceClient {
   open(id: string, options?: DesktopSurfaceOpenOptions): Promise<DesktopSurfaceResult>
   toggle(id: string, options?: DesktopSurfaceOpenOptions): Promise<DesktopSurfaceResult>
   resize(id: string, size: DesktopSurfaceSize): Promise<DesktopSurfaceResult>
-  close(id: string): Promise<DesktopSurfaceResult>
+  close(id: string, options?: DesktopSurfaceCloseOptions): Promise<DesktopSurfaceResult>
   openMainSession(sessionId: string): Promise<DesktopMainSessionResult>
   capabilities(): Promise<DesktopSurfaceCapabilities>
 }

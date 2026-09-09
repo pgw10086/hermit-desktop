@@ -17,6 +17,7 @@ import {
   type WebContents,
 } from "electron";
 import { createMainWindow } from "./desktop/windows.js";
+import { createHermitFocusPort } from "./desktop/focus-restore.js";
 import { recoveryPageUrl } from "./desktop/recovery-page.js";
 import { createDshCommand } from "./runtime/dsh-command.js";
 import {
@@ -221,6 +222,21 @@ async function startDesktop(): Promise<void> {
   });
   const surfaceManager = new DesktopSurfaceManager({
     createWindow: (options) => new BrowserWindow(options),
+    getFocusedWindow: () => BrowserWindow.getFocusedWindow(),
+    focusPort: createHermitFocusPort({
+      isPackaged: app.isPackaged,
+      resourcesPath: process.resourcesPath,
+      appPath: app.getAppPath(),
+      onUnavailable: (reason) => console.error(`Hermit Surface 焦点恢复不可用: ${reason}`),
+    }),
+    onFocusRestore: (id, disposition, result) => {
+      evidence.record("desktop.surface-focus-restore", {
+        id,
+        disposition,
+        status: result.status,
+        ...(result.status === "unavailable" ? { reason: result.reason } : {}),
+      });
+    },
     onVisibilityChanged: (_id, visible) => {
       if (!visible) surfaceActivationSuppressedUntil = Date.now() + SURFACE_ACTIVATION_GUARD_MS;
     },

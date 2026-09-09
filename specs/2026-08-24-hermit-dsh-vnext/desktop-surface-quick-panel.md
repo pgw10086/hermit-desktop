@@ -187,6 +187,11 @@ type DesktopSurfaceErrorCode =
 - `anchor`、`placement`、`preferredSize`、`focus` 和 `alwaysOnTop` 表达业务意图，不暴露平台
   坐标、窗口层级或 native handle；注册时的窗口策略还可声明标题栏、拖动、缩放、边界和
   记忆行为；
+- 临时 Surface 可以声明 `dismiss: 'restore-previous'`。Core 在窗口获得焦点前创建一次焦点租约，
+  关闭时按默认策略恢复同一产品进程内窗口或由平台适配器恢复外部应用；`keep-current` 保持当前
+  焦点，`external-handoff` 表示焦点由另一个受信任流程接管。租约只属于当前打开代际，关闭幂等，
+  不能因 `blur` 递归触发第二次关闭；500ms activation guard 仅用于延迟 `activate` 竞态，不承担
+  焦点恢复。
 - 无标题栏 Surface 由内容声明公开拖动区域（例如 `data-hermit-drag-region`），交互控件声明
   `data-hermit-no-drag`；Core 只负责把这些声明映射到宿主窗口，不让插件拿到原生窗口对象；
 - `content` 使用已经注册的 DSH Conversation 或 Product Plugin View；
@@ -216,6 +221,8 @@ authority、原生模块实例或私有 IPC。这是跨边界的通用安全规�
 
 - `conversation.quick` 默认使用无标题栏、可拖动、不可缩放、非置顶的普通窗口，不依附主窗口，
   也不因失去焦点自动隐藏；这些是该 Surface 的偏好，不是所有 Surface 的硬编码规则；
+- `conversation.quick` 和 `clipboard.quick-retrieval` 关闭时默认恢复打开前的焦点；显式“打开主窗口”
+  和显式粘贴使用 `external-handoff`，避免关闭后又把焦点交还给旧应用。
 - Surface 有三个可观察状态：`HIDDEN`（窗口不可见）、`COMPOSER`（刚打开，只显示紧凑输入框）和
   `CHAT(sessionId)`（首条消息被 DSH 接收后显示聊天内容）；`HIDDEN` 只是窗口可见性，不是会话状态；
 - 每次从 `HIDDEN` 重新打开都从新的 DSH 会话草稿开始；Quick 页面通过 DSH 公开的 `sessions.create`

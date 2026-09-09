@@ -147,6 +147,13 @@ quickSurface.open(options)
 `ShortcutRegistry` 也继续由 Core 持有；快捷键中心只消费 Core 的列表、更新、恢复和变化通知，
 不把 Electron 句柄或插件回调暴露给 DSH Client。
 
+需要在临时工作面结束后回到原应用时，Surface 定义使用 `dismiss: 'restore-previous'`。Core 在
+`show/focus` 前捕获一次 `DesktopFocusLease`：若已有本进程窗口获得焦点，优先恢复该窗口；否则
+调用 Product Desktop 注入的 `DesktopFocusPort`。关闭调用可用 `keep-current` 保持当前焦点，或用
+`external-handoff` 表示另一个受信任流程（例如打开主窗口或显式粘贴）会接管焦点。焦点恢复是
+best-effort 的平台能力，失败必须有可观察结果；500ms activation guard 仅保护 macOS 延迟
+`activate` 事件，不能替代焦点租约。
+
 不要向插件暴露 `BrowserWindow`、`ipcRenderer`、Node 文件系统、原生模块实例或通用 IPC
 转发器。无标题栏 Surface 的拖动区域由页面用公开 `data-hermit-drag-region` 声明，按钮等交互区
 用 `data-hermit-no-drag` 标记；Core 内部可以使用 Electron，但插件只能通过公开的 Surface、快捷键

@@ -16,6 +16,11 @@ test('Desktop Surface IPC 只接受有限的生命周期操作和语义化选项
   assert.deepEqual(parseDesktopSurfaceRequest({ op: 'close', id: 'conversation.quick' }), {
     op: 'close', id: 'conversation.quick',
   })
+  assert.deepEqual(parseDesktopSurfaceRequest({
+    op: 'close', id: 'conversation.quick', options: { disposition: 'external-handoff' },
+  }), {
+    op: 'close', id: 'conversation.quick', options: { disposition: 'external-handoff' },
+  })
   assert.deepEqual(parseDesktopSurfaceRequest({ op: 'resize', id: 'conversation.quick', size: { width: 720, height: 200 } }), {
     op: 'resize', id: 'conversation.quick', size: { width: 720, height: 200 },
   })
@@ -31,4 +36,5 @@ test('Desktop Surface IPC 只接受有限的生命周期操作和语义化选项
   assert.throws(() => parseDesktopSurfaceRequest({ op: 'open', id: 'x', options: { session: { type: 'existing' } } }), /sessionId 无效/u)
   assert.throws(() => parseDesktopSurfaceRequest({ op: 'open', id: 'x', options: { session: { type: 'last-bound', sessionId: 'unexpected' } } }), /只能用于 existing/u)
   assert.throws(() => parseDesktopSurfaceRequest({ op: 'open-main-session', sessionId: '' }), /sessionId 无效/u)
+  assert.throws(() => parseDesktopSurfaceRequest({ op: 'close', id: 'x', options: { disposition: 'paste' } }), /close disposition 无效/u)
 })

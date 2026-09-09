@@ -59,6 +59,7 @@ export function createSmartClipboardQuickPanelSurface(actions: NavigationActions
         placement: 'adjacent',
         preferredSize: { width: MAIN_PANEL_WIDTH, height: panelHeight(MAX_ROWS) },
         focus: 'activate',
+        dismiss: 'restore-previous',
         alwaysOnTop: true,
       },
     },

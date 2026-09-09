@@ -193,6 +193,12 @@ Desktop Surface 的 `getDesktopSurfaceClient()` 也从同一公共 client 出口
 只用于把当前对话会话显式交给主窗口，仍由 DSH 负责会话历史；`approval.companion` 沿用同一个
 DSH `PendingWait`，不是第二套 Approval runtime。
 
+临时 Surface 的窗口策略还可以声明关闭焦点 disposition：`restore-previous` 恢复打开前捕获的
+本进程窗口或平台外部应用，`keep-current` 保持当前焦点，`external-handoff` 交给另一个受信任
+流程接管。Renderer 的 `close(id, { disposition })` 只传递该 typed 意图，不暴露窗口或平台对象。
+焦点 lease 与 Surface 打开代际绑定，关闭幂等并屏蔽由 `hide` 引起的 blur 递归；activation guard
+只处理延迟 `activate` 竞态，不承担焦点恢复。
+
 主窗口内点击会话、搜索结果、分叉后的新会话或“新会话”都属于前台会话导航，结果必须回到
 `conversation` 主工作区。为覆盖同一会话重复点击这一条不会改变 `sessions.current` 的情况，
 Hermit bundled generation 在固定的 DSH Workspace 和 Sidebar adapter 上携带一个精确 source
