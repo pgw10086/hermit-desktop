@@ -209,7 +209,7 @@ function ConnectedQuickRetrieval({ api }: { readonly api: SmartClipboardClientAp
         {status.length > 0
           ? <span className={css.status} role="status" aria-live="polite">{status}</span>
           : <span className={css.shortcuts}>↵ {shortActionLabel(mapping.Enter)} · {pasteModifierLabel()}↵ {shortActionLabel(mapping['Mod+Enter'])} · ⇧↵ {shortActionLabel(mapping['Shift+Enter'])}</span>}
-        <button type="button" className={css.historyButton} onClick={() => { closePanel(); api.openHistory() }}>完整历史 ›</button>
+        <button type="button" className={css.historyButton} onClick={() => { api.openHistory() }}>完整历史 ›</button>
       </footer>
     </main>
   )
