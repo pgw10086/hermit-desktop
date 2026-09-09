@@ -34,15 +34,17 @@
 | `docs/` | 对应领域 owner 负责长期有效的工程事实 | 当前事实需要长期维护时 | 随事实更新或删除 |
 | `specs/` | Product、Architecture 和 Security 负责已确认需求与规范 | 需求或机器契约确认时 | 按变更主题冻结或演进 |
 | `scripts/` | Developer Experience 和 Release 负责维护命令 | 首个可执行维护命令出现时 | 随命令维护和测试 |
-| `vendor/` | Hermit Release 负责拆仓迁移期的固定 package tarball 和摘要 | registry 尚未建立但产品必须从真实制品集成时 | 正式 registry 依赖稳定后删除 |
+| `vendor/` | Hermit Release 负责拆仓迁移期按 SHA-256 内容寻址的固定 package tarball | registry 尚未建立但产品必须从真实制品集成时 | 正式 registry 依赖稳定后删除 |
 | `.github/` | DevEx、Security 和 Release 负责协作与 CI 配置 | GitHub 配置出现时 | 随仓库治理维护 |
 | `.agents/` | Developer Experience 负责项目开发 skill | 出现可复用开发流程时 | 随流程维护 |
 | `.claude/` | Developer Experience 负责 Claude 专用适配 | 确有 Claude 专用配置时 | 随适配维护 |
 | `.codex/` | Developer Experience 负责 Codex 专用适配 | 确有 Codex 专用配置时 | 随适配维护 |
 | `.hermit/` | 本地运行者拥有 cache、tmp 和 artifacts | 工具运行时按需创建 | 始终忽略，不提交 |
 
-`apps/desktop-vnext/` 是 Hermit 产品 Desktop。共享 Agent Desktop Core 已经迁到
-`platform-core/agent-desktop-core` sibling 仓库，本仓库只通过固定 package 制品消费它。
+`apps/desktop-vnext/` 是 Hermit 产品 Desktop。共享 Agent Desktop Core 位于
+`/Users/pgw/Developer/codes/platform-core/agent-desktop-core` sibling 仓库；外层
+`hermit-platform/agent-desktop-core` 提供统一入口，本仓库只通过固定 package 制品消费它。
+多仓工作区整体布局以外层 `docs/repository-layout.md` 为准。
 
 ## 拆仓后的 sibling 责任
 

@@ -35,6 +35,7 @@ const allowedTopLevel = new Set([
   "LICENSE",
   "NOTICE",
   "package.json",
+  "platform-lock.json",
   "pnpm-lock.yaml",
   "pnpm-workspace.yaml",
   "README.md",

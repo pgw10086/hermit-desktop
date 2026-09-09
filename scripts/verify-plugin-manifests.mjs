@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const runtimeManifestPath = path.join(root, 'apps', 'desktop-vnext', 'runtime-bundle-manifest.json')
+const platformLockPath = path.join(root, 'platform-lock.json')
 const knownDesktopCapabilities = new Set([
   'system-clipboard',
   'global-shortcut',
@@ -14,11 +15,18 @@ const knownDesktopCapabilities = new Set([
 const failures = []
 
 const runtimeManifest = JSON.parse(fs.readFileSync(runtimeManifestPath, 'utf8'))
+const platformLock = JSON.parse(fs.readFileSync(platformLockPath, 'utf8'))
+const modulesById = new Map((platformLock.modules ?? []).map((module) => [module.id, module]))
 for (const spec of runtimeManifest.bundledPackages ?? []) {
+  const lockedModule = modulesById.get(spec.moduleId)
+  if (lockedModule === undefined) {
+    failures.push(`${String(spec.moduleId)}: runtime 清单引用了 platform-lock 中不存在的模块`)
+    continue
+  }
   const packageRoot = path.resolve(root, spec.source)
   const packagePath = path.join(packageRoot, 'package.json')
   if (!packageRoot.startsWith(`${root}${path.sep}`) || !fs.existsSync(packagePath)) {
-    failures.push(`${String(spec.packageName)}: runtime 清单指向缺失或越界的插件制品`)
+    failures.push(`${lockedModule.packageName}: runtime 清单指向缺失或越界的插件制品`)
     continue
   }
   const relative = path.relative(root, packagePath)
@@ -32,8 +40,8 @@ for (const spec of runtimeManifest.bundledPackages ?? []) {
   if (manifest.hermit?.type !== 'product-plugin') {
     failures.push(`${relative}: 缺少 hermit.type=product-plugin`)
   }
-  if (manifest.name !== spec.packageName) {
-    failures.push(`${relative}: package name 与 runtime 清单不一致`)
+  if (manifest.name !== lockedModule.packageName) {
+    failures.push(`${relative}: package name 与 platform-lock 不一致`)
   }
   const capabilities = manifest.hermit?.desktop?.capabilities
   if (capabilities === undefined) continue

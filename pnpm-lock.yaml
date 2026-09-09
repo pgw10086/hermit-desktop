@@ -4,6 +4,13 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  '@hermit/file-workspace': file:vendor/platform/file-workspace/ecb1ef3f9477200f9437ab9c3cbf3f4a415d25958b5884c00b99803a22f5e347.tgz
+  '@hermit/organizer': file:vendor/platform/organizer/17bf9d1bcbeaed23fca6a7450856f95681942f01400d5770c07c7f17e8dd033c.tgz
+  '@hermit/smart-clipboard': file:vendor/platform/smart-clipboard/0d33bebb4f7906714c201d4bce00f71bcea1cf2e8f24f5eab62b33d191a3d8a1.tgz
+  '@platform/agent-desktop-core': file:vendor/platform/agent-desktop-core/93fd3e912e6d60666d6456ba958ab7b34549388fb544579f39ea482b4fce66a8.tgz
+  '@platform/dsh-runtime-adapter': file:vendor/platform/dsh-runtime-adapter/033e97604db0bd7f76ca4c4b8b146320f416c65bd60db533543281b2dc483a17.tgz
+
 importers:
 
   .:
@@ -54,20 +61,20 @@ importers:
         specifier: 0.1.1-rc.2
         version: 0.1.1-rc.2(523670bcdfe963e2e8414c5bfb7421e1)
       '@hermit/file-workspace':
-        specifier: file:../../vendor/hermit-file-workspace-0.2.2.tgz
-        version: file:vendor/hermit-file-workspace-0.2.2.tgz(0394e8698e0914bbae0b1408e9e8c8cf)
+        specifier: file:../../vendor/platform/file-workspace/ecb1ef3f9477200f9437ab9c3cbf3f4a415d25958b5884c00b99803a22f5e347.tgz
+        version: file:vendor/platform/file-workspace/ecb1ef3f9477200f9437ab9c3cbf3f4a415d25958b5884c00b99803a22f5e347.tgz(0394e8698e0914bbae0b1408e9e8c8cf)
       '@hermit/organizer':
-        specifier: file:../../vendor/hermit-organizer-0.2.2.tgz
-        version: file:vendor/hermit-organizer-0.2.2.tgz(30577b7a4c4567ad4d49a58e1093aff2)
+        specifier: file:../../vendor/platform/organizer/17bf9d1bcbeaed23fca6a7450856f95681942f01400d5770c07c7f17e8dd033c.tgz
+        version: file:vendor/platform/organizer/17bf9d1bcbeaed23fca6a7450856f95681942f01400d5770c07c7f17e8dd033c.tgz(30577b7a4c4567ad4d49a58e1093aff2)
       '@hermit/smart-clipboard':
-        specifier: file:../../vendor/hermit-smart-clipboard-0.2.2.tgz
-        version: file:vendor/hermit-smart-clipboard-0.2.2.tgz(@deepseek-ai/dsh-client-ui-layout@0.1.1-rc.2(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-client-runtime@0.1.1-rc.2(601e9129357dc48738583e18d75d19b2))(@deepseek-ai/dsh-client-ui-theme@0.1.1-rc.2(a6c39110759121c55549be9a5dac7bf7))(@deepseek-ai/dsh-invariants@0.1.1-rc.2(@deepseek-ai/cordis@4.0.1)))(react@18.3.1)
+        specifier: file:../../vendor/platform/smart-clipboard/0d33bebb4f7906714c201d4bce00f71bcea1cf2e8f24f5eab62b33d191a3d8a1.tgz
+        version: file:vendor/platform/smart-clipboard/0d33bebb4f7906714c201d4bce00f71bcea1cf2e8f24f5eab62b33d191a3d8a1.tgz(@deepseek-ai/dsh-client-ui-layout@0.1.1-rc.2(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-client-runtime@0.1.1-rc.2(601e9129357dc48738583e18d75d19b2))(@deepseek-ai/dsh-client-ui-theme@0.1.1-rc.2(a6c39110759121c55549be9a5dac7bf7))(@deepseek-ai/dsh-invariants@0.1.1-rc.2(@deepseek-ai/cordis@4.0.1)))(react@18.3.1)
       '@platform/agent-desktop-core':
-        specifier: file:../../vendor/agent-desktop-core-0.1.0.tgz
-        version: file:vendor/agent-desktop-core-0.1.0.tgz(electron@43.4.0(supports-color@7.2.0))
+        specifier: file:../../vendor/platform/agent-desktop-core/93fd3e912e6d60666d6456ba958ab7b34549388fb544579f39ea482b4fce66a8.tgz
+        version: file:vendor/platform/agent-desktop-core/93fd3e912e6d60666d6456ba958ab7b34549388fb544579f39ea482b4fce66a8.tgz(electron@43.4.0(supports-color@7.2.0))
       '@platform/dsh-runtime-adapter':
-        specifier: file:../../vendor/dsh-runtime-adapter-0.1.0.tgz
-        version: file:vendor/dsh-runtime-adapter-0.1.0.tgz(@platform/agent-desktop-core@file:vendor/agent-desktop-core-0.1.0.tgz(electron@43.4.0(supports-color@7.2.0)))
+        specifier: file:../../vendor/platform/dsh-runtime-adapter/033e97604db0bd7f76ca4c4b8b146320f416c65bd60db533543281b2dc483a17.tgz
+        version: file:vendor/platform/dsh-runtime-adapter/033e97604db0bd7f76ca4c4b8b146320f416c65bd60db533543281b2dc483a17.tgz(@platform/agent-desktop-core@file:vendor/platform/agent-desktop-core/93fd3e912e6d60666d6456ba958ab7b34549388fb544579f39ea482b4fce66a8.tgz(electron@43.4.0(supports-color@7.2.0)))
       pnpm:
         specifier: '>=11.0.0 <12'
         version: 11.7.0
@@ -2444,8 +2451,8 @@ packages:
       '@modelcontextprotocol/sdk':
         optional: true
 
-  '@hermit/file-workspace@file:vendor/hermit-file-workspace-0.2.2.tgz':
-    resolution: {integrity: sha512-UovMZ4wFIZZPe/MN+ZozstOSAFN4WLV3jTSNJSd6QWUCZPUxLXJIdIURZUyU7nsWQSyN5JgJZPfu3a1IBL7j5Q==, tarball: file:vendor/hermit-file-workspace-0.2.2.tgz}
+  '@hermit/file-workspace@file:vendor/platform/file-workspace/ecb1ef3f9477200f9437ab9c3cbf3f4a415d25958b5884c00b99803a22f5e347.tgz':
+    resolution: {integrity: sha512-UovMZ4wFIZZPe/MN+ZozstOSAFN4WLV3jTSNJSd6QWUCZPUxLXJIdIURZUyU7nsWQSyN5JgJZPfu3a1IBL7j5Q==, tarball: file:vendor/platform/file-workspace/ecb1ef3f9477200f9437ab9c3cbf3f4a415d25958b5884c00b99803a22f5e347.tgz}
     version: 0.2.2
     engines: {node: '>=24.0.0 <27'}
     peerDependencies:
@@ -2476,8 +2483,8 @@ packages:
       react:
         optional: true
 
-  '@hermit/organizer@file:vendor/hermit-organizer-0.2.2.tgz':
-    resolution: {integrity: sha512-+9xxWb4k8NhPU5L/yet5SstGBTeenquqn7M0PVSWnXUzC9XnBWwBTlIJgD1uf1OqkEHVZyO+Yl2eNU6qRY3Teg==, tarball: file:vendor/hermit-organizer-0.2.2.tgz}
+  '@hermit/organizer@file:vendor/platform/organizer/17bf9d1bcbeaed23fca6a7450856f95681942f01400d5770c07c7f17e8dd033c.tgz':
+    resolution: {integrity: sha512-+9xxWb4k8NhPU5L/yet5SstGBTeenquqn7M0PVSWnXUzC9XnBWwBTlIJgD1uf1OqkEHVZyO+Yl2eNU6qRY3Teg==, tarball: file:vendor/platform/organizer/17bf9d1bcbeaed23fca6a7450856f95681942f01400d5770c07c7f17e8dd033c.tgz}
     version: 0.2.2
     engines: {node: '>=24.0.0 <27'}
     peerDependencies:
@@ -2495,8 +2502,8 @@ packages:
       react:
         optional: true
 
-  '@hermit/smart-clipboard@file:vendor/hermit-smart-clipboard-0.2.2.tgz':
-    resolution: {integrity: sha512-jq90uLVsuANrRxnK2NKixbbAo1RYpWpstdpYvG2auXSVzv2W8hZAZ2jfcGHN7EZoIGk2fxk7aBSvB4mbHZWQgA==, tarball: file:vendor/hermit-smart-clipboard-0.2.2.tgz}
+  '@hermit/smart-clipboard@file:vendor/platform/smart-clipboard/0d33bebb4f7906714c201d4bce00f71bcea1cf2e8f24f5eab62b33d191a3d8a1.tgz':
+    resolution: {integrity: sha512-jq90uLVsuANrRxnK2NKixbbAo1RYpWpstdpYvG2auXSVzv2W8hZAZ2jfcGHN7EZoIGk2fxk7aBSvB4mbHZWQgA==, tarball: file:vendor/platform/smart-clipboard/0d33bebb4f7906714c201d4bce00f71bcea1cf2e8f24f5eab62b33d191a3d8a1.tgz}
     version: 0.2.2
     engines: {node: '>=24.0.0 <27'}
     peerDependencies:
@@ -2925,15 +2932,15 @@ packages:
     resolution: {integrity: sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==}
     engines: {node: '>=14'}
 
-  '@platform/agent-desktop-core@file:vendor/agent-desktop-core-0.1.0.tgz':
-    resolution: {integrity: sha512-ZWG/+PN2UekYKRQXli6oCtypJndNbDJuurgXeKgCuzG2v6oUlxVvAP9N4j7CUuO35tx+uomzMLxl0rDCo7/0fQ==, tarball: file:vendor/agent-desktop-core-0.1.0.tgz}
+  '@platform/agent-desktop-core@file:vendor/platform/agent-desktop-core/93fd3e912e6d60666d6456ba958ab7b34549388fb544579f39ea482b4fce66a8.tgz':
+    resolution: {integrity: sha512-ZWG/+PN2UekYKRQXli6oCtypJndNbDJuurgXeKgCuzG2v6oUlxVvAP9N4j7CUuO35tx+uomzMLxl0rDCo7/0fQ==, tarball: file:vendor/platform/agent-desktop-core/93fd3e912e6d60666d6456ba958ab7b34549388fb544579f39ea482b4fce66a8.tgz}
     version: 0.1.0
     engines: {node: '>=24.0.0 <25', pnpm: '>=11.0.0 <12'}
     peerDependencies:
       electron: '>=43.0.0 <44'
 
-  '@platform/dsh-runtime-adapter@file:vendor/dsh-runtime-adapter-0.1.0.tgz':
-    resolution: {integrity: sha512-h+h0kW4kTJx9+bRg+IrF6bi18BmiDGfqg0lC9DLQ3UGbnKH4Eb0BGbtO4U61R0fJp8ot2Q22598mkKNvFTk+rQ==, tarball: file:vendor/dsh-runtime-adapter-0.1.0.tgz}
+  '@platform/dsh-runtime-adapter@file:vendor/platform/dsh-runtime-adapter/033e97604db0bd7f76ca4c4b8b146320f416c65bd60db533543281b2dc483a17.tgz':
+    resolution: {integrity: sha512-h+h0kW4kTJx9+bRg+IrF6bi18BmiDGfqg0lC9DLQ3UGbnKH4Eb0BGbtO4U61R0fJp8ot2Q22598mkKNvFTk+rQ==, tarball: file:vendor/platform/dsh-runtime-adapter/033e97604db0bd7f76ca4c4b8b146320f416c65bd60db533543281b2dc483a17.tgz}
     version: 0.1.0
     engines: {node: '>=24.0.0 <25', pnpm: '>=11.0.0 <12'}
     peerDependencies:
@@ -8180,7 +8187,7 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  '@hermit/file-workspace@file:vendor/hermit-file-workspace-0.2.2.tgz(0394e8698e0914bbae0b1408e9e8c8cf)':
+  '@hermit/file-workspace@file:vendor/platform/file-workspace/ecb1ef3f9477200f9437ab9c3cbf3f4a415d25958b5884c00b99803a22f5e347.tgz(0394e8698e0914bbae0b1408e9e8c8cf)':
     dependencies:
       '@deepseek-ai/cordis': 4.0.1(@deepseek-ai/cordis-plugin-include@1.0.6)(@deepseek-ai/cordis-plugin-loader@1.0.2)
       zod: 4.4.3
@@ -8194,7 +8201,7 @@ snapshots:
       '@deepseek-ai/dsh-storage-domain': 0.1.1-rc.2(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.1-rc.2(@deepseek-ai/cordis@4.0.1))(@deepseek-ai/dsh-storage@0.1.1-rc.2(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-invariants@0.1.1-rc.2(@deepseek-ai/cordis@4.0.1)))
       react: 18.3.1
 
-  '@hermit/organizer@file:vendor/hermit-organizer-0.2.2.tgz(30577b7a4c4567ad4d49a58e1093aff2)':
+  '@hermit/organizer@file:vendor/platform/organizer/17bf9d1bcbeaed23fca6a7450856f95681942f01400d5770c07c7f17e8dd033c.tgz(30577b7a4c4567ad4d49a58e1093aff2)':
     dependencies:
       '@deepseek-ai/dsh-client-connection': 0.1.1-rc.2(9b40f28fccfb9ee3f86188afc9586c29)
       '@deepseek-ai/dsh-client-runtime': 0.1.1-rc.2(601e9129357dc48738583e18d75d19b2)
@@ -8209,7 +8216,7 @@ snapshots:
     optionalDependencies:
       react: 18.3.1
 
-  '@hermit/smart-clipboard@file:vendor/hermit-smart-clipboard-0.2.2.tgz(@deepseek-ai/dsh-client-ui-layout@0.1.1-rc.2(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-client-runtime@0.1.1-rc.2(601e9129357dc48738583e18d75d19b2))(@deepseek-ai/dsh-client-ui-theme@0.1.1-rc.2(a6c39110759121c55549be9a5dac7bf7))(@deepseek-ai/dsh-invariants@0.1.1-rc.2(@deepseek-ai/cordis@4.0.1)))(react@18.3.1)':
+  '@hermit/smart-clipboard@file:vendor/platform/smart-clipboard/0d33bebb4f7906714c201d4bce00f71bcea1cf2e8f24f5eab62b33d191a3d8a1.tgz(@deepseek-ai/dsh-client-ui-layout@0.1.1-rc.2(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-client-runtime@0.1.1-rc.2(601e9129357dc48738583e18d75d19b2))(@deepseek-ai/dsh-client-ui-theme@0.1.1-rc.2(a6c39110759121c55549be9a5dac7bf7))(@deepseek-ai/dsh-invariants@0.1.1-rc.2(@deepseek-ai/cordis@4.0.1)))(react@18.3.1)':
     optionalDependencies:
       '@deepseek-ai/dsh-client-ui-layout': 0.1.1-rc.2(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-client-runtime@0.1.1-rc.2(601e9129357dc48738583e18d75d19b2))(@deepseek-ai/dsh-client-ui-theme@0.1.1-rc.2(a6c39110759121c55549be9a5dac7bf7))(@deepseek-ai/dsh-invariants@0.1.1-rc.2(@deepseek-ai/cordis@4.0.1))
       react: 18.3.1
@@ -8577,13 +8584,13 @@ snapshots:
   '@pkgjs/parseargs@0.11.0':
     optional: true
 
-  '@platform/agent-desktop-core@file:vendor/agent-desktop-core-0.1.0.tgz(electron@43.4.0(supports-color@7.2.0))':
+  '@platform/agent-desktop-core@file:vendor/platform/agent-desktop-core/93fd3e912e6d60666d6456ba958ab7b34549388fb544579f39ea482b4fce66a8.tgz(electron@43.4.0(supports-color@7.2.0))':
     dependencies:
       electron: 43.4.0(supports-color@7.2.0)
 
-  '@platform/dsh-runtime-adapter@file:vendor/dsh-runtime-adapter-0.1.0.tgz(@platform/agent-desktop-core@file:vendor/agent-desktop-core-0.1.0.tgz(electron@43.4.0(supports-color@7.2.0)))':
+  '@platform/dsh-runtime-adapter@file:vendor/platform/dsh-runtime-adapter/033e97604db0bd7f76ca4c4b8b146320f416c65bd60db533543281b2dc483a17.tgz(@platform/agent-desktop-core@file:vendor/platform/agent-desktop-core/93fd3e912e6d60666d6456ba958ab7b34549388fb544579f39ea482b4fce66a8.tgz(electron@43.4.0(supports-color@7.2.0)))':
     dependencies:
-      '@platform/agent-desktop-core': file:vendor/agent-desktop-core-0.1.0.tgz(electron@43.4.0(supports-color@7.2.0))
+      '@platform/agent-desktop-core': file:vendor/platform/agent-desktop-core/93fd3e912e6d60666d6456ba958ab7b34549388fb544579f39ea482b4fce66a8.tgz(electron@43.4.0(supports-color@7.2.0))
 
   '@protobufjs/aspromise@1.1.2': {}
 

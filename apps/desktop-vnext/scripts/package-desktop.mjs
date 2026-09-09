@@ -13,6 +13,7 @@ import {
 const scriptPath = fileURLToPath(import.meta.url);
 const appRoot = path.resolve(path.dirname(scriptPath), "..");
 const repositoryRoot = path.resolve(appRoot, "..", "..");
+const platformLockScript = path.join(repositoryRoot, "scripts", "platform-lock.mjs");
 const bundledNode = path.join(repositoryRoot, ".hermit", "runtime", "node", "bin", "node");
 const prepareNodeScript = path.join(appRoot, "scripts", "prepare-node-runtime.mjs");
 const prepareDshScript = path.join(appRoot, "scripts", "prepare-dsh-runtime.mjs");
@@ -32,6 +33,8 @@ if (!new Set(["dir", "mac-smoke", "mac-release"]).has(mode)) {
 }
 
 if (!process.argv.includes("--qualified-runtime")) {
+  // Product Desktop 打包必须先冻结并校验第一方制品，不能从 sibling 源码隐式补包。
+  run(process.execPath, [platformLockScript, "prepare", "--mode", "release"], repositoryRoot, process.env);
   run(process.execPath, [prepareNodeScript], repositoryRoot, process.env);
   run(bundledNode, [scriptPath, mode, "--qualified-runtime"], repositoryRoot, process.env);
 } else {

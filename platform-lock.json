@@ -1,0 +1,135 @@
+{
+  "schemaVersion": 1,
+  "kind": "platform-lock",
+  "product": {
+    "id": "hermit",
+    "version": "0.2.2",
+    "repository": "https://github.com/pgw10086/hermit-desktop.git",
+    "desktopManifest": "apps/desktop-vnext/package.json",
+    "runtimeBundleManifest": "apps/desktop-vnext/runtime-bundle-manifest.json"
+  },
+  "toolchain": {
+    "node": "24.x",
+    "pnpm": "11.x",
+    "electron": ">=43.0.0 <44"
+  },
+  "policy": {
+    "developmentBuildOnMiss": true,
+    "releaseBuildOnMiss": false,
+    "artifactIdentity": "sha256",
+    "buildContract": "node-package-v1"
+  },
+  "runtime": {
+    "dsh": {
+      "packageName": "@deepseek-ai/dsh",
+      "version": "0.1.1-rc.2",
+      "upstreamTag": "dsh-v0.1.1-rc.2",
+      "upstreamCommit": "b150a551b8d465e31e418e1b2eaf5e79bbb7d28e",
+      "snapshotSha256": "0b295e1ff88eb443c5fd16cb3e9b23938606706d4377a2d94f45c1bdff08af25"
+    }
+  },
+  "modules": [
+    {
+      "id": "agent-desktop-core",
+      "role": "desktop-core",
+      "packageName": "@platform/agent-desktop-core",
+      "version": "0.1.0",
+      "repository": "https://github.com/pgw10086/agent-desktop-core.git",
+      "repoPath": "../agent-desktop-core",
+      "sourceCommit": "7bcbb16a188e28da57c3555c70797cf4542d0c1a",
+      "lockfile": "../agent-desktop-core/pnpm-lock.yaml",
+      "lockfileSha256": "013fda578a9059384018258691e1e227ee76e34dc5c59a2733ce07ac32a05237",
+      "artifact": {
+        "type": "npm-tgz",
+        "path": "vendor/platform/agent-desktop-core/93fd3e912e6d60666d6456ba958ab7b34549388fb544579f39ea482b4fce66a8.tgz",
+        "sha256": "93fd3e912e6d60666d6456ba958ab7b34549388fb544579f39ea482b4fce66a8"
+      },
+      "build": {
+        "contract": "node-package-v1",
+        "workspaceFilter": "@platform/agent-desktop-core",
+        "packagePath": "packages/agent-desktop-core"
+      }
+    },
+    {
+      "id": "dsh-runtime-adapter",
+      "role": "runtime-adapter",
+      "packageName": "@platform/dsh-runtime-adapter",
+      "version": "0.1.0",
+      "repository": "https://github.com/pgw10086/agent-desktop-core.git",
+      "repoPath": "../agent-desktop-core",
+      "sourceCommit": "7bcbb16a188e28da57c3555c70797cf4542d0c1a",
+      "lockfile": "../agent-desktop-core/pnpm-lock.yaml",
+      "lockfileSha256": "013fda578a9059384018258691e1e227ee76e34dc5c59a2733ce07ac32a05237",
+      "artifact": {
+        "type": "npm-tgz",
+        "path": "vendor/platform/dsh-runtime-adapter/033e97604db0bd7f76ca4c4b8b146320f416c65bd60db533543281b2dc483a17.tgz",
+        "sha256": "033e97604db0bd7f76ca4c4b8b146320f416c65bd60db533543281b2dc483a17"
+      },
+      "build": {
+        "contract": "node-package-v1",
+        "workspaceFilter": "@platform/dsh-runtime-adapter",
+        "packagePath": "packages/dsh-runtime-adapter"
+      }
+    },
+    {
+      "id": "organizer",
+      "role": "product-plugin",
+      "packageName": "@hermit/organizer",
+      "version": "0.2.2",
+      "repository": "https://github.com/pgw10086/plugin-organizer.git",
+      "repoPath": "../plugin-organizer",
+      "sourceCommit": "1e4b0c69ec4b6b7afae37f0c614bb19309b053f2",
+      "lockfile": "../plugin-organizer/pnpm-lock.yaml",
+      "lockfileSha256": "f1768346a907f14f8f19bf1eeb5ba37a0db26abf0ccbb68cd197611a7f04e95e",
+      "artifact": {
+        "type": "npm-tgz",
+        "path": "vendor/platform/organizer/17bf9d1bcbeaed23fca6a7450856f95681942f01400d5770c07c7f17e8dd033c.tgz",
+        "sha256": "17bf9d1bcbeaed23fca6a7450856f95681942f01400d5770c07c7f17e8dd033c"
+      },
+      "build": {
+        "contract": "node-package-v1",
+        "packagePath": "."
+      }
+    },
+    {
+      "id": "file-workspace",
+      "role": "product-plugin",
+      "packageName": "@hermit/file-workspace",
+      "version": "0.2.2",
+      "repository": "https://github.com/pgw10086/plugin-file-workspace.git",
+      "repoPath": "../plugin-file-workspace",
+      "sourceCommit": "fc1c83e4b6337488d2b610feef4b6d377b3ae8a4",
+      "lockfile": "../plugin-file-workspace/pnpm-lock.yaml",
+      "lockfileSha256": "5d506dcfd99cd5212f38558563f82a95fa14170b98c51ac0299fa467713b8b50",
+      "artifact": {
+        "type": "npm-tgz",
+        "path": "vendor/platform/file-workspace/ecb1ef3f9477200f9437ab9c3cbf3f4a415d25958b5884c00b99803a22f5e347.tgz",
+        "sha256": "ecb1ef3f9477200f9437ab9c3cbf3f4a415d25958b5884c00b99803a22f5e347"
+      },
+      "build": {
+        "contract": "node-package-v1",
+        "packagePath": "."
+      }
+    },
+    {
+      "id": "smart-clipboard",
+      "role": "product-plugin",
+      "packageName": "@hermit/smart-clipboard",
+      "version": "0.2.2",
+      "repository": "https://github.com/pgw10086/plugin-smart-clipboard.git",
+      "repoPath": "../plugin-smart-clipboard",
+      "sourceCommit": "606894603ede431850d8d4c5d0c40bd5c398247f",
+      "lockfile": "../plugin-smart-clipboard/pnpm-lock.yaml",
+      "lockfileSha256": "3fbff24aa72eb68080880a7543a227b8d0e5a026a6433016fc78526ad582d3e6",
+      "artifact": {
+        "type": "npm-tgz",
+        "path": "vendor/platform/smart-clipboard/0d33bebb4f7906714c201d4bce00f71bcea1cf2e8f24f5eab62b33d191a3d8a1.tgz",
+        "sha256": "0d33bebb4f7906714c201d4bce00f71bcea1cf2e8f24f5eab62b33d191a3d8a1"
+      },
+      "build": {
+        "contract": "node-package-v1",
+        "packagePath": "."
+      }
+    }
+  ]
+}

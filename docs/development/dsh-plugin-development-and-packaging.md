@@ -6,6 +6,10 @@
 DSH/Cordis 的插件 API、生命周期、Bundle/Profile、CLI 和 Client Modules 规则不在本文重新
 定义，统一以[当前 DSH 官方上游资料快照](../../DEEPSEEK-HARNESS-UPSTREAM.md)为准。
 
+本产品使用的 Core、Runtime Adapter 和第一方插件版本、来源 commit、子项目 lockfile 摘要及制品
+SHA-256 统一记录在仓库根目录的 [`platform-lock.json`](../../platform-lock.json)；本文不再复制
+一份模块版本表。
+
 插件平时如何写，见[Product Plugin 开发规范](../../plugins/development-guidelines.md)；需要
 Electron、系统剪贴板、全局快捷键或原生窗口时，先看[Desktop Core 开发规范](desktop-core-development.md)。
 
@@ -66,17 +70,21 @@ bundled DSH 安装、运行和验收同一份 `.tgz`，不能为两个宿主维�
 
 ## Hermit runtime 闭包
 
-`apps/desktop-vnext/runtime-bundle-manifest.json` 是 Hermit Desktop 的 runtime 输入清单，
+`apps/desktop-vnext/runtime-bundle-manifest.json` 是 Hermit Desktop 的 runtime 投影清单，
 负责声明：
 
 - Product Surface patch package；
-- 随包第一方插件的源码位置和构建产物路径；
-- runtime 闭包需要携带的 package。
+- runtime 闭包需要携带的 `platform-lock` 模块 ID；
+- 已安装 package 在仓库内的投影位置和需要计算内容摘要的发布路径。
+
+插件 package name、版本、repository、source commit、tarball 路径和 SHA-256 只在
+`platform-lock.json` 维护，runtime 清单不得复制。准备 runtime 时先按 `moduleId` 关联两份清单；
+关联失败或插件集合不一致直接失败。
 
 `prepare:dsh-runtime` 应完成以下工作：
 
-1. 用 bundled Node 构建清单中的 package；
-2. 对每个随包 package 执行一次 `pnpm pack`，把 tarball 内容物化进 runtime 闭包；
+1. 按 `platform-lock` 关联并校验选定的固定制品；
+2. 用 bundled Node 构建仓库内 Product Surface package，并把锁定的插件 tarball 内容物化进 runtime 闭包；
 3. 计算 lock、workspace、runtime 清单和构建产物的 SHA-256；
 4. 生成可搬运的物理 `node_modules` 闭包；
 5. 安装并校验 Hermit layout Product Surface source patch，以及固定 DSH Workspace 的前台
@@ -88,6 +96,9 @@ bundled DSH 安装、运行和验收同一份 `.tgz`，不能为两个宿主维�
 Electron 只把自己的壳放入 ASAR。DSH 闭包、bundled Node、pnpm 和 source patch 放在
 `resources/runtime/`。只有 Electron 主进程静态 import 的 host package 才能额外进入
 `app.asar/node_modules`；这份复制必须来自同一个已构建制品，不能重新从 workspace 取一份。
+其中 Core 和 Runtime Adapter 由 `platform-lock prepare` 从锁定 tarball 物化到
+`.hermit/runtime/app-dependencies`，Electron Builder 只能从这个物理 staging 装配，不能依赖
+仓库根或 pnpm store 的向上查找。
 
 ## Profile 激活边界
 

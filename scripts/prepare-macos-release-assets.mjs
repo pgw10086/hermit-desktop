@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { macReleaseSigningMode } from "../apps/desktop-vnext/scripts/mac-release-environment.mjs";
 
 const scriptPath = fileURLToPath(import.meta.url);
-const repositoryRoot = path.resolve(path.dirname(scriptPath), "..");
+const defaultRepositoryRoot = path.resolve(path.dirname(scriptPath), "..");
 
 export function writeMacReleaseAssets({
   dmgPath,
@@ -15,6 +15,7 @@ export function writeMacReleaseAssets({
   tag,
   commit,
   signingMode,
+  platformLock,
   generatedAt = new Date().toISOString(),
 }) {
   const expectedName = `Hermit-${version}-arm64.dmg`;
@@ -36,6 +37,7 @@ export function writeMacReleaseAssets({
     commit,
     generatedAt,
     target: { platform: "darwin", architecture: "arm64" },
+    platformLock,
     artifact: { name: expectedName, bytes: info.size, sha256 },
     steps: {
       sourceAndTag: "PASS",
@@ -55,18 +57,37 @@ export function writeMacReleaseAssets({
   return { checksumPath, manifestPath, manifest };
 }
 
-function main() {
-  if (process.platform !== "darwin" || process.arch !== "arm64") {
+/** 在任何昂贵构建开始前，确认正式发布对应唯一的干净源码提交和版本 tag。 */
+export function assertMacReleaseSource({
+  repositoryRoot = defaultRepositoryRoot,
+  platform = process.platform,
+  architecture = process.arch,
+} = {}) {
+  if (platform !== "darwin" || architecture !== "arm64") {
     throw new Error("macOS release assets require a native Apple Silicon host");
   }
   const version = readJson(path.join(repositoryRoot, "apps", "desktop-vnext", "package.json")).version;
   const tag = `v${version}`;
-  const commit = git(["rev-parse", "HEAD"]);
-  if (git(["status", "--porcelain"]) !== "") {
+  const commit = git(repositoryRoot, ["rev-parse", "HEAD"]);
+  if (git(repositoryRoot, ["status", "--porcelain"]) !== "") {
     throw new Error("Release assets require a clean Git working tree");
   }
-  if (git(["rev-list", "-n", "1", tag]) !== commit) {
+  if (git(repositoryRoot, ["rev-list", "-n", "1", tag]) !== commit) {
     throw new Error(`Tag ${tag} must point to the current commit ${commit}`);
+  }
+  return { version, tag, commit };
+}
+
+function main() {
+  const repositoryRoot = defaultRepositoryRoot;
+  const mode = process.argv[2] ?? "write";
+  if (!new Set(["preflight", "write"]).has(mode)) {
+    throw new Error("Usage: node scripts/prepare-macos-release-assets.mjs [preflight]");
+  }
+  const { version, tag, commit } = assertMacReleaseSource();
+  if (mode === "preflight") {
+    console.log(`macOS release source verified: ${tag} -> ${commit}`);
+    return;
   }
 
   const distDirectory = path.join(repositoryRoot, "apps", "desktop-vnext", "dist", "mac-release");
@@ -98,16 +119,32 @@ function main() {
     tag,
     commit,
     signingMode,
+    platformLock: readPlatformLockEvidence(repositoryRoot),
   });
   console.log(`macOS release assets prepared: ${result.checksumPath}; ${result.manifestPath}`);
 }
 
-function git(args) {
+function git(repositoryRoot, args) {
   return execFileSync("git", args, { cwd: repositoryRoot, encoding: "utf8" }).trim();
 }
 
 function readJson(file) {
   return JSON.parse(fs.readFileSync(file, "utf8"));
+}
+
+function readPlatformLockEvidence(repositoryRoot) {
+  const file = path.join(repositoryRoot, "platform-lock.json");
+  const lock = readJson(file);
+  return {
+    sha256: sha256File(file),
+    modules: lock.modules.map((module) => ({
+      id: module.id,
+      packageName: module.packageName,
+      version: module.version,
+      sourceCommit: module.sourceCommit,
+      artifactSha256: module.artifact.sha256,
+    })),
+  };
 }
 
 function sha256File(file) {

@@ -23,7 +23,7 @@
     "package:dir": "node scripts/package-desktop.mjs dir",
     "dist:mac:smoke": "node scripts/package-desktop.mjs mac-smoke",
     "dist:mac": "node scripts/package-desktop.mjs mac-release",
-    "dist:win": "node scripts/assert-native-target.mjs --platform win32 --arch x64 && corepack pnpm run prepare:electron && corepack pnpm run prepare:native && corepack pnpm run prepare:runtime && corepack pnpm run build && electron-builder --win nsis",
+    "dist:win": "node ../../scripts/platform-lock.mjs prepare --mode release && node scripts/assert-native-target.mjs --platform win32 --arch x64 && corepack pnpm run prepare:electron && corepack pnpm run prepare:native && corepack pnpm run prepare:runtime && corepack pnpm run build && electron-builder --win nsis",
     "verify:packaged-runtime": "node scripts/verify-packaged-runtime.mjs",
     "verify:mac:smoke": "node scripts/verify-mac-artifact.mjs smoke",
     "verify:mac:release": "node scripts/verify-mac-artifact.mjs release",
@@ -42,11 +42,11 @@
   },
   "dependencies": {
     "@deepseek-ai/dsh": "0.1.1-rc.2",
-    "@platform/agent-desktop-core": "file:../../vendor/agent-desktop-core-0.1.0.tgz",
-    "@platform/dsh-runtime-adapter": "file:../../vendor/dsh-runtime-adapter-0.1.0.tgz",
-    "@hermit/file-workspace": "file:../../vendor/hermit-file-workspace-0.2.2.tgz",
-    "@hermit/organizer": "file:../../vendor/hermit-organizer-0.2.2.tgz",
-    "@hermit/smart-clipboard": "file:../../vendor/hermit-smart-clipboard-0.2.2.tgz",
+    "@platform/agent-desktop-core": "file:../../vendor/platform/agent-desktop-core/93fd3e912e6d60666d6456ba958ab7b34549388fb544579f39ea482b4fce66a8.tgz",
+    "@platform/dsh-runtime-adapter": "file:../../vendor/platform/dsh-runtime-adapter/033e97604db0bd7f76ca4c4b8b146320f416c65bd60db533543281b2dc483a17.tgz",
+    "@hermit/file-workspace": "file:../../vendor/platform/file-workspace/ecb1ef3f9477200f9437ab9c3cbf3f4a415d25958b5884c00b99803a22f5e347.tgz",
+    "@hermit/organizer": "file:../../vendor/platform/organizer/17bf9d1bcbeaed23fca6a7450856f95681942f01400d5770c07c7f17e8dd033c.tgz",
+    "@hermit/smart-clipboard": "file:../../vendor/platform/smart-clipboard/0d33bebb4f7906714c201d4bce00f71bcea1cf2e8f24f5eab62b33d191a3d8a1.tgz",
     "pnpm": ">=11.0.0 <12"
   },
   "devDependencies": {

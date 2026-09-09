@@ -31,6 +31,8 @@ const runtimeBundleManifestPath = path.join(
   'runtime-bundle-manifest.json',
 );
 const runtimeBundleManifest = readRuntimeBundleManifest(runtimeBundleManifestPath);
+const platformLockPath = path.join(repositoryRoot, 'platform-lock.json');
+const platformLock = readPlatformLock(platformLockPath);
 const runtimeHostManifestPath = path.join(
   repositoryRoot,
   'packages',
@@ -45,11 +47,23 @@ const foregroundSessionNavigationPatchScriptPath = path.join(
   'dsh-foreground-session-navigation-patch.mjs',
 );
 const productSurfaceSource = resolveManifestSource(runtimeBundleManifest.productSurfacePackage);
-const bundledPackages = runtimeBundleManifest.bundledPackages.map((spec) => ({
-  spec,
-  source: resolveManifestSource(spec),
-  artifact: resolveManifestArtifact(spec),
-}));
+const bundledPackages = runtimeBundleManifest.bundledPackages.map((runtimeSpec) => {
+  const lockedModule = platformLock.modulesById.get(runtimeSpec.moduleId);
+  if (lockedModule === undefined) {
+    throw new Error(`DSH runtime module 未在 platform-lock 声明：${runtimeSpec.moduleId}`);
+  }
+  const spec = {
+    ...runtimeSpec,
+    packageName: lockedModule.packageName,
+    repository: lockedModule.repository,
+    sourceCommit: lockedModule.sourceCommit,
+  };
+  return {
+    spec,
+    source: resolveManifestSource(spec),
+    artifact: resolveLockedArtifact(lockedModule),
+  };
+});
 const runtimeBuildConfigs = [
   path.join(productSurfaceSource, 'tsdown.config.ts'),
 ];
@@ -116,6 +130,7 @@ hashInput(
   fs.readFileSync(path.join(repositoryRoot, 'pnpm-workspace.yaml')),
 );
 hashInput('runtime-bundle-manifest', fs.readFileSync(runtimeBundleManifestPath));
+hashInput('platform-lock', fs.readFileSync(platformLockPath));
 hashInput('runtime-host-manifest', fs.readFileSync(runtimeHostManifestPath));
 hashInput('dsh-upstream-registry', fs.readFileSync(dshUpstreamRegistryPath));
 hashInput('runtime-artifact-mode', Buffer.from(runtimeArtifactMode));
@@ -375,7 +390,7 @@ function assertRuntimePackageContents(runtimeRoot) {
   for (const { packageName, source } of runtimePackages) {
     const sourceSpec = packageName === runtimeBundleManifest.productSurfacePackage.packageName
       ? runtimeBundleManifest.productSurfacePackage
-      : runtimeBundleManifest.bundledPackages.find((spec) => spec.packageName === packageName);
+      : bundledPackages.find(({ spec }) => spec.packageName === packageName)?.spec;
     if (sourceSpec === undefined) throw new Error(`运行时 package 清单缺少规格：${packageName}`);
     const targetPackage = path.join(runtimeRoot, 'node_modules', ...packageName.split('/'));
     if (!fs.existsSync(targetPackage)) {
@@ -409,30 +424,65 @@ function readRuntimeBundleManifest(file) {
   } catch (cause) {
     throw new Error(`无法读取 DSH 运行时清单：${cause instanceof Error ? cause.message : String(cause)}`);
   }
-  if (manifest?.schemaVersion !== 2) throw new Error('DSH 运行时清单 schemaVersion 必须为 2');
+  if (manifest?.schemaVersion !== 3) throw new Error('DSH 运行时清单 schemaVersion 必须为 3');
   const productSurfacePackage = validateManifestPackage(manifest.productSurfacePackage, 'productSurfacePackage');
-  const bundledPackages = manifest.bundledPackages;
-  if (!Array.isArray(bundledPackages) || bundledPackages.length === 0) {
+  const declaredBundledPackages = manifest.bundledPackages;
+  if (!Array.isArray(declaredBundledPackages) || declaredBundledPackages.length === 0) {
     throw new Error('DSH 运行时清单必须列出至少一个 bundledPackages 项');
   }
-  const packages = [
-    productSurfacePackage,
-    ...bundledPackages.map((spec, index) => validateManifestPackage(spec, `bundledPackages[${index}]`)),
-  ];
-  const names = new Set();
-  for (const spec of packages) {
-    if (names.has(spec.packageName)) throw new Error(`DSH 运行时清单包含重复 package：${spec.packageName}`);
-    names.add(spec.packageName);
+  const bundledPackages = declaredBundledPackages.map((spec, index) => (
+    validateRuntimeModule(spec, `bundledPackages[${index}]`)
+  ));
+  const moduleIds = new Set();
+  for (const spec of bundledPackages) {
+    if (moduleIds.has(spec.moduleId)) throw new Error(`DSH 运行时清单包含重复 moduleId：${spec.moduleId}`);
+    moduleIds.add(spec.moduleId);
   }
-  for (const [index, spec] of bundledPackages.entries()) {
-    if (spec.artifact === undefined || spec.artifactSha256 === undefined) {
-      throw new Error(`bundledPackages[${index}] 必须声明固定 artifact 和 SHA-256`);
-    }
-    if (spec.repository === undefined || spec.sourceCommit === undefined) {
-      throw new Error(`bundledPackages[${index}] 必须声明来源 repository 和 sourceCommit`);
-    }
+  return { schemaVersion: 3, productSurfacePackage, bundledPackages };
+}
+
+function validateRuntimeModule(spec, label) {
+  if (spec === null || typeof spec !== 'object') throw new Error(`${label} 必须是对象`);
+  if (typeof spec.moduleId !== 'string' || spec.moduleId.length === 0) {
+    throw new Error(`${label}.moduleId 必须是非空字符串`);
   }
-  return { schemaVersion: 2, productSurfacePackage, bundledPackages };
+  for (const field of ['packageName', 'repository', 'sourceCommit', 'version', 'artifact', 'artifactSha256']) {
+    if (spec[field] !== undefined) throw new Error(`${label}.${field} 统一由 platform-lock 负责`);
+  }
+  const validated = validateManifestPackage({ ...spec, packageName: `platform-module:${spec.moduleId}` }, label);
+  return {
+    moduleId: spec.moduleId,
+    source: validated.source,
+    hashPaths: validated.hashPaths,
+  };
+}
+
+function readPlatformLock(file) {
+  let value;
+  try {
+    value = JSON.parse(fs.readFileSync(file, 'utf8'));
+  } catch (cause) {
+    throw new Error(`无法读取 platform-lock：${cause instanceof Error ? cause.message : String(cause)}`);
+  }
+  if (value?.schemaVersion !== 1 || value.kind !== 'platform-lock' || !Array.isArray(value.modules)) {
+    throw new Error('platform-lock schema 无效');
+  }
+  const modulesById = new Map();
+  for (const module of value.modules) {
+    if (
+      typeof module?.id !== 'string' ||
+      typeof module.packageName !== 'string' ||
+      typeof module.repository !== 'string' ||
+      typeof module.sourceCommit !== 'string' ||
+      typeof module.artifact?.path !== 'string' ||
+      typeof module.artifact?.sha256 !== 'string'
+    ) {
+      throw new Error('platform-lock module 缺少 runtime 所需字段');
+    }
+    if (modulesById.has(module.id)) throw new Error(`platform-lock moduleId 重复：${module.id}`);
+    modulesById.set(module.id, module);
+  }
+  return { modulesById };
 }
 
 function validateManifestPackage(spec, label) {
@@ -506,23 +556,20 @@ function resolveManifestSource(spec) {
   return source;
 }
 
-function resolveManifestArtifact(spec) {
-  if (spec.artifact === undefined || spec.artifactSha256 === undefined) {
-    throw new Error(`DSH 运行时清单缺少固定制品：${spec.packageName}`);
+function resolveLockedArtifact(module) {
+  if (!/^[a-f0-9]{64}$/u.test(module.artifact.sha256)) {
+    throw new Error(`platform-lock artifact.sha256 无效：${module.packageName}`);
   }
-  if (!/^[a-f0-9]{64}$/u.test(spec.artifactSha256)) {
-    throw new Error(`DSH 运行时清单 artifactSha256 无效：${spec.packageName}`);
-  }
-  const declaredArtifact = path.resolve(repositoryRoot, spec.artifact);
+  const declaredArtifact = path.resolve(repositoryRoot, module.artifact.path);
   if (!declaredArtifact.startsWith(`${repositoryRoot}${path.sep}`) || !fs.existsSync(declaredArtifact)) {
-    throw new Error(`DSH 运行时清单 artifact 无效：${spec.artifact}`);
+    throw new Error(`platform-lock artifact 无效：${module.artifact.path}`);
   }
   const artifact = fs.realpathSync(declaredArtifact);
   if (!artifact.startsWith(`${repositoryRoot}${path.sep}`)) {
-    throw new Error(`DSH 运行时清单 artifact 解析后越界：${spec.artifact}`);
+    throw new Error(`platform-lock artifact 解析后越界：${module.artifact.path}`);
   }
-  if (sha256File(artifact) !== spec.artifactSha256) {
-    throw new Error(`DSH 运行时清单 artifact 摘要不一致：${spec.packageName}`);
+  if (sha256File(artifact) !== module.artifact.sha256) {
+    throw new Error(`platform-lock artifact 摘要不一致：${module.packageName}`);
   }
   return artifact;
 }

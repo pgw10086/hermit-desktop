@@ -2,12 +2,22 @@ import fs from "node:fs";
 import path from "node:path";
 
 interface RuntimeBundleManifest {
-  /** 随包插件声明列表；source 仅允许仓库内路径。 */
+  /** 随包插件声明列表；版本和制品身份统一从 platform-lock 读取。 */
   readonly bundledPackages?: readonly {
-    /** 插件 package name。 */
-    readonly packageName?: unknown;
+    /** platform-lock 中稳定的模块身份。 */
+    readonly moduleId?: unknown;
     /** 开发环境 workspace source 路径。 */
     readonly source?: unknown;
+  }[];
+}
+
+interface PlatformLock {
+  /** Product Desktop 锁定的第一方模块。 */
+  readonly modules?: readonly {
+    /** 稳定模块身份。 */
+    readonly id?: unknown;
+    /** npm package name。 */
+    readonly packageName?: unknown;
   }[];
 }
 
@@ -37,8 +47,14 @@ export function resolveBundledPluginPath(options: BundledPluginPathOptions): str
 
   const repositoryRoot = path.resolve(options.appPath, "..", "..");
   const manifestPath = path.join(repositoryRoot, "apps", "desktop-vnext", "runtime-bundle-manifest.json");
+  const platformLockPath = path.join(repositoryRoot, "platform-lock.json");
   const manifest = readManifest(manifestPath);
-  const spec = manifest.bundledPackages?.find((entry) => entry.packageName === options.packageName);
+  const platformLock = readPlatformLock(platformLockPath);
+  const lockedModule = platformLock.modules?.find((entry) => entry.packageName === options.packageName);
+  if (lockedModule === undefined || typeof lockedModule.id !== "string" || lockedModule.id.length === 0) {
+    throw new Error(`platform-lock 没有声明插件：${options.packageName}`);
+  }
+  const spec = manifest.bundledPackages?.find((entry) => entry.moduleId === lockedModule.id);
   if (spec === undefined || typeof spec.source !== "string" || spec.source.length === 0) {
     throw new Error(`DSH runtime 清单没有声明插件：${options.packageName}`);
   }
@@ -64,5 +80,14 @@ function readManifest(file: string): RuntimeBundleManifest {
     return JSON.parse(fs.readFileSync(file, "utf8")) as RuntimeBundleManifest;
   } catch (cause) {
     throw new Error(`无法读取 DSH runtime 清单：${cause instanceof Error ? cause.message : String(cause)}`);
+  }
+}
+
+/** 读取产品级制品锁；运行时清单只负责把锁定模块投影到 DSH runtime。 */
+function readPlatformLock(file: string): PlatformLock {
+  try {
+    return JSON.parse(fs.readFileSync(file, "utf8")) as PlatformLock;
+  } catch (cause) {
+    throw new Error(`无法读取 platform-lock：${cause instanceof Error ? cause.message : String(cause)}`);
   }
 }

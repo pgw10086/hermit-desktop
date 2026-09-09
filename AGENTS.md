@@ -32,7 +32,7 @@
 
 ## 外部协作
 
-- 遇到可能过时的技术事实、官方方案、不确定架构、连续失败或需求分歧时，先在已绑定的 `hermit-vnext` 网页 GPT Project 中调研和讨论，再实施；仍有关键分歧时交给用户决策。
+- 遇到可能过时的技术事实、官方方案、不确定架构、连续失败或需求分歧时，先在当前任务绑定的网页 GPT Project 中调研和讨论，再实施；仍有关键分歧时交给用户决策。
 - 默认优先使用 DSH 的公开 package、typed slot、service 和 Product Surface。若已确认的 Product Plugin 闭环被当前 pinned DSH Web 阻塞且用户明确授权，可以修改 Hermit 自带的 DSH Web 源码或构建包，形成最小、可追踪、精确锁定的 source patch；patch 必须经过 license/notice、依赖、构建、双宿主和生命周期资格。插件仍只能使用 patch 暴露的公开 typed contract，不能运行时注入 DOM、挂私有 Router、读 private store 或依赖 DSH `src/*`。
 
 ## 按任务读取
@@ -55,6 +55,8 @@
   `docs/development/engineering-rules.md`。
 - 打包、校验、创建 tag 或发布 GitHub Release：读取
   `docs/development/macos-release.md`。
+- 修改产品依赖、第一方制品或最终打包组合：先读取 `platform-lock.json` 和父目录的
+  `docs/development/platform-packaging.md`。
 
 ## 项目红线
 

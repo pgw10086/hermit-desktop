@@ -31,7 +31,7 @@ Smart Clipboard 的原生能力检查由[专属清单](smart-clipboard-packaging
 | 5 | Developer ID 签名 | 可选 | 执行时必须通过 `codesign`；不执行则记录 `SKIPPED` |
 | 6 | Apple 公证和 staple | 可选 | 执行时必须通过 Apple 和 `stapler` 校验；不执行则记录 `SKIPPED` |
 | 7 | 挂载并启动制品 | 必须 | DMG 可只读挂载，应用、bundled Node、DSH、插件和退出流程通过 |
-| 8 | 生成 SHA 和发布清单 | 必须 | 文件名、版本、commit、平台、SHA-256 和可选步骤状态一致 |
+| 8 | 生成 SHA 和发布清单 | 必须 | 文件名、版本、commit、平台、platform lock、模块制品 SHA-256 和可选步骤状态一致 |
 | 9 | 创建 Draft Release | 必须 | tag、说明和三个制品上传完整 |
 | 10 | 从 GitHub 下载回验 | 必须 | 下载后的 SHA-256、DMG 挂载和启动检查仍通过 |
 | 11 | 发布 Release 并回读 | 必须 | Release 不再是 draft，tag、commit 和下载链接可从 GitHub 读回 |
@@ -86,41 +86,40 @@ git rev-parse origin/main
 
 ## 3. 必须检查
 
-在仓库根目录执行：
+正式打包统一执行：
 
 ```sh
-corepack pnpm install --frozen-lockfile --ignore-scripts
-corepack pnpm test
-corepack pnpm run test:smart-clipboard:native
-corepack pnpm run test:smart-clipboard:product-surface
-corepack pnpm run test:smart-clipboard:packaged-ui
+node scripts/package-product.mjs release --signing skip
 ```
 
-如果某个版本没有 Smart Clipboard，最后三项按实际随包插件替换；不得用不相关测试凑数。
+签名版把 `skip` 改为 `required`。统一入口会按顺序完成 platform lock/frozen install、项目检查、
+runtime、native、三个 Product Surface、目录包、packaged UI、最终 DMG 验证和发布附件生成。
+任一步失败立即停止，并在 `.hermit/artifacts/builds/` 保留失败步骤和未执行步骤。
 
 ## 4. 构建和制品验证
 
 发布入口要求明确选择本次是否签名，避免机器上是否恰好存在证书改变结果。
 
-本次跳过签名和公证：
+只需要生成不要求干净 tag 的未签名测试候选时执行：
+
+```sh
+node scripts/package-product.mjs candidate
+```
+
+正式候选的签名选择已经由上一节的 `--signing` 参数明确传入。`required` 会检查 Developer ID
+和完整公证凭据，并执行 `codesign`、Gatekeeper 和 staple 校验；任何一项失败都停止。`skip`
+会隔离签名凭据，仍执行相同的桌面测试、DMG 构建、只读挂载、bundled runtime 和真实应用
+启动检查，只把签名、公证和 staple 记录为 `SKIPPED`。
+
+需要单独诊断底层 DMG 打包时仍可执行：
 
 ```sh
 HERMIT_MAC_RELEASE_SIGNING=skip corepack pnpm run dist:desktop:mac
 ```
 
-需要签名和公证：
-
-```sh
-HERMIT_MAC_RELEASE_SIGNING=required corepack pnpm run dist:desktop:mac
-```
-
-`required` 会检查 Developer ID 和完整公证凭据，并执行 `codesign`、Gatekeeper 和 staple
-校验；任何一项失败都停止。`skip` 会隔离签名凭据，仍执行相同的桌面测试、DMG 构建、只读
-挂载、bundled runtime 和真实应用启动检查，只把签名、公证和 staple 记录为 `SKIPPED`。
-
 ## 5. 生成发布附件
 
-tag 已创建且工作区干净后运行：
+统一 `release` 入口已经自动执行本步骤。只在诊断或重新生成附件时单独运行：
 
 ```sh
 HERMIT_MAC_RELEASE_SIGNING=skip corepack pnpm run release:desktop:mac:assets
@@ -131,6 +130,9 @@ HERMIT_MAC_RELEASE_SIGNING=skip corepack pnpm run release:desktop:mac:assets
 
 - `SHA256SUMS.txt`；
 - `release-manifest.json`。
+
+发布清单同时记录 `platform-lock.json` 摘要，以及 Core、Runtime Adapter 和每个 Product Plugin
+的版本、来源 commit 和制品 SHA，确保最终 DMG 可以回溯到同一批第一方字节。
 
 最终 Release 上传三个文件：DMG、SHA 文件和发布清单。发布说明至少写清主要功能、目标平台、
 安装方式、已知限制，以及签名、公证、staple 的实际状态。

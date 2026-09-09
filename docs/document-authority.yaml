@@ -29,12 +29,17 @@ topics:
     authority: plugins/development-guidelines.md
   desktop-core-development:
     authority: docs/development/desktop-core-development.md
-  agent-desktop-core-runtime:
+    note: Hermit 产品集成和资格要求；Core package 内部事实以外层 agent-desktop-core/docs 为准
+  agent-desktop-core-runtime-source:
     authority: docs/adr/0007-agent-desktop-core-runtime-adapters.md
   dsh-plugin-development-and-packaging:
     authority: docs/development/dsh-plugin-development-and-packaging.md
   macos-release:
     authority: docs/development/macos-release.md
+  git-and-release-beginner-guide:
+    authority: docs/development/git-and-release-beginner-guide.md
+  platform-lock:
+    authority: platform-lock.json
   dsh-upstream-documents:
     authority: DEEPSEEK-HARNESS-UPSTREAM.md
   product-plugin-ui:

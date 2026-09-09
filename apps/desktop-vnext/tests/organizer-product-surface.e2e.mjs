@@ -9,10 +9,11 @@ import { createRequire } from 'node:module'
 import electronPath from 'electron'
 import { _electron as playwrightElectron } from 'playwright-core'
 import { copyRuntimeClosure } from '../scripts/after-pack.mjs'
+import { lockedPlatformArtifact } from './locked-platform-artifact.mjs'
 
 const appRoot = path.resolve(fileURLToPath(new URL('..', import.meta.url)))
 const repositoryRoot = path.resolve(appRoot, '..', '..')
-const pluginArtifact = path.join(repositoryRoot, 'vendor', 'hermit-organizer-0.2.2.tgz')
+const pluginArtifact = lockedPlatformArtifact(repositoryRoot, 'organizer')
 const runtimeRoot = path.join(repositoryRoot, '.hermit', 'runtime')
 const bundledNode = path.join(runtimeRoot, 'node', process.platform === 'win32' ? 'node.exe' : path.join('bin', 'node'))
 const bundledDshRoot = path.join(runtimeRoot, 'dsh')

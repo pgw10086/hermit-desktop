@@ -41,10 +41,17 @@ test("DSH runtime bundle manifest 明确列出每个随包 package 和构建哈�
     path.join(appRoot, "runtime-bundle-manifest.json"),
     "utf8",
   ));
-  assert.equal(manifest.schemaVersion, 2);
-  const packages = [manifest.productSurfacePackage, ...manifest.bundledPackages];
-  assert.equal(new Set(packages.map(({ packageName }) => packageName)).size, packages.length);
-  for (const spec of packages) {
+  const platformLock = JSON.parse(fs.readFileSync(
+    path.join(repositoryRoot, "platform-lock.json"),
+    "utf8",
+  ));
+  const modulesById = new Map(platformLock.modules.map((module) => [module.id, module]));
+  assert.equal(manifest.schemaVersion, 3);
+  assert.equal(
+    new Set(manifest.bundledPackages.map(({ moduleId }) => moduleId)).size,
+    manifest.bundledPackages.length,
+  );
+  for (const spec of [manifest.productSurfacePackage]) {
     const source = path.resolve(repositoryRoot, spec.source);
     assert.equal(source.startsWith(`${repositoryRoot}${path.sep}`), true);
     const packageJson = JSON.parse(fs.readFileSync(path.join(source, "package.json"), "utf8"));
@@ -56,20 +63,33 @@ test("DSH runtime bundle manifest 明确列出每个随包 package 和构建哈�
     }
   }
   for (const spec of manifest.bundledPackages) {
-    assert.match(spec.repository, /^https:\/\/github\.com\/pgw10086\/[^/]+\.git$/u);
-    assert.match(spec.sourceCommit, /^[a-f0-9]{40}$/u);
-    const artifact = path.resolve(repositoryRoot, spec.artifact);
+    const lockedModule = modulesById.get(spec.moduleId);
+    assert.notEqual(lockedModule, undefined);
+    assert.equal(lockedModule.role, "product-plugin");
+    assert.match(lockedModule.repository, /^https:\/\/github\.com\/pgw10086\/[^/]+\.git$/u);
+    assert.match(lockedModule.sourceCommit, /^[a-f0-9]{40}$/u);
+    const source = path.resolve(repositoryRoot, spec.source);
+    const packageJson = JSON.parse(fs.readFileSync(path.join(source, "package.json"), "utf8"));
+    assert.equal(packageJson.name, lockedModule.packageName);
+    assert.equal(spec.hashPaths.includes("package.json"), true);
+    assert.equal(spec.hashPaths.includes("lib"), true);
+    const artifact = path.resolve(repositoryRoot, lockedModule.artifact.path);
     assert.equal(artifact.startsWith(`${repositoryRoot}${path.sep}`), true);
     assert.equal(fs.existsSync(artifact), true);
     assert.equal(
       createHash("sha256").update(fs.readFileSync(artifact)).digest("hex"),
-      spec.artifactSha256,
+      lockedModule.artifact.sha256,
     );
+    for (const field of ["packageName", "repository", "sourceCommit", "artifact", "artifactSha256"]) {
+      assert.equal(spec[field], undefined);
+    }
   }
 });
 
 test("Electron 主进程 host 包从已准备的 DSH runtime 闭包取同一份制品", () => {
   const builder = fs.readFileSync(path.join(appRoot, "electron-builder.yml"), "utf8");
+  assert.match(builder, /from: \.\.\/\.\.\/\.hermit\/runtime\/app-dependencies\/node_modules\/@platform\/agent-desktop-core/u);
+  assert.match(builder, /from: \.\.\/\.\.\/\.hermit\/runtime\/app-dependencies\/node_modules\/@platform\/dsh-runtime-adapter/u);
   assert.match(builder, /from: \.\.\/\.\.\/\.hermit\/runtime\/dsh\/node_modules\/@hermit\/smart-clipboard/u);
   assert.match(builder, /from: \.\.\/\.\.\/\.hermit\/runtime\/dsh\/node_modules\/@hermit\/organizer/u);
   assert.doesNotMatch(builder, /from: \.\.\/\.\.\/plugins\/(?:smart-clipboard|organizer)/u);

@@ -9,6 +9,20 @@ files:
   - lib/**
   - package.json
   - '!node_modules/**'
+  # Core 与 Runtime Adapter 从 platform-lock 已验证 tarball 的物理 staging 装入 App；
+  # 禁止依赖开发仓库向上查找 node_modules 后“碰巧能启动”。
+  - from: ../../.hermit/runtime/app-dependencies/node_modules/@platform/agent-desktop-core
+    to: node_modules/@platform/agent-desktop-core
+    filter:
+      - package.json
+      - LICENSE
+      - lib/**/*
+  - from: ../../.hermit/runtime/app-dependencies/node_modules/@platform/dsh-runtime-adapter
+    to: node_modules/@platform/dsh-runtime-adapter
+    filter:
+      - package.json
+      - LICENSE
+      - lib/**/*
   # 桌面主进程的 SQLite/动作逻辑静态引用 Smart Clipboard 的 host 包。
   # 来源必须是已验证的 DSH runtime 闭包，而不是 workspace 源目录，保证
   # app.asar 与 DSH profile 消费同一份构建字节。

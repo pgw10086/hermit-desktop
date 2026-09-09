@@ -27,6 +27,12 @@ Pasteboard；真实复制/自动粘贴/物理快捷键仍待 disposable 资格�
 [M1 设计](specs/2026-08-24-hermit-dsh-vnext/m1-foundation-qualification.md)。二期路线见
 [二期总方向](specs/2026-08-24-hermit-dsh-vnext/phase-2-roadmap.md)。
 
+本仓库位于 `hermit-platform` 多仓工作区。多仓协作、跨项目依赖、共享安全和测试证据规则见父目录
+的 `AGENTS.md` 与 `docs/`；本文只负责 Hermit Desktop 自身的产品、运行时和发布入口。
+
+本产品的第一方 package 组合、来源 commit、子项目 lockfile 摘要和制品 SHA-256 见
+[`platform-lock.json`](platform-lock.json)；它随本仓库版本和发布 tag 管理，不是外层共享 lockfile。
+
 ## 文档入口
 
 本仓库只负责 Hermit 产品。共享 Agent Desktop 平台位于独立的
@@ -49,6 +55,8 @@ Pasteboard；真实复制/自动粘贴/物理快捷键仍待 disposable 资格�
 - [Agent Desktop Core 适配器 ADR](docs/adr/0007-agent-desktop-core-runtime-adapters.md)：通用桌面 Core、Agent Runtime Adapter 和当前 package 边界；
 - [DSH 官方上游资料](DEEPSEEK-HARNESS-UPSTREAM.md)：当前 DSH 文档快照、版本和更新规则；
 - [macOS 发布流程](docs/development/macos-release.md)：版本、DMG、可选签名、Draft、下载回验和正式发布；
+- [Git 与 Hermit 打包入门](docs/development/git-and-release-beginner-guide.md)：面向 Git 新手的分支、commit、push、tag 和三种打包模式说明；
+- [平台制品锁](platform-lock.json)：本产品使用的 Core、Runtime Adapter、插件和 DSH 版本批次；
 - [Smart Clipboard 打包与更新流程](docs/development/smart-clipboard-packaging-runbook.md)：插件制品、桌面包、DMG 和版本更新的执行清单；
 - [ADR-0002](docs/adr/0002-electron-loopback-dsh-carrier.md)：M1 为什么采用 Electron + stock DSH Web（历史底座决定）。
 - [ADR-0003](docs/adr/0003-hermit-bundled-dsh-web-source-patch.md)：何时允许 Hermit 自带 DSH Web 携带受控 source patch。
@@ -61,19 +69,34 @@ Pasteboard；真实复制/自动粘贴/物理快捷键仍待 disposable 资格�
 # 先用任意版本管理器进入 Node 24.x
 node --version
 corepack pnpm doctor
-corepack pnpm install --frozen-lockfile --ignore-scripts
+node scripts/platform-lock.mjs install --mode release
 corepack pnpm test
 ```
+
+该入口会先读取并校验 `platform-lock.json`，确认桌面依赖、pnpm overrides、pnpm lock 和
+DSH runtime 投影一致，再执行 frozen install。必须直接使用 `node` 调用，避免 pnpm 在脚本执行前
+自动补装依赖。开发环境只有在固定制品确实缺失时，才显式使用
+`node scripts/platform-lock.mjs install --mode dev --build-on-miss` 从锁定 commit 重建；重建
+字节与锁定 SHA 不同会失败。
+
+`.github/workflows/platform-lock.yml` 在只 checkout 本仓库、没有任何 sibling 源码的 Linux
+环境中重跑正式准备、frozen install 和投影检查，防止发布链悄悄依赖开发机目录。
 
 桌面包和安装后 runtime 验证：
 
 ```sh
+# 日常目录包
+node scripts/package-product.mjs dev
+
+# 未签名测试候选 DMG
+node scripts/package-product.mjs candidate
+
+# 正式候选必须明确选择 skip 或 required
+node scripts/package-product.mjs release --signing skip
+node scripts/package-product.mjs release --signing required
+
+# 以下命令保留给单项诊断和资格复跑
 corepack pnpm test:desktop
-corepack pnpm package:desktop:dir
-corepack pnpm dist:desktop:mac:smoke
-# 发布构建必须明确选择 skip 或 required
-HERMIT_MAC_RELEASE_SIGNING=skip corepack pnpm dist:desktop:mac
-corepack pnpm verify:desktop:packaged-runtime
 corepack pnpm test:m1:desktop:packaged
 corepack pnpm test:m1:replay:packaged
 corepack pnpm test:dsh:long-session
@@ -83,6 +106,9 @@ corepack pnpm --filter @hermit/desktop test:conversation:quick:packaged
 corepack pnpm test:smart-clipboard:native
 corepack pnpm qualification:desktop:mac-login:status
 ```
+
+统一入口只生成本地制品和 `.hermit/artifacts/builds/` 下的结构化报告，不创建 tag、不上传
+GitHub Release。正式发布的远程动作仍按 macOS 发布流程单独授权执行。
 
 ### DSH 长会话性能测试
 
