@@ -142,6 +142,7 @@ try {
   fs.writeFileSync(profilePath, `${JSON.stringify(profile, null, 2)}\n`)
   application = await launchApplication()
   const reenabledPage = await waitForMainWindow(application)
+  await dismissOnboardingIfPresent(reenabledPage)
   await openSidebar(reenabledPage)
   const reenabledNavigation = reenabledPage.getByRole('button', { name: '剪贴板历史' })
   await reenabledNavigation.waitFor({ timeout: 20_000 })
@@ -221,9 +222,29 @@ async function dismissOnboarding(page) {
   await credential.waitFor({ state: 'detached', timeout: 20_000 })
 }
 
+/** 重新启用 generation 可能恢复首次启动提示；只在遮罩真实出现时处理，避免掩盖正常启动失败。 */
+async function dismissOnboardingIfPresent(page) {
+  const welcome = page.getByRole('dialog', { name: /^(Internal Testing Notice|内测声明)$/u })
+  if (await welcome.count() > 0 && await welcome.first().isVisible().catch(() => false)) {
+    await dismissOnboarding(page)
+    return
+  }
+  const credential = page.getByRole('dialog', { name: /^(Add an API key to get started|添加一个 API Key 开始使用)$/u })
+  if (await credential.count() > 0 && await credential.first().isVisible().catch(() => false)) {
+    await credential.first().getByRole('button', { name: /^(Configure later|稍后配置)$/u }).click()
+    await credential.first().waitFor({ state: 'detached', timeout: 20_000 })
+  }
+}
+
 async function openSidebar(page) {
   const open = page.getByRole('button', { name: /^(Open sidebar|打开侧边栏)$/u })
-  if (await open.isVisible().catch(() => false)) await open.click()
+  if (!await open.isVisible().catch(() => false)) return
+  const modalMask = page.locator('[aria-hidden="true"][class*="mask"]')
+  if (await modalMask.isVisible().catch(() => false)) {
+    await page.keyboard.press('Escape')
+    await modalMask.waitFor({ state: 'hidden', timeout: 5_000 })
+  }
+  await open.click()
 }
 
 async function waitForVisibleText(scope, text, timeout = 20_000) {
