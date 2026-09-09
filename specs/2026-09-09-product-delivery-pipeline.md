@@ -170,6 +170,10 @@ Candidate 对同一个 `main` commit 全部通过后，由 Release Manager 执�
 2. 确认 candidate workflow 使用的 commit 等于当前 `main`；
 3. 创建并推送 `vX.Y.Z`。
 
+正式 tag workflow 还会通过 GitHub API 回读 `desktop-candidate.yml`，要求同一 commit 存在
+完整成功的 candidate run；如果当前提交只改了文档、没有自动触发 candidate，必须先对当前
+`main` 手动 dispatch candidate 并等其成功，不能复用上一个 commit 的结果。
+
 也可以后续增加 `cut-release.yml`，但它必须先验证 candidate、版本和 tag 不存在，再通过
 受保护 Environment 审批后创建 tag。
 
