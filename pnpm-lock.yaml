@@ -76,8 +76,8 @@ importers:
         specifier: file:../../vendor/platform/dsh-runtime-adapter/36d18e69494733c4f63c548591c1c26b8e56a95178f7815707e29690fec031da.tgz
         version: file:vendor/platform/dsh-runtime-adapter/36d18e69494733c4f63c548591c1c26b8e56a95178f7815707e29690fec031da.tgz(@platform/agent-desktop-core@file:vendor/platform/agent-desktop-core/8a081f75707b42508406ea34feb13af81ff30c69fd46e319e1a55190b4addeed.tgz(electron@43.4.0(supports-color@7.2.0)))
       pnpm:
-        specifier: '>=11.0.0 <12'
-        version: 11.7.0
+        specifier: 11.24.0
+        version: 11.24.0
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: '>=4.0.0 <5'
@@ -233,8 +233,8 @@ importers:
         specifier: 0.1.1-rc.2
         version: 0.1.1-rc.2(523670bcdfe963e2e8414c5bfb7421e1)
       pnpm:
-        specifier: '>=11.0.0 <12'
-        version: 11.7.0
+        specifier: 11.24.0
+        version: 11.24.0
 
 packages:
 
@@ -4743,8 +4743,8 @@ packages:
     resolution: {integrity: sha512-uysumyrvkUX0rX/dEVqt8gC3sTBzd4zoWfLeS29nb53imdaXVvLINYXTI2GNqzaMuvacNx4uJQ8+b3zXR0pkgQ==}
     engines: {node: '>=10.4.0'}
 
-  pnpm@11.7.0:
-    resolution: {integrity: sha512-GcyFLBIMcSV2DyRD7mvgyltA+fUFmN4aCaHxd1A+AQ5Xwjx3ZG4B52HeWb+HT7IqM5jDOrlpH8E+uUa28PTWIA==}
+  pnpm@11.24.0:
+    resolution: {integrity: sha512-vSfjRel23LC+C3oSKCF7BJqBfiGx81XJDb59xGZxiVqLwebQbCRVRQXqk+oLRfSJon7Bv7yN5qlln8oPFvoAAA==}
     engines: {node: '>=22.13'}
     hasBin: true
 
@@ -10626,7 +10626,7 @@ snapshots:
       base64-js: 1.5.1
       xmlbuilder: 15.1.1
 
-  pnpm@11.7.0: {}
+  pnpm@11.24.0: {}
 
   postject@1.0.0-alpha.6:
     dependencies:

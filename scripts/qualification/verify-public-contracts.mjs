@@ -12,7 +12,7 @@ const QUALIFIED_REACT_VERSION = "18.3.1";
 const EXPECTED_NODE_SPEC = ">=22.13.0 <23 || >=24.0.0 <27";
 const EXPECTED_PNPM_SPEC = ">=10.0.0 <13";
 const EXPECTED_REACT_SPEC = ">=18.3.0 <19";
-const EXPECTED_PNPM_RANGE_SPEC = ">=11.0.0 <12";
+const EXPECTED_PNPM_PACKAGE_SPEC = "11.24.0";
 const EXPECTED_ELECTRON_SPEC = ">=43.0.0 <44";
 const EXPECTED_ELECTRON_BUILDER_SPEC = ">=26.0.0 <27";
 const EXPECTED_TYPESCRIPT_SPEC = ">=6.0.0 <7";
@@ -186,7 +186,7 @@ export async function verifyPublicContracts() {
     await readFile(path.resolve("apps/desktop-vnext/package.json"), "utf8"),
   );
   assert.equal(desktopManifest.dependencies?.["@deepseek-ai/dsh"], EXPECTED_VERSION);
-  assert.equal(desktopManifest.dependencies?.pnpm, EXPECTED_PNPM_RANGE_SPEC);
+  assert.equal(desktopManifest.dependencies?.pnpm, EXPECTED_PNPM_PACKAGE_SPEC);
   assert.equal(desktopManifest.devDependencies?.electron, EXPECTED_ELECTRON_SPEC);
   assert.equal(desktopManifest.devDependencies?.["electron-builder"], EXPECTED_ELECTRON_BUILDER_SPEC);
   assert.equal(desktopManifest.devDependencies?.typescript, EXPECTED_TYPESCRIPT_SPEC);

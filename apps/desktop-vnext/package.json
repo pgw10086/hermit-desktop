@@ -50,7 +50,7 @@
     "@hermit/file-workspace": "file:../../vendor/platform/file-workspace/ecb1ef3f9477200f9437ab9c3cbf3f4a415d25958b5884c00b99803a22f5e347.tgz",
     "@hermit/organizer": "file:../../vendor/platform/organizer/17bf9d1bcbeaed23fca6a7450856f95681942f01400d5770c07c7f17e8dd033c.tgz",
     "@hermit/smart-clipboard": "file:../../vendor/platform/smart-clipboard/0d33bebb4f7906714c201d4bce00f71bcea1cf2e8f24f5eab62b33d191a3d8a1.tgz",
-    "pnpm": ">=11.0.0 <12"
+    "pnpm": "11.24.0"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": ">=4.0.0 <5",
