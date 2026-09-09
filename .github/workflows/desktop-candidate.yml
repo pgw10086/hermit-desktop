@@ -1,0 +1,84 @@
+name: Hermit Desktop Candidate
+
+on:
+  pull_request:
+    paths:
+      - "apps/desktop-vnext/**"
+      - "platform-lock.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "scripts/**"
+      - ".github/workflows/**"
+  push:
+    branches:
+      - main
+    paths:
+      - "apps/desktop-vnext/**"
+      - "platform-lock.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "scripts/**"
+      - ".github/workflows/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hermit-desktop-candidate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  candidate:
+    name: Candidate ${{ matrix.display_name }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - display_name: macOS arm64
+            runner: macos-14
+            platform: darwin
+            architecture: arm64
+            output: apps/desktop-vnext/dist/mac-smoke
+          - display_name: Windows x64
+            runner: windows-2022
+            platform: win32
+            architecture: x64
+            output: apps/desktop-vnext/dist/win-smoke
+
+    steps:
+      - name: Checkout Product Desktop only
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Enable Git long paths
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: git config --global core.longpaths true
+
+      - name: Use qualified Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Run full candidate lifecycle
+        run: node scripts/package-product.mjs candidate
+
+      - name: Upload candidate evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: hermit-candidate-${{ matrix.platform }}-${{ matrix.architecture }}-${{ github.sha }}
+          path: |
+            ${{ matrix.output }}
+            .hermit/artifacts/builds
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0

@@ -4,6 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { macReleaseSigningMode } from "../apps/desktop-vnext/scripts/mac-release-environment.mjs";
+import { assertReleaseInput } from "./verify-release-input.mjs";
 
 const scriptPath = fileURLToPath(import.meta.url);
 const defaultRepositoryRoot = path.resolve(path.dirname(scriptPath), "..");
@@ -16,6 +17,8 @@ export function writeMacReleaseAssets({
   commit,
   signingMode,
   platformLock,
+  source = { tag, commit },
+  build = {},
   generatedAt = new Date().toISOString(),
 }) {
   const expectedName = `Hermit-${version}-arm64.dmg`;
@@ -30,13 +33,20 @@ export function writeMacReleaseAssets({
   const sha256 = sha256File(dmgPath);
   const optionalStatus = signingMode === "required" ? "PASS" : "SKIPPED";
   const manifest = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     product: "Hermit",
     version,
     tag,
     commit,
     generatedAt,
     target: { platform: "darwin", architecture: "arm64" },
+    source: {
+      ...source,
+      tag: source.tag ?? tag,
+      commit: source.commit ?? commit,
+      platformLockSha256: source.platformLockSha256 ?? platformLock.sha256,
+    },
+    build,
     platformLock,
     artifact: { name: expectedName, bytes: info.size, sha256 },
     steps: {
@@ -62,20 +72,13 @@ export function assertMacReleaseSource({
   repositoryRoot = defaultRepositoryRoot,
   platform = process.platform,
   architecture = process.arch,
+  tag,
+  mainRef = process.env.HERMIT_RELEASE_MAIN_REF ?? "origin/main",
 } = {}) {
   if (platform !== "darwin" || architecture !== "arm64") {
     throw new Error("macOS release assets require a native Apple Silicon host");
   }
-  const version = readJson(path.join(repositoryRoot, "apps", "desktop-vnext", "package.json")).version;
-  const tag = `v${version}`;
-  const commit = git(repositoryRoot, ["rev-parse", "HEAD"]);
-  if (git(repositoryRoot, ["status", "--porcelain"]) !== "") {
-    throw new Error("Release assets require a clean Git working tree");
-  }
-  if (git(repositoryRoot, ["rev-list", "-n", "1", tag]) !== commit) {
-    throw new Error(`Tag ${tag} must point to the current commit ${commit}`);
-  }
-  return { version, tag, commit };
+  return assertReleaseInput({ repositoryRoot, tag, mainRef });
 }
 
 function main() {
@@ -84,7 +87,7 @@ function main() {
   if (!new Set(["preflight", "write"]).has(mode)) {
     throw new Error("Usage: node scripts/prepare-macos-release-assets.mjs [preflight]");
   }
-  const { version, tag, commit } = assertMacReleaseSource();
+  const { version, tag, commit } = assertMacReleaseSource({ tag: process.env.GITHUB_REF_NAME });
   if (mode === "preflight") {
     console.log(`macOS release source verified: ${tag} -> ${commit}`);
     return;
@@ -120,6 +123,8 @@ function main() {
     commit,
     signingMode,
     platformLock: readPlatformLockEvidence(repositoryRoot),
+    source: readSourceEvidence(repositoryRoot, { tag, commit }),
+    build: readBuildEvidence(),
   });
   console.log(`macOS release assets prepared: ${result.checksumPath}; ${result.manifestPath}`);
 }
@@ -145,6 +150,37 @@ function readPlatformLockEvidence(repositoryRoot) {
       artifactSha256: module.artifact.sha256,
     })),
   };
+}
+
+function readSourceEvidence(repositoryRoot, { tag, commit }) {
+  return {
+    repository: sanitizeRepositoryUrl(git(repositoryRoot, ["config", "--get", "remote.origin.url"])),
+    tag,
+    commit,
+    productManifestSha256: sha256File(path.join(repositoryRoot, "apps", "desktop-vnext", "package.json")),
+    pnpmLockSha256: sha256File(path.join(repositoryRoot, "pnpm-lock.yaml")),
+  };
+}
+
+function readBuildEvidence() {
+  return {
+    workflowRunId: process.env.GITHUB_RUN_ID ?? null,
+    workflowRunAttempt: process.env.GITHUB_RUN_ATTEMPT ?? null,
+    runner: process.env.RUNNER_NAME ?? null,
+    node: process.version,
+  };
+}
+
+function sanitizeRepositoryUrl(value) {
+  if (value === "") return null;
+  try {
+    const url = new URL(value);
+    url.username = "";
+    url.password = "";
+    return url.toString();
+  } catch {
+    return value;
+  }
 }
 
 function sha256File(file) {

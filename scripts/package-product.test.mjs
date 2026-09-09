@@ -36,6 +36,22 @@ test("candidate 使用正式制品完成产品资格后生成未签名 DMG", () 
   assert.equal(plan.steps.some(({ id }) => id === "release-assets"), false);
 });
 
+test("Windows x64 candidate 使用 Windows 打包入口且不执行 macOS native bridge 测试", () => {
+  const plan = createProductPackagePlan({ profile: "candidate", platform: "win32", architecture: "x64" });
+  assert.deepEqual(plan.steps.map(({ id }) => id), [
+    "platform-inputs",
+    "project-tests",
+    "runtime",
+    "organizer-surface",
+    "file-workspace-surface",
+    "smart-clipboard-surface",
+    "desktop-package",
+    "smart-clipboard-packaged-ui",
+    "win-candidate",
+  ]);
+  assert.equal(plan.steps.at(-1).args.at(-1), "dist:desktop:win:smoke");
+});
+
 test("release 必须显式选择签名策略，并在所有构建前检查源码和 tag", () => {
   assert.throws(
     () => createProductPackagePlan({ profile: "release", platform: "darwin", architecture: "arm64" }),
@@ -52,6 +68,21 @@ test("release 必须显式选择签名策略，并在所有构建前检查源码
   assert.equal(plan.steps.at(-1).id, "release-assets");
   assert.equal(plan.steps.at(-2).environment.HERMIT_MAC_RELEASE_SIGNING, "skip");
   assert.equal(plan.steps.at(-1).environment.HERMIT_MAC_RELEASE_SIGNING, "skip");
+});
+
+test("Windows x64 release 使用 Windows 签名环境和 EXE 发布附件入口", () => {
+  const plan = createProductPackagePlan({
+    profile: "release",
+    signingMode: "required",
+    platform: "win32",
+    architecture: "x64",
+  });
+  assert.equal(plan.steps[0].args[0], "scripts/prepare-windows-release-assets.mjs");
+  assert.equal(plan.steps.at(-2).id, "win-release");
+  assert.equal(plan.steps.at(-2).args.at(-1), "dist:desktop:win");
+  assert.equal(plan.steps.at(-2).environment.HERMIT_WINDOWS_RELEASE_SIGNING, "required");
+  assert.equal(plan.steps.at(-1).id, "release-assets");
+  assert.equal(plan.steps.at(-1).environment.HERMIT_WINDOWS_RELEASE_SIGNING, "required");
 });
 
 test("构建清单记录平台锁、模块来源、步骤和最终文件摘要", () => {

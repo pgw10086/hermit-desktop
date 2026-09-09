@@ -9,12 +9,22 @@ import {
   resolveMacReleaseSigning,
   withoutMacReleaseSecrets,
 } from "./mac-release-environment.mjs";
+import {
+  resolveWindowsReleaseSigning,
+  withoutWindowsReleaseSecrets,
+} from "./windows-release-environment.mjs";
 
 const scriptPath = fileURLToPath(import.meta.url);
 const appRoot = path.resolve(path.dirname(scriptPath), "..");
 const repositoryRoot = path.resolve(appRoot, "..", "..");
 const platformLockScript = path.join(repositoryRoot, "scripts", "platform-lock.mjs");
-const bundledNode = path.join(repositoryRoot, ".hermit", "runtime", "node", "bin", "node");
+const bundledNode = path.join(
+  repositoryRoot,
+  ".hermit",
+  "runtime",
+  "node",
+  process.platform === "win32" ? "node.exe" : path.join("bin", "node"),
+);
 const prepareNodeScript = path.join(appRoot, "scripts", "prepare-node-runtime.mjs");
 const prepareDshScript = path.join(appRoot, "scripts", "prepare-dsh-runtime.mjs");
 const copyDesktopAssetsScript = path.join(appRoot, "scripts", "copy-desktop-assets.mjs");
@@ -25,11 +35,12 @@ const tsdownCli = path.join(appRoot, "node_modules", "tsdown", "dist", "run.mjs"
 const builderCli = path.join(appRoot, "node_modules", "electron-builder", "out", "cli", "cli.js");
 const electronInstallScript = path.join(appRoot, "node_modules", "electron", "install.js");
 const verifier = path.join(appRoot, "scripts", "verify-mac-artifact.mjs");
+const windowsVerifier = path.join(appRoot, "scripts", "verify-windows-artifact.mjs");
 const expectedNodeVersion = fs.readFileSync(path.join(repositoryRoot, ".node-version"), "utf8").trim();
 
 const mode = process.argv[2];
-if (!new Set(["dir", "mac-smoke", "mac-release"]).has(mode)) {
-  throw new Error("Usage: package-desktop.mjs <dir|mac-smoke|mac-release>");
+if (!new Set(["dir", "mac-smoke", "mac-release", "win-smoke", "win-release"]).has(mode)) {
+  throw new Error("Usage: package-desktop.mjs <dir|mac-smoke|mac-release|win-smoke|win-release>");
 }
 
 if (!process.argv.includes("--qualified-runtime")) {
@@ -53,25 +64,42 @@ function packageDesktop(selectedMode) {
     }
   }
 
-  const buildEnvironment = qualifiedEnvironment(withoutMacReleaseSecrets(process.env));
+  const buildEnvironment = qualifiedEnvironment(
+    withoutWindowsReleaseSecrets(withoutMacReleaseSecrets(process.env)),
+  );
+  const isMac = selectedMode === "mac-smoke" || selectedMode === "mac-release";
+  const isWindows = selectedMode === "win-smoke" || selectedMode === "win-release";
   assertNativeTarget();
-  if (selectedMode !== "dir" && (process.platform !== "darwin" || process.arch !== "arm64")) {
-    throw new Error("The current macOS delivery gate supports native Apple Silicon only");
+  if (selectedMode !== "dir" && isMac && (process.platform !== "darwin" || process.arch !== "arm64")) {
+    throw new Error("macOS delivery requires a native Apple Silicon host");
+  }
+  if (selectedMode !== "dir" && isWindows && (process.platform !== "win32" || process.arch !== "x64")) {
+    throw new Error("Windows delivery requires a native Windows x64 host");
   }
 
-  const releaseConfiguration = selectedMode === "mac-release"
+  const macReleaseConfiguration = selectedMode === "mac-release"
     ? resolveMacReleaseSigning({ environment: process.env })
     : undefined;
-  if (releaseConfiguration !== undefined) {
-    if (releaseConfiguration.mode === "required") {
+  const windowsReleaseConfiguration = selectedMode === "win-release"
+    ? resolveWindowsReleaseSigning({ environment: process.env })
+    : undefined;
+  if (macReleaseConfiguration !== undefined) {
+    if (macReleaseConfiguration.mode === "required") {
       console.log(
-        `macOS release preflight passed: ${releaseConfiguration.identity}; signing=required; notarization=${releaseConfiguration.notarizationCredentials}`,
+        `macOS release preflight passed: ${macReleaseConfiguration.identity}; signing=required; notarization=${macReleaseConfiguration.notarizationCredentials}`,
       );
     } else {
       console.log("macOS release preflight passed: signing=SKIPPED; notarization=SKIPPED; stapling=SKIPPED");
     }
     runDesktopTests(buildEnvironment);
   }
+  if (windowsReleaseConfiguration !== undefined) {
+    console.log(
+      `Windows release preflight passed: signing=${windowsReleaseConfiguration.mode === "required" ? "required" : "SKIPPED"}`,
+    );
+    runDesktopTests(buildEnvironment);
+  }
+  if (selectedMode === "win-smoke") runDesktopTests(buildEnvironment);
 
   // 安装阶段允许跳过依赖脚本；打包入口必须显式准备锁定版本的 Electron。
   run(bundledNode, [electronInstallScript], appRoot, buildEnvironment);
@@ -98,28 +126,51 @@ function packageDesktop(selectedMode) {
     return;
   }
 
-  const release = releaseConfiguration !== undefined;
-  const signedRelease = releaseConfiguration?.mode === "required";
-  const outputDirectory = path.join(appRoot, "dist", release ? "mac-release" : "mac-smoke");
+  const release = macReleaseConfiguration !== undefined || windowsReleaseConfiguration !== undefined;
+  const signedRelease = macReleaseConfiguration?.mode === "required" || windowsReleaseConfiguration?.mode === "required";
+  const outputDirectory = path.join(
+    appRoot,
+    "dist",
+    isMac ? (release ? "mac-release" : "mac-smoke") : (release ? "win-release" : "win-smoke"),
+  );
   resetGeneratedOutput(outputDirectory);
   const builderEnvironment = signedRelease
     ? qualifiedEnvironment(process.env)
     : { ...buildEnvironment, CSC_IDENTITY_AUTO_DISCOVERY: "false" };
-  const builderArgs = [
-    builderCli,
-    "--mac",
-    "dmg",
-    "--arm64",
-    "--publish",
-    "never",
-    "--config.npmRebuild=false",
-    `--config.directories.output=${outputDirectory}`,
-    signedRelease ? "--config.forceCodeSigning=true" : "--config.mac.identity=null",
-    signedRelease ? "--config.mac.notarize=true" : "--config.mac.notarize=false",
-    signedRelease ? "--config.mac.hardenedRuntime=true" : "--config.mac.hardenedRuntime=false",
-  ];
+  const builderArgs = isMac
+    ? [
+      builderCli,
+      "--mac",
+      "dmg",
+      "--arm64",
+      "--publish",
+      "never",
+      "--config.npmRebuild=false",
+      `--config.directories.output=${outputDirectory}`,
+      signedRelease ? "--config.forceCodeSigning=true" : "--config.mac.identity=null",
+      signedRelease ? "--config.mac.notarize=true" : "--config.mac.notarize=false",
+      signedRelease ? "--config.mac.hardenedRuntime=true" : "--config.mac.hardenedRuntime=false",
+    ]
+    : [
+      builderCli,
+      "--win",
+      "nsis",
+      "--x64",
+      "--publish",
+      "never",
+      "--config.npmRebuild=false",
+      `--config.directories.output=${outputDirectory}`,
+      signedRelease ? "--config.forceCodeSigning=true" : "--config.forceCodeSigning=false",
+    ];
   run(bundledNode, builderArgs, appRoot, builderEnvironment);
-  run(bundledNode, [verifier, release ? "release" : "smoke", outputDirectory], appRoot, buildEnvironment);
+  run(
+    bundledNode,
+    isMac
+      ? [verifier, release ? "release" : "smoke", outputDirectory]
+      : [windowsVerifier, release ? "release" : "smoke"],
+    appRoot,
+    buildEnvironment,
+  );
 }
 
 function resetGeneratedOutput(outputDirectory) {

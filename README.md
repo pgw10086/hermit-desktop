@@ -33,6 +33,11 @@ Pasteboard；真实复制/自动粘贴/物理快捷键仍待 disposable 资格�
 本产品的第一方 package 组合、来源 commit、子项目 lockfile 摘要和制品 SHA-256 见
 [`platform-lock.json`](platform-lock.json)；它随本仓库版本和发布 tag 管理，不是外层共享 lockfile。
 
+收到已发布的 package `package-manifest.json` 和 `.tgz` 后，使用
+`corepack pnpm run update:platform-lock -- --module <module-id> --manifest <manifest> --artifact <tgz>`
+更新产品锁和内容寻址制品，再提交 Product Desktop PR。该入口只接受 manifest 中声明且摘要
+一致的已发布 package，不从 sibling 源码补包，也不删除旧制品。
+
 ## 文档入口
 
 本仓库只负责 Hermit 产品。共享 Agent Desktop 平台位于独立的
@@ -55,6 +60,7 @@ Pasteboard；真实复制/自动粘贴/物理快捷键仍待 disposable 资格�
 - [Agent Desktop Core 适配器 ADR](docs/adr/0007-agent-desktop-core-runtime-adapters.md)：通用桌面 Core、Agent Runtime Adapter 和当前 package 边界；
 - [DSH 官方上游资料](DEEPSEEK-HARNESS-UPSTREAM.md)：当前 DSH 文档快照、版本和更新规则；
 - [macOS 发布流程](docs/development/macos-release.md)：版本、DMG、可选签名、Draft、下载回验和正式发布；
+- [端到端交付链路](specs/2026-09-09-product-delivery-pipeline.md)：从开发、package 制品、platform-lock 到 tag 驱动的跨平台 Release；
 - [Git 与 Hermit 打包入门](docs/development/git-and-release-beginner-guide.md)：面向 Git 新手的分支、commit、push、tag 和三种打包模式说明；
 - [平台制品锁](platform-lock.json)：本产品使用的 Core、Runtime Adapter、插件和 DSH 版本批次；
 - [Smart Clipboard 打包与更新流程](docs/development/smart-clipboard-packaging-runbook.md)：插件制品、桌面包、DMG 和版本更新的执行清单；
@@ -108,8 +114,9 @@ corepack pnpm test:smart-clipboard:native
 corepack pnpm qualification:desktop:mac-login:status
 ```
 
-统一入口只生成本地制品和 `.hermit/artifacts/builds/` 下的结构化报告，不创建 tag、不上传
-GitHub Release。正式发布的远程动作仍按 macOS 发布流程单独授权执行。
+统一入口只生成本地制品和 `.hermit/artifacts/builds/` 下的结构化报告，不创建或移动 tag。
+正式跨平台发布由 `.github/workflows/desktop-release.yml` 的受保护 `v*` tag 触发，完成原生
+构建、Draft、下载回验和 `production-release` 审批后再发布 GitHub Release。
 
 ### DSH 长会话性能测试
 

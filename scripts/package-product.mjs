@@ -27,8 +27,11 @@ export function createProductPackagePlan({
   if (profile !== "release" && signingMode !== undefined) {
     throw new Error("--signing is only available for release");
   }
-  if (profile !== "dev" && (platform !== "darwin" || architecture !== "arm64")) {
-    throw new Error(`${profile} packaging currently requires native macOS arm64`);
+  const nativeDeliveryTarget =
+    (platform === "darwin" && architecture === "arm64") ||
+    (platform === "win32" && architecture === "x64");
+  if (profile !== "dev" && !nativeDeliveryTarget) {
+    throw new Error(`${profile} packaging currently requires native macOS arm64 or Windows x64`);
   }
   if (
     profile === "dev" &&
@@ -83,7 +86,9 @@ export function createProductPackagePlan({
     platformInputs,
     pnpmStep("project-tests", "运行完整项目检查", ["test"]),
     pnpmStep("runtime", "准备 Product runtime", ["run", "prepare:desktop-runtime"]),
-    pnpmStep("native-tests", "验证 Smart Clipboard native bridge", ["run", "test:smart-clipboard:native"]),
+    ...(platform === "darwin"
+      ? [pnpmStep("native-tests", "验证 Smart Clipboard native bridge", ["run", "test:smart-clipboard:native"])]
+      : []),
     pnpmStep("organizer-surface", "验证 Organizer Product Surface", ["run", "test:organizer:product-surface"]),
     pnpmStep("file-workspace-surface", "验证 File Workspace Product Surface", ["run", "test:file-workspace:product-surface"]),
     pnpmStep("smart-clipboard-surface", "验证 Smart Clipboard Product Surface", ["run", "test:smart-clipboard:product-surface"]),
@@ -98,21 +103,36 @@ export function createProductPackagePlan({
       target: { platform, architecture },
       steps: [
         ...qualificationSteps,
-        pnpmStep("mac-candidate", "生成未签名 macOS 候选 DMG", ["run", "dist:desktop:mac:smoke"]),
+        pnpmStep(
+          platform === "darwin" ? "mac-candidate" : "win-candidate",
+          platform === "darwin" ? "生成未签名 macOS 候选 DMG" : "生成未签名 Windows 候选 EXE",
+          ["run", platform === "darwin" ? "dist:desktop:mac:smoke" : "dist:desktop:win:smoke"],
+        ),
       ],
     };
   }
 
-  const signingEnvironment = { HERMIT_MAC_RELEASE_SIGNING: signingMode };
+  const signingEnvironment = platform === "darwin"
+    ? { HERMIT_MAC_RELEASE_SIGNING: signingMode }
+    : { HERMIT_WINDOWS_RELEASE_SIGNING: signingMode };
+  const releaseSourceStep = platform === "darwin"
+    ? nodeStep("release-source", "检查正式发布源码和 tag", "scripts/prepare-macos-release-assets.mjs", ["preflight"])
+    : nodeStep("release-source", "检查正式发布源码和 tag", "scripts/prepare-windows-release-assets.mjs", ["preflight"]);
+  const releaseBuildStep = platform === "darwin"
+    ? pnpmStep("mac-release", "生成 macOS 正式候选 DMG", ["run", "dist:desktop:mac"], signingEnvironment)
+    : pnpmStep("win-release", "生成 Windows 正式候选 EXE", ["run", "dist:desktop:win"], signingEnvironment);
+  const releaseAssetsStep = platform === "darwin"
+    ? pnpmStep("release-assets", "生成校验和与发布清单", ["run", "release:desktop:mac:assets"], signingEnvironment)
+    : nodeStep("release-assets", "生成校验和与发布清单", "scripts/prepare-windows-release-assets.mjs", [], signingEnvironment);
   return {
     profile,
     signingMode,
     target: { platform, architecture },
     steps: [
-      nodeStep("release-source", "检查正式发布源码和 tag", "scripts/prepare-macos-release-assets.mjs", ["preflight"]),
+      releaseSourceStep,
       ...qualificationSteps,
-      pnpmStep("mac-release", "生成 macOS 正式候选 DMG", ["run", "dist:desktop:mac"], signingEnvironment),
-      pnpmStep("release-assets", "生成校验和与发布清单", ["run", "release:desktop:mac:assets"], signingEnvironment),
+      releaseBuildStep,
+      releaseAssetsStep,
     ],
   };
 }
@@ -262,11 +282,18 @@ function locateProductOutput(repositoryRoot, plan) {
     if (!fs.existsSync(output)) throw new Error(`Product directory output is missing: ${output}`);
     return output;
   }
-  const directory = path.join(appRoot, "dist", plan.profile === "candidate" ? "mac-smoke" : "mac-release");
+  const directory = path.join(
+    appRoot,
+    "dist",
+    plan.target.platform === "darwin"
+      ? (plan.profile === "candidate" ? "mac-smoke" : "mac-release")
+      : (plan.profile === "candidate" ? "win-smoke" : "win-release"),
+  );
+  const extension = plan.target.platform === "darwin" ? ".dmg" : ".exe";
   const outputs = fs.readdirSync(directory, { withFileTypes: true })
-    .filter((entry) => entry.isFile() && entry.name.endsWith(".dmg"))
+    .filter((entry) => entry.isFile() && entry.name.endsWith(extension))
     .map((entry) => path.join(directory, entry.name));
-  if (outputs.length !== 1) throw new Error(`Expected one Product DMG in ${directory}; found ${outputs.length}`);
+  if (outputs.length !== 1) throw new Error(`Expected one Product artifact in ${directory}; found ${outputs.length}`);
   return outputs[0];
 }
 

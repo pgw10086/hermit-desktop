@@ -2,8 +2,9 @@
 
 状态：`current`
 
-本文是 Hermit macOS 版本发布的唯一流程。无论这次是否签名、公证，都走同一套步骤、使用
-正常版本号和正常 GitHub Release，不另外发明“内部版”或“未签名版”流程。
+本文负责 Hermit macOS 平台的构建、签名、公证和制品验收细节。跨平台从 package 制品到
+Product Desktop GitHub Release 的完整顺序以[端到端交付链路](../../specs/2026-09-09-product-delivery-pipeline.md)
+为准；无论这次是否签名、公证，都走同一套步骤、使用正常版本号和正常 GitHub Release。
 
 插件怎样进入桌面包由 [DSH 集成与打包标准](dsh-plugin-development-and-packaging.md)负责；
 Smart Clipboard 的原生能力检查由[专属清单](smart-clipboard-packaging-runbook.md)补充。本文只
@@ -32,7 +33,7 @@ Smart Clipboard 的原生能力检查由[专属清单](smart-clipboard-packaging
 | 6 | Apple 公证和 staple | 可选 | 执行时必须通过 Apple 和 `stapler` 校验；不执行则记录 `SKIPPED` |
 | 7 | 挂载并启动制品 | 必须 | DMG 可只读挂载，应用、bundled Node、DSH、插件和退出流程通过 |
 | 8 | 生成 SHA 和发布清单 | 必须 | 文件名、版本、commit、平台、platform lock、模块制品 SHA-256 和可选步骤状态一致 |
-| 9 | 创建 Draft Release | 必须 | tag、说明和三个制品上传完整 |
+| 9 | 创建 Draft Release | 必须 | tag、说明和产品制品、清单、校验和上传完整 |
 | 10 | 从 GitHub 下载回验 | 必须 | 下载后的 SHA-256、DMG 挂载和启动检查仍通过 |
 | 11 | 发布 Release 并回读 | 必须 | Release 不再是 draft，tag、commit 和下载链接可从 GitHub 读回 |
 
@@ -134,8 +135,16 @@ HERMIT_MAC_RELEASE_SIGNING=skip corepack pnpm run release:desktop:mac:assets
 发布清单同时记录 `platform-lock.json` 摘要，以及 Core、Runtime Adapter 和每个 Product Plugin
 的版本、来源 commit 和制品 SHA，确保最终 DMG 可以回溯到同一批第一方字节。
 
-最终 Release 上传三个文件：DMG、SHA 文件和发布清单。发布说明至少写清主要功能、目标平台、
-安装方式、已知限制，以及签名、公证、staple 的实际状态。
+当前清单使用 `schemaVersion: 2`，额外记录 Product Desktop manifest、pnpm lock、构建
+workflow run、runner 和 Node 版本摘要；这些字段只作为来源证据，版本和制品身份仍以
+`platform-lock.json`、tag 和最终文件 SHA 为准。
+
+macOS 单平台诊断流程上传 DMG、SHA 文件和发布清单；统一跨平台发布还会由 aggregate job
+加入 Windows 安装包，并以最终 `release-manifest.json` 和 `SHA256SUMS` 作为整批证据。
+发布说明至少写清主要功能、目标平台、安装方式、已知限制，以及签名、公证、staple 的实际状态。
+
+正式 CI 入口是 `.github/workflows/desktop-release.yml`：它只接受 `v*` tag，macOS 和
+Windows 构建 job 分别持有各自签名环境，Release 写权限只授予后续 publisher job。
 
 ## 6. Draft、下载回验和发布
 

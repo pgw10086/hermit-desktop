@@ -38,6 +38,8 @@ topics:
     authority: docs/development/macos-release.md
   git-and-release-beginner-guide:
     authority: docs/development/git-and-release-beginner-guide.md
+  product-delivery-pipeline:
+    authority: specs/2026-09-09-product-delivery-pipeline.md
   platform-lock:
     authority: platform-lock.json
   dsh-upstream-documents:

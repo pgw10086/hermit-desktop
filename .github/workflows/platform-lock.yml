@@ -37,6 +37,11 @@ jobs:
           corepack pnpm run test:platform-lock
           corepack pnpm run test:package-product
 
+      - name: Verify Product Desktop dependency contract
+        run: |
+          corepack pnpm run verify:peers
+          corepack pnpm --filter @hermit/desktop typecheck
+
       - name: Verify Product Plugin projection
         run: node scripts/verify-plugin-manifests.mjs
 

@@ -1,0 +1,250 @@
+name: Hermit Desktop Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hermit-desktop-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify-input:
+    name: Verify release input
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout Product Desktop only
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Use qualified Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+      - name: Enable Corepack
+        run: corepack enable
+      - name: Verify tag, version and main commit
+        run: corepack pnpm run verify:release-input
+
+  release-macos:
+    name: Build signed macOS arm64 release
+    needs: verify-input
+    runs-on: macos-14
+    environment: macos-signing
+    timeout-minutes: 120
+    steps:
+      - name: Checkout Product Desktop only
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Use qualified Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - name: Enable Corepack
+        run: corepack enable
+      - name: Build and verify signed release
+        env:
+          HERMIT_MAC_RELEASE_SIGNING: required
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          CSC_NAME: ${{ secrets.CSC_NAME }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_KEYCHAIN_PROFILE: ${{ secrets.APPLE_KEYCHAIN_PROFILE }}
+        run: node scripts/package-product.mjs release --signing required
+      - name: Collect macOS release evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release-assets
+          installers=(apps/desktop-vnext/dist/mac-release/*.dmg)
+          if [ ${#installers[@]} -ne 1 ]; then
+            echo "::error::Expected exactly one macOS release DMG"
+            exit 1
+          fi
+          cp "${installers[0]}" release-assets/
+          cp ".hermit/artifacts/releases/$GITHUB_REF_NAME/release-manifest.json" release-assets/
+          cp ".hermit/artifacts/releases/$GITHUB_REF_NAME/SHA256SUMS.txt" release-assets/
+      - name: Upload macOS release evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: hermit-release-macos-${{ github.sha }}
+          path: release-assets
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+  release-windows:
+    name: Build signed Windows x64 release
+    needs: verify-input
+    runs-on: windows-2022
+    environment: windows-signing
+    timeout-minutes: 120
+    steps:
+      - name: Checkout Product Desktop only
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Enable Git long paths
+        shell: pwsh
+        run: git config --global core.longpaths true
+      - name: Use qualified Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - name: Enable Corepack
+        run: corepack enable
+      - name: Build and verify signed release
+        env:
+          HERMIT_WINDOWS_RELEASE_SIGNING: required
+          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+          WINDOWS_SIGNER_SUBJECT: ${{ vars.WINDOWS_SIGNER_SUBJECT }}
+        run: node scripts/package-product.mjs release --signing required
+      - name: Collect Windows release evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release-assets
+          installers=(apps/desktop-vnext/dist/win-release/*.exe)
+          if [ ${#installers[@]} -ne 1 ]; then
+            echo "::error::Expected exactly one Windows release EXE"
+            exit 1
+          fi
+          cp "${installers[0]}" release-assets/
+          cp ".hermit/artifacts/releases/$GITHUB_REF_NAME/release-manifest.json" release-assets/
+          cp ".hermit/artifacts/releases/$GITHUB_REF_NAME/SHA256SUMS.txt" release-assets/
+      - name: Upload Windows release evidence
+        uses: actions/upload-artifact@ea165f8f65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: hermit-release-windows-${{ github.sha }}
+          path: release-assets
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+  aggregate:
+    name: Aggregate platform release assets
+    needs:
+      - release-macos
+      - release-windows
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout Product Desktop only
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Use qualified Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+      - name: Download macOS evidence
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: hermit-release-macos-${{ github.sha }}
+          path: release-inputs/macos
+      - name: Download Windows evidence
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: hermit-release-windows-${{ github.sha }}
+          path: release-inputs/windows
+      - name: Aggregate and re-hash release
+        run: |
+          set -euo pipefail
+          node scripts/aggregate-release-assets.mjs --mac release-inputs/macos --windows release-inputs/windows --output release-assets
+      - name: Upload aggregate release assets
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: hermit-release-aggregate-${{ github.sha }}
+          path: release-assets
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+  stage-draft:
+    name: Stage GitHub Draft Release
+    needs: aggregate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Product Desktop only
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Use qualified Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+      - name: Download aggregate release assets
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: hermit-release-aggregate-${{ github.sha }}
+          path: release-assets
+      - name: Create or resume Draft Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/publish-product-release.mjs stage release-assets
+
+  verify-github-download:
+    name: Verify downloaded GitHub Release assets
+    needs: stage-draft
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout Product Desktop only
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Use qualified Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+      - name: Download aggregate release assets
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: hermit-release-aggregate-${{ github.sha }}
+          path: release-assets
+      - name: Re-download and verify Draft assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/publish-product-release.mjs verify release-assets
+
+  publish-release:
+    name: Publish immutable Product Release
+    needs: verify-github-download
+    runs-on: ubuntu-latest
+    environment: production-release
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Product Desktop only
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Use qualified Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+      - name: Download aggregate release assets
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: hermit-release-aggregate-${{ github.sha }}
+          path: release-assets
+      - name: Publish Draft after production approval
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/publish-product-release.mjs publish release-assets
+      - name: Verify published Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/publish-product-release.mjs verify release-assets
