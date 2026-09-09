@@ -59,8 +59,8 @@ tarball 再安装，但 CI 和发布必须能在没有 sibling 源码的干净�
 - Hermit 和新产品各自维护 lockfile、runtime manifest、产品数据目录和发布节奏；
 - 插件拆仓发生在 Desktop Core 和 Hermit Desktop 的制品依赖闭环稳定之后，避免一次同时
   改变所有边界；
-- 当前 `hermit-vnext` 暂时作为迁移源和回滚参考，直到 sibling 仓库通过干净构建与集成
-  验收；迁移完成后不得继续在两处并行开发同一事实；
+- 迁移完成后，`hermit-vnext` 只作为远程历史来源；本地 checkout 已移除，不得继续在两处
+  并行开发同一事实；
 - 暂不创建共享 UI 仓库或 integration 仓库。只有出现两个真实消费者和独立发布需要时，
   再用新的 ADR 决定是否增加。
 

@@ -6,9 +6,8 @@
 
 本文记录一个已取消的新产品方案。它曾讨论新产品复用 Hermit Desktop Core 和 DSH 能力、但需要大幅调整
 Conversation、Session、Settings、Approval 或导航交互时的候选架构。本文是方案和
-迁移门槛，不覆盖现有 Hermit 产品需求。用户已确认本方案；本轮将先同步权威文档，再
-创建同一父文件夹下的 sibling Git 仓库。旧 `hermit-vnext` 保留为迁移源和回滚参考，直到
-所有独立仓库完成构建和集成验收。该方案已由
+迁移门槛，不覆盖现有 Hermit 产品需求。该方案曾推动同步权威文档并创建同一父文件夹下的
+sibling Git 仓库；迁移已经完成，旧 `hermit-vnext` 仅保留远程历史记录。本方案已由
 [ADR-0007](../docs/adr/0007-agent-desktop-core-runtime-adapters.md) 取代，当前只保留作历史追溯。
 
 ## 1. 背景和问题

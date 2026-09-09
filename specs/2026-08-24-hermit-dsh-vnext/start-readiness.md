@@ -23,7 +23,7 @@ M1 桌面底座实现已经完成，并形成 macOS Apple Silicon 可运行候�
 ## 2. 仓库和 GitHub
 
 - 主仓库：`pgw10086/hermit-desktop`，当前 checkout 位于多仓工作区的
-  `hermit-desktop/`；旧 `hermit-vnext` 路径只属于迁移历史，不是当前环境事实；
+  `hermit-desktop/`；旧 `hermit-vnext` 名称和来源 commit 只属于迁移历史，不是当前环境事实；
 - 旧 Hermit 仓库和用户数据不在原地改造成 vNext，也不由本仓库测试清理；
 - 当前仓库不嵌套新的 Git 仓库，不提交真实用户数据、凭据或浏览器状态；
 - 第一方插件位于 sibling 仓库，分别打包和版本化；Hermit Desktop 通过固定 package

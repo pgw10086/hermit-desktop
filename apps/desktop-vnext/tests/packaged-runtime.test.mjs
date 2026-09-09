@@ -10,7 +10,7 @@ const appRoot = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const repositoryRoot = path.resolve(appRoot, "..", "..");
 
 test("打包 runtime 验证按平台和架构推导默认资源目录", () => {
-  const root = path.resolve("/tmp/hermit-vnext");
+  const root = path.resolve("/tmp/hermit-desktop");
   assert.equal(
     defaultResourcesPath(root, "win32", "x64"),
     path.join(root, "dist", "win-unpacked", "resources"),

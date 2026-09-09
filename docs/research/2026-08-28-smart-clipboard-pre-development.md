@@ -360,7 +360,7 @@ packaging 必须排除该目录。
 
 ## 网页 GPT 多轮审查
 
-按照仓库规则，在已绑定 `hermit-vnext` Project 的同一会话进行了两轮独立审查；远端回答只作为
+按照当时的仓库规则，在迁移阶段绑定的旧网页 GPT Project 的同一会话进行了两轮独立审查；远端回答只作为
 second opinion，没有作为 VERIFIED 证据：
 
 - 第一轮 operation：`9dc6ffe0-6d07-49f1-8bdb-4729bf206034`
