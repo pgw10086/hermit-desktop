@@ -79,7 +79,7 @@ try {
   await navigation.click()
   const history = page.locator('[data-smart-clipboard-history="ready"]')
   await history.waitFor({ timeout: 20_000 })
-  await history.getByText('选择一条记录查看详情', { exact: true }).waitFor()
+  await waitForVisibleText(history, '选择一条记录查看详情')
   await history.locator('[data-smart-clipboard-capture-status]').filter({ hasText: '上限 100 条' }).waitFor()
 
   await history.getByRole('button', { name: '暂停记录' }).click()
@@ -214,4 +214,17 @@ async function dismissOnboarding(page) {
 async function openSidebar(page) {
   const open = page.getByRole('button', { name: /^(Open sidebar|打开侧边栏)$/u })
   if (await open.isVisible().catch(() => false)) await open.click()
+}
+
+async function waitForVisibleText(scope, text, timeout = 20_000) {
+  const deadline = Date.now() + timeout
+  const candidates = scope.getByText(text, { exact: true })
+  while (Date.now() < deadline) {
+    const count = await candidates.count()
+    for (let index = 0; index < count; index += 1) {
+      if (await candidates.nth(index).isVisible()) return
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100))
+  }
+  throw new Error(`Visible text did not appear: ${text}`)
 }
