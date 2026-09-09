@@ -6,10 +6,17 @@ import test from "node:test";
 import {
   assertPeArchitecture,
   expectedWindowsInstallerName,
+  findAsarCli,
 } from "./verify-windows-artifact.mjs";
 
 test("Windows installer name includes the desktop version and x64 target", () => {
   assert.equal(expectedWindowsInstallerName("0.2.2"), "Hermit-0.2.2-x64.exe");
+});
+
+test("Windows verifier resolves pnpm virtual store from the app subproject", () => {
+  const cli = findAsarCli(path.resolve("."));
+  assert.equal(fs.existsSync(cli), true);
+  assert.match(cli, /@electron[\\/]asar[\\/]bin[\\/]asar\.js$/u);
 });
 
 test("Windows PE verifier accepts x64 and rejects other machine types", () => {

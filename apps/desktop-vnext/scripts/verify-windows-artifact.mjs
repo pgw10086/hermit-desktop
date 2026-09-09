@@ -67,16 +67,21 @@ export function assertPeArchitecture(file, expectedMachine) {
   }
 }
 
-function findAsarCli(root) {
-  const pnpmRoot = path.join(root, "node_modules", ".pnpm");
-  const candidates = fs.existsSync(pnpmRoot)
-    ? fs.readdirSync(pnpmRoot)
+export function findAsarCli(root) {
+  // pnpm 的虚拟仓库属于产品根目录；app 子项目只保留依赖链接，不复制 .pnpm 目录。
+  const pnpmRoots = [
+    path.join(root, "node_modules", ".pnpm"),
+    path.join(root, "..", "..", "node_modules", ".pnpm"),
+  ];
+  for (const pnpmRoot of pnpmRoots) {
+    if (!fs.existsSync(pnpmRoot)) continue;
+    const candidate = fs.readdirSync(pnpmRoot)
       .filter((entry) => entry.startsWith("@electron+asar@"))
       .map((entry) => path.join(pnpmRoot, entry, "node_modules", "@electron", "asar", "bin", "asar.js"))
-      .filter((entry) => fs.existsSync(entry))
-    : [];
-  if (candidates.length === 0) throw new Error("Unable to locate the @electron/asar CLI");
-  return candidates[0];
+      .find((entry) => fs.existsSync(entry));
+    if (candidate !== undefined) return candidate;
+  }
+  throw new Error("Unable to locate the @electron/asar CLI");
 }
 
 function verifySignature(run, installerPath) {
