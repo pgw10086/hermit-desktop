@@ -12,6 +12,9 @@ import {
   type Retention,
 } from '@hermit/smart-clipboard/domain'
 
+/** 动作映射的持久化语义版本；只用于识别旧版默认组合，不改变剪贴板数据。 */
+const CURRENT_ACTION_MAPPING_VERSION = 2 as const
+
 export interface SmartClipboardPersistedSettings {
   /** 活动历史条数上限。 */
   readonly historyLimit: number
@@ -23,6 +26,8 @@ export interface SmartClipboardPersistedSettings {
   readonly paused: boolean
   /** 快捷键动作映射。 */
   readonly actionMapping: ActionMapping
+  /** 动作映射语义版本；缺失表示尚未完成旧版默认组合迁移。 */
+  readonly actionMappingVersion?: typeof CURRENT_ACTION_MAPPING_VERSION
   /** 不捕获的来源应用。 */
   readonly excludedApplications: readonly string[]
   /** 不捕获的内容类型。 */
@@ -51,7 +56,7 @@ export class SmartClipboardSettingsStore {
     const directory = dirname(this.#path)
     mkdirSync(directory, { recursive: true, mode: 0o700 })
     const temporary = `${this.#path}.tmp-${String(process.pid)}`
-    writeFileSync(temporary, `${JSON.stringify(settings, null, 2)}\n`, { mode: 0o600 })
+    writeFileSync(temporary, `${JSON.stringify({ ...settings, actionMappingVersion: CURRENT_ACTION_MAPPING_VERSION }, null, 2)}\n`, { mode: 0o600 })
     renameSync(temporary, this.#path)
   }
 }
@@ -64,6 +69,7 @@ function defaults(): SmartClipboardPersistedSettings {
     retention: 'forever',
     paused: false,
     actionMapping: DEFAULT_ACTION_MAPPING,
+    actionMappingVersion: CURRENT_ACTION_MAPPING_VERSION,
     excludedApplications: [],
     excludedKinds: [],
   }
@@ -77,9 +83,10 @@ function parseSettings(value: unknown): SmartClipboardPersistedSettings {
   if (!Number.isSafeInteger(record.totalBytes) || (record.totalBytes as number) < 1) throw new Error('容量设置无效')
   if (record.retention !== 'forever' && record.retention !== 30 && record.retention !== 90 && record.retention !== 365) throw new Error('保留期限设置无效')
   if (typeof record.paused !== 'boolean') throw new Error('暂停设置无效')
+  const actionMappingVersion = parseActionMappingVersion(record.actionMappingVersion)
   const actionMapping = record.actionMapping
   if (typeof actionMapping !== 'object' || actionMapping === null) throw new Error('动作映射设置无效')
-  const mapping = migrateActionMapping(actionMapping)
+  const mapping = migrateActionMapping(actionMapping, actionMappingVersion)
   const validation = validateActionMapping(mapping)
   if (!validation.valid) throw new Error('动作映射设置无效')
   const excludedApplications = parseApplicationExclusions(record.excludedApplications)
@@ -90,20 +97,39 @@ function parseSettings(value: unknown): SmartClipboardPersistedSettings {
     retention: record.retention as Retention,
     paused: record.paused,
     actionMapping: validation.mapping,
+    actionMappingVersion: CURRENT_ACTION_MAPPING_VERSION,
     excludedApplications,
     excludedKinds,
   }
 }
 
-/** 将早期把显式粘贴称为 use 的设置迁移到当前 vocabulary，不改变其他用户选择。 */
-function migrateActionMapping(value: object): ActionMapping {
+/**
+ * 将没有版本标记的旧版默认组合迁移到当前 Maccy 式默认动作。
+ * 仅迁移可识别的旧默认值；带当前版本标记的用户自定义组合必须原样保留。
+ */
+function migrateActionMapping(value: object, version: typeof CURRENT_ACTION_MAPPING_VERSION | undefined): ActionMapping {
   const raw = value as Record<string, unknown>
+  if (
+    version === undefined
+    && (raw.Enter === 'use' || raw.Enter === 'paste')
+    && raw['Mod+Enter'] === 'copy'
+    && raw['Shift+Enter'] === 'plain-text'
+  ) {
+    return DEFAULT_ACTION_MAPPING
+  }
   const normalize = (action: unknown): unknown => action === 'use' ? 'paste' : action
   return {
     Enter: normalize(raw.Enter) as ActionMapping['Enter'],
     'Mod+Enter': normalize(raw['Mod+Enter']) as ActionMapping['Mod+Enter'],
     'Shift+Enter': normalize(raw['Shift+Enter']) as ActionMapping['Shift+Enter'],
   }
+}
+
+/** 只接受当前已知版本；未知版本回到完整默认设置，避免静默误解释快捷键。 */
+function parseActionMappingVersion(value: unknown): typeof CURRENT_ACTION_MAPPING_VERSION | undefined {
+  if (value === undefined) return undefined
+  if (value !== CURRENT_ACTION_MAPPING_VERSION) throw new Error('动作映射版本无效')
+  return CURRENT_ACTION_MAPPING_VERSION
 }
 
 /** 解析并限制来源应用排除列表。 */

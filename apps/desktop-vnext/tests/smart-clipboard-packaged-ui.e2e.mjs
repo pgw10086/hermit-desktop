@@ -18,6 +18,7 @@ assert.equal(fs.existsSync(executablePath), true, `Hermit packaged executable is
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hermit-smart-clipboard-packaged-ui-'))
 const userData = path.join(root, 'user-data')
+seedLegacyActionMapping()
 let application
 let succeeded = false
 
@@ -27,6 +28,11 @@ try {
   const pageErrors = []
   page.on('pageerror', (cause) => pageErrors.push(cause.message))
   await dismissOnboarding(page)
+  const quickPanelPage = await waitForQuickPanel(application)
+  assert.deepEqual(
+    await quickPanelPage.evaluate(async () => (await window.hermitSmartClipboard.settings()).actionMapping),
+    { Enter: 'copy', 'Mod+Enter': 'paste', 'Shift+Enter': 'plain-text' },
+  )
   const activationState = await application.evaluate(async ({ app, BrowserWindow }) => {
     const main = BrowserWindow.getAllWindows().find((window) => window.getTitle() === 'Hermit')
     const quickPanel = BrowserWindow.getAllWindows().find((window) => window.getTitle() === 'Smart Clipboard')
@@ -154,6 +160,21 @@ function launchApplication() {
   })
 }
 
+/** 升级验收使用真实旧版默认组合，确保包装后的主进程会完成一次性迁移。 */
+function seedLegacyActionMapping() {
+  const settingsDirectory = path.join(userData, 'smart-clipboard')
+  fs.mkdirSync(settingsDirectory, { recursive: true })
+  fs.writeFileSync(path.join(settingsDirectory, 'settings.json'), `${JSON.stringify({
+    historyLimit: 100,
+    totalBytes: 1_000_000_000,
+    retention: 'forever',
+    paused: false,
+    actionMapping: { Enter: 'paste', 'Mod+Enter': 'copy', 'Shift+Enter': 'plain-text' },
+    excludedApplications: [],
+    excludedKinds: [],
+  }, null, 2)}\n`)
+}
+
 async function waitForMainWindow(application) {
   const deadline = Date.now() + 60_000
   while (Date.now() < deadline) {
@@ -165,6 +186,19 @@ async function waitForMainWindow(application) {
     await new Promise((resolve) => setTimeout(resolve, 100))
   }
   throw new Error(`Hermit main window did not load DSH: ${application.windows().map((page) => page.url())}`)
+}
+
+async function waitForQuickPanel(application) {
+  const deadline = Date.now() + 60_000
+  while (Date.now() < deadline) {
+    const page = application.windows().find((candidate) => candidate.url().includes('quick-retrieval'))
+    if (page !== undefined) {
+      await page.locator('body').waitFor({ timeout: 30_000 })
+      return page
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100))
+  }
+  throw new Error(`Smart Clipboard Quick Panel did not load: ${application.windows().map((page) => page.url())}`)
 }
 
 async function dismissOnboarding(page) {
