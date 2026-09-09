@@ -86,9 +86,16 @@ try {
   }
 
   await history.getByRole('button', { name: '暂停记录' }).click()
-  await history.locator('[data-smart-clipboard-capture-status]').filter({ hasText: '已暂停' }).waitFor()
+  await waitForCaptureState(page, 'paused')
+  // Windows 默认单栏会隐藏桌面状态栏；macOS 双栏才额外验收这条可见反馈。
+  if (process.platform === 'darwin') {
+    await history.locator('[data-smart-clipboard-capture-status]').filter({ hasText: '已暂停' }).waitFor()
+  }
   await history.getByRole('button', { name: '继续记录' }).click()
-  await history.locator('[data-smart-clipboard-capture-status]').filter({ hasText: '正在记录' }).waitFor()
+  await waitForCaptureState(page, 'recording')
+  if (process.platform === 'darwin') {
+    await history.locator('[data-smart-clipboard-capture-status]').filter({ hasText: '正在记录' }).waitFor()
+  }
   await history.getByRole('button', { name: '查看' }).click()
   await page.getByRole('menuitem', { name: '记录与数据' }).click()
   const settingsForm = history.locator('[data-smart-clipboard-settings-form]')
@@ -230,4 +237,13 @@ async function waitForVisibleText(scope, text, timeout = 20_000) {
     await new Promise((resolve) => setTimeout(resolve, 100))
   }
   throw new Error(`Visible text did not appear: ${text}`)
+}
+
+/** 跨平台门禁以主进程拥有的捕获状态为准，避免响应式布局是否展示状态栏改变业务判定。 */
+async function waitForCaptureState(page, expectedState) {
+  await page.waitForFunction(
+    async (state) => (await window.hermitSmartClipboard.status()).state === state,
+    expectedState,
+    { timeout: 20_000 },
+  )
 }
