@@ -5,7 +5,7 @@ Hermit Desktop 是以通过兼容性检查的 DeepSeek Harness（DSH）为底座
 Session、Tool、Approval、Settings 和插件运行时；个人事务、文件工作台、智能剪贴板
 等能力以可独立安装的 DSH Product Plugin 提供。
 
-当前状态：Private incubation。M1 Electron + stock DSH Web 桌面底座实现已完成，后续 Hermit
+当前状态：Public incubation。M1 Electron + stock DSH Web 桌面底座实现已完成，后续 Hermit
 bundled DSH generation 在必要时可按 [ADR-0003](docs/adr/0003-hermit-bundled-dsh-web-source-patch.md)
 携带经过审计的最小 source patch；Product Surface v1 已完成源码、许可证、摘要门禁和
 Smart Clipboard 同制品双宿主验证。macOS Apple Silicon 的本地资格已通过真实菜单栏交互和注销后自动启动；版本发布统一按

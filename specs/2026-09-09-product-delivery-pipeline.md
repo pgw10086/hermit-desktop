@@ -383,22 +383,15 @@ SHA，再写入内容寻址路径并更新产品锁。旧制品保留，不做�
 - package 仓库的远程 tag/Release 实跑；
 - Windows 正式 Authenticode 签名仍未实跑；macOS arm64 和 Windows x64 的无签名 candidate
   已在同一 Product Desktop commit 上通过原生 runner 验证；
-- Product Desktop tag-driven Release 的远端 Environment 审批、ruleset、签名 secret 和
-  immutable Release 设置；
-- GitHub ruleset、签名 secret、生产 Environment 和正式发布演练。
+- `pgw10086/hermit-desktop` 的正式签名 secrets、第二位 production reviewer 和正式发布演练；
+- package 仓库的可见性仍按各仓库当前配置处理，Product Desktop 只消费已锁定的公开 tarball
+  和随仓制品，不从 sibling 源码构建。
 
-2026-09-09 只读核对 `pgw10086/hermit-desktop` 远端结果：仓库为 `private`，当前没有
-Environment、ruleset 或 Release；分支保护和 ruleset API 返回 GitHub 计划限制（需要升级
-计划或改为 public）。在这个外部门禁解决前，代码中的 tag/main 校验只能作为 fail-closed
-保护，不能替代 GitHub 权限层的强制限制。
-
-可选处理方式：
-
-- 升级当前 GitHub 计划，保留 private 仓库和本 spec 的直接 Product Release 方案；
-- 将 Hermit 仓库改为 public，继续在当前仓库发布；
-- 保持源码仓库 private，另建 public Release 仓库并重新提交跨仓发布边界决策。
-
-默认推荐第一项；在用户确认前不执行可见性、计划、ruleset、Environment 或 Release 设置修改。
+2026-09-10 已完成远端门禁配置：`hermit-desktop` 已改为 public；`main-protection` 和
+`immutable-release-tags` ruleset 已启用；`macos-signing`、`windows-signing` 和
+`production-release` Environment 已创建并限制到 `v*` tag；GitHub immutable releases
+已启用。`production-release` 当前配置了 owner reviewer 且禁止 self-review，因此正式发布
+还需要另一位 reviewer；签名 secret 尚未写入，不能伪造或用占位值替代。
 
 ## 10. 当前实施顺序
 
