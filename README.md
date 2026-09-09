@@ -102,6 +102,7 @@ corepack pnpm test:m1:replay:packaged
 corepack pnpm test:dsh:long-session
 corepack pnpm test:smart-clipboard:product-surface
 corepack pnpm test:smart-clipboard:packaged-ui
+corepack pnpm test:smart-clipboard:focus-restore
 corepack pnpm --filter @hermit/desktop test:conversation:quick:packaged
 corepack pnpm test:smart-clipboard:native
 corepack pnpm qualification:desktop:mac-login:status

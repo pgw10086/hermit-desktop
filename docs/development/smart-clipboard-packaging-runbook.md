@@ -90,12 +90,14 @@ unavailable，在 Hermit bundled DSH 中确认侧栏和 History 入口。stock �
 corepack pnpm run test:desktop
 corepack pnpm run package:desktop:dir
 corepack pnpm run test:smart-clipboard:packaged-ui
+corepack pnpm run test:smart-clipboard:focus-restore
 corepack pnpm run verify:desktop:packaged-runtime
 ```
 
 `package:desktop:dir` 会自动准备 bundled Node、DSH runtime、native bridge、renderer 和
 app-dir。`test:smart-clipboard:packaged-ui` 覆盖快捷键中心、History、暂停/继续、设置、停用/重新启用
-生命周期；`verify:desktop:packaged-runtime` 覆盖 runtime closure、Product Surface patch
+生命周期；`test:smart-clipboard:focus-restore` 覆盖 macOS 临时 Surface 关闭后外部应用焦点恢复和
+主窗口保持隐藏/不抢焦点；`verify:desktop:packaged-runtime` 覆盖 runtime closure、Product Surface patch
 和 DSH clean boot。
 
 ### 4. 做隔离的桌面启动验收
