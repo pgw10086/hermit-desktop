@@ -5,6 +5,7 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
 import { createDshCommand } from "../lib/runtime/dsh-command.js";
+import { currentNodeNpmInvocation } from "./helpers/current-node-npm.mjs";
 import {
   DshRuntimeController,
   DshSupervisor,
@@ -92,10 +93,10 @@ function writeGeneration(generationsRoot, generationId) {
 }
 
 function packPlugin(output) {
-  const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
+  const npm = currentNodeNpmInvocation();
   const result = spawnSync(
-    npmCommand,
-    ["pack", "--pack-destination", output, "--ignore-scripts"],
+    npm.command,
+    [npm.cliPath, "pack", "--pack-destination", output, "--ignore-scripts"],
     { cwd: pluginRoot, encoding: "utf8", windowsHide: true },
   );
   assert.equal(result.status, 0, result.stderr);

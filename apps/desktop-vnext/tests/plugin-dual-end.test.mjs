@@ -5,6 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import test from "node:test";
+import { currentNodeNpmInvocation } from "./helpers/current-node-npm.mjs";
 
 const appRoot = path.resolve(".");
 const repositoryRoot = path.resolve(appRoot, "..", "..");
@@ -194,8 +195,8 @@ test("同一个 .tgz 插件在 stock DSH 和 Hermit bundled DSH 完成安装、�
   try {
     const packageOutput = path.join(root, "package");
     fs.mkdirSync(packageOutput, { recursive: true });
-    const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
-    const packed = spawnSync(npmCommand, ["pack", "--pack-destination", packageOutput, "--ignore-scripts"], {
+    const npm = currentNodeNpmInvocation();
+    const packed = spawnSync(npm.command, [npm.cliPath, "pack", "--pack-destination", packageOutput, "--ignore-scripts"], {
       cwd: pluginRoot,
       encoding: "utf8",
       windowsHide: true,
