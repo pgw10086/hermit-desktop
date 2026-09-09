@@ -238,7 +238,13 @@ async function dismissOnboardingIfPresent(page) {
 
 async function openSidebar(page) {
   const open = page.getByRole('button', { name: /^(Open sidebar|打开侧边栏)$/u })
-  if (await open.isVisible().catch(() => false)) await open.click()
+  if (!await open.isVisible().catch(() => false)) return
+  const modalMask = page.locator('[aria-hidden="true"][class*="mask"]')
+  if (await modalMask.isVisible().catch(() => false)) {
+    await page.keyboard.press('Escape')
+    await modalMask.waitFor({ state: 'hidden', timeout: 5_000 })
+  }
+  await open.click()
 }
 
 async function waitForVisibleText(scope, text, timeout = 20_000) {
