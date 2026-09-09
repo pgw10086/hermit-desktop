@@ -79,7 +79,8 @@ try {
   await navigation.click()
   const history = page.locator('[data-smart-clipboard-history="ready"]')
   await history.waitFor({ timeout: 20_000 })
-  await waitForVisibleText(history, '选择一条记录查看详情')
+  // Windows 默认窗口进入单栏 History；详情占位只属于双栏布局，不是跨平台业务门禁。
+  if (process.platform === 'darwin') await waitForVisibleText(history, '选择一条记录查看详情')
   await history.locator('[data-smart-clipboard-capture-status]').filter({ hasText: '上限 100 条' }).waitFor()
 
   await history.getByRole('button', { name: '暂停记录' }).click()
