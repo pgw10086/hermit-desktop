@@ -41,8 +41,10 @@ test('Core SQLite repository 重启后保留三类记录，service 统一执行 
     assert.equal(platform.writes.length, 1)
     assert.deepEqual(service.list({ query: 'ell' }).map((entry) => entry.kind), ['TEXT'])
     assert.deepEqual(service.list({ query: 'a.txt' }).map((entry) => entry.kind), ['FILE_LIST'])
-    assert.equal(fs.statSync(dbPath).mode & 0o777, 0o600)
-    assert.equal(fs.statSync(path.dirname(dbPath)).mode & 0o777, 0o700)
+    if (process.platform !== 'win32') {
+      assert.equal(fs.statSync(dbPath).mode & 0o777, 0o600)
+      assert.equal(fs.statSync(path.dirname(dbPath)).mode & 0o777, 0o700)
+    }
     const exportPath = path.join(root, 'export.zip')
     service.exportData(exportPath, false)
     const archive = fs.readFileSync(exportPath)

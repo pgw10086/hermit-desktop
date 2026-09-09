@@ -101,8 +101,10 @@ test('快捷键设置使用 userData 下的私有 JSON 文件并可重启读取'
 
     const second = new FileShortcutSettingsStore(file)
     assert.equal(second.read('smart-clipboard.open'), 'CommandOrControl+Shift+F12')
-    assert.equal(fs.statSync(file).mode & 0o777, 0o600)
-    assert.equal(fs.statSync(path.dirname(file)).mode & 0o777, 0o700)
+    if (process.platform !== 'win32') {
+      assert.equal(fs.statSync(file).mode & 0o777, 0o600)
+      assert.equal(fs.statSync(path.dirname(file)).mode & 0o777, 0o700)
+    }
   } finally {
     fs.rmSync(root, { recursive: true, force: true })
   }

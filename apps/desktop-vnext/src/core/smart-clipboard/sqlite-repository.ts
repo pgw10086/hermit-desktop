@@ -69,7 +69,7 @@ export class SqliteClipboardRepository implements ClipboardRepository {
     this.#databasePath = databasePath
     const databaseDirectory = dirname(databasePath)
     mkdirSync(databaseDirectory, { recursive: true, mode: 0o700 })
-    chmodSync(databaseDirectory, 0o700)
+    if (process.platform !== 'win32') chmodSync(databaseDirectory, 0o700)
     this.#database = new DatabaseSync(databasePath)
     this.#database.exec(`
       PRAGMA journal_mode = WAL;
@@ -225,6 +225,9 @@ export class SqliteClipboardRepository implements ClipboardRepository {
   }
 
   #secureFiles(): void {
+    // Windows 使用 NTFS ACL 管理权限；chmod 的 POSIX mode 在 Windows 上可能把文件标成只读，
+    // 进而阻止 SQLite/WAL 清理。这里只在支持该语义的平台收紧文件权限。
+    if (process.platform === 'win32') return
     for (const file of [this.#databasePath, `${this.#databasePath}-wal`, `${this.#databasePath}-shm`]) {
       if (existsSync(file)) chmodSync(file, 0o600)
     }
