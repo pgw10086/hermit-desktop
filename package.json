@@ -1,6 +1,7 @@
 {
   "name": "@hermit/desktop-workspace",
   "version": "0.0.0-private",
+  "packageManager": "pnpm@11.24.0",
   "repository": "https://github.com/pgw10086/hermit-desktop.git",
   "private": true,
   "type": "module",

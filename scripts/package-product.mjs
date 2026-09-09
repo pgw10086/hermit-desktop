@@ -254,6 +254,7 @@ export function runProductPackage({
 }
 
 function runStep(step, repositoryRoot) {
+  const command = process.platform === "win32" && step.command === "corepack" ? "corepack.cmd" : step.command;
   const environment = {
     ...process.env,
     PATH: [path.dirname(process.execPath), process.env.PATH ?? process.env.Path ?? ""]
@@ -262,14 +263,14 @@ function runStep(step, repositoryRoot) {
     ...step.environment,
   };
   delete environment.Path;
-  const result = spawnSync(step.command, step.args, {
+  const result = spawnSync(command, step.args, {
     cwd: repositoryRoot,
     env: environment,
     stdio: "inherit",
   });
   if (result.error !== undefined) throw result.error;
   if (result.status !== 0) {
-    throw new Error(`${step.command} ${step.args.join(" ")} exited with ${String(result.status)}`);
+    throw new Error(`${command} ${step.args.join(" ")} exited with ${String(result.status)}`);
   }
 }
 
@@ -325,6 +326,7 @@ function printSummary({ manifest, manifestPath }, repositoryRoot) {
 }
 
 function readToolchain(repositoryRoot) {
+  const corepackCommand = process.platform === "win32" ? "corepack.cmd" : "corepack";
   const environment = {
     ...process.env,
     PATH: [path.dirname(process.execPath), process.env.PATH ?? process.env.Path ?? ""]
@@ -334,7 +336,7 @@ function readToolchain(repositoryRoot) {
   delete environment.Path;
   return {
     node: process.version,
-    pnpm: execFileSync("corepack", ["pnpm", "--version"], { encoding: "utf8", env: environment }).trim(),
+    pnpm: execFileSync(corepackCommand, ["pnpm", "--version"], { encoding: "utf8", env: environment }).trim(),
     electron: readInstalledVersion(path.join(repositoryRoot, "apps", "desktop-vnext", "node_modules", "electron", "package.json")),
   };
 }

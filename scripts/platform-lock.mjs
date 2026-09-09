@@ -551,14 +551,15 @@ function fileSpecifier(fromDirectory, artifact) {
 }
 
 function run(commandName, commandArgs, cwd, extraEnvironment = {}, allowFailure = false) {
-  const result = spawnSync(commandName, commandArgs, {
+  const command = process.platform === "win32" && commandName === "corepack" ? "corepack.cmd" : commandName;
+  const result = spawnSync(command, commandArgs, {
     cwd,
     env: { ...process.env, ...extraEnvironment },
     stdio: "inherit",
   });
   if (result.error !== undefined) throw result.error;
   if (result.status !== 0 && !allowFailure) {
-    throw new Error(`${commandName} ${commandArgs.join(" ")} exited with ${String(result.status)}`);
+    throw new Error(`${command} ${commandArgs.join(" ")} exited with ${String(result.status)}`);
   }
 }
 
