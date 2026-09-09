@@ -142,6 +142,7 @@ try {
   fs.writeFileSync(profilePath, `${JSON.stringify(profile, null, 2)}\n`)
   application = await launchApplication()
   const reenabledPage = await waitForMainWindow(application)
+  await dismissOnboardingIfPresent(reenabledPage)
   await openSidebar(reenabledPage)
   const reenabledNavigation = reenabledPage.getByRole('button', { name: '剪贴板历史' })
   await reenabledNavigation.waitFor({ timeout: 20_000 })
@@ -219,6 +220,13 @@ async function dismissOnboarding(page) {
   await credential.waitFor({ timeout: 30_000 })
   await credential.getByRole('button', { name: /^(Configure later|稍后配置)$/u }).click()
   await credential.waitFor({ state: 'detached', timeout: 20_000 })
+}
+
+/** 重新启用 generation 可能恢复首次启动提示；只在遮罩真实出现时处理，避免掩盖正常启动失败。 */
+async function dismissOnboardingIfPresent(page) {
+  const welcome = page.getByRole('dialog', { name: /^(Internal Testing Notice|内测声明)$/u })
+  if (await welcome.count() === 0 || !await welcome.first().isVisible().catch(() => false)) return
+  await dismissOnboarding(page)
 }
 
 async function openSidebar(page) {
