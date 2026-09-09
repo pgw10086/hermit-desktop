@@ -266,6 +266,7 @@ function runStep(step, repositoryRoot) {
   const result = spawnSync(command, step.args, {
     cwd: repositoryRoot,
     env: environment,
+    shell: process.platform === "win32",
     stdio: "inherit",
   });
   if (result.error !== undefined) throw result.error;
@@ -336,7 +337,11 @@ function readToolchain(repositoryRoot) {
   delete environment.Path;
   return {
     node: process.version,
-    pnpm: execFileSync(corepackCommand, ["pnpm", "--version"], { encoding: "utf8", env: environment }).trim(),
+    pnpm: execFileSync(corepackCommand, ["pnpm", "--version"], {
+      encoding: "utf8",
+      env: environment,
+      shell: process.platform === "win32",
+    }).trim(),
     electron: readInstalledVersion(path.join(repositoryRoot, "apps", "desktop-vnext", "node_modules", "electron", "package.json")),
   };
 }

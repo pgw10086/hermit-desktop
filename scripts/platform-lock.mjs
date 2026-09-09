@@ -555,6 +555,7 @@ function run(commandName, commandArgs, cwd, extraEnvironment = {}, allowFailure 
   const result = spawnSync(command, commandArgs, {
     cwd,
     env: { ...process.env, ...extraEnvironment },
+    shell: process.platform === "win32",
     stdio: "inherit",
   });
   if (result.error !== undefined) throw result.error;
