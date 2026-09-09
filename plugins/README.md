@@ -5,6 +5,10 @@
 `plugins/` 只保存 Hermit 宿主侧共用的 Product Plugin 开发和 UI 规范。一个完整插件由
 自己的 sibling Git 仓库维护，不再把插件源码放回本仓库。
 
+多仓工作区共用的插件开发规则当前入口为外层
+`docs/development/product-plugin-development.md` 和 `docs/development/product-plugin-quickstart.md`；
+本目录保留 Hermit DSH/Layout 的产品侧兼容入口和 UI 细节。
+
 当前三个第一方插件仓库为 `plugin-organizer`、`plugin-file-workspace` 和
 `plugin-smart-clipboard`。Hermit Desktop 只消费它们打出的固定 tarball；runtime 清单和
 `vendor/README.md` 记录版本与摘要。

@@ -2,6 +2,12 @@
 
 状态：`current`
 
+Core package 内部边界、Runtime Adapter 生命周期和 Core 仓库工程规则现在分别以外层入口下的
+`agent-desktop-core/docs/architecture/system-boundaries.md`、
+`agent-desktop-core/docs/contracts/runtime-adapter.md` 和
+`agent-desktop-core/docs/development/engineering-rules.md` 为准。本文保留 Hermit 对 Core 的
+产品集成、DSH Layout 和打包资格要求，不再作为 Core package 的独立事实源。
+
 本文面向 Agent Desktop Core 和 Runtime Adapter 维护者，只说明共享桌面 Core 什么时候存在、
 应该提供什么，以及插件怎样安全地使用它。新 Product Plugin 开发者应先阅读
 [Product Plugin 最小接入](product-plugin-quickstart.md)。

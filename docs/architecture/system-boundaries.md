@@ -8,6 +8,9 @@
 [ADR-0003](../adr/0003-hermit-bundled-dsh-web-source-patch.md)；具体接入义务见
 [DSH 集成契约](../contracts/dsh-integration.md)。
 
+多仓工作区的跨项目边界见外层 `docs/architecture/platform-boundaries.md`；本文只保留 Hermit
+Desktop 的产品架构、runtime 组合和宿主生命周期。
+
 ## 长期运行形态
 
 ```text

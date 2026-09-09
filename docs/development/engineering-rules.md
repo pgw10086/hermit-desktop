@@ -3,6 +3,9 @@
 本文档保存全仓库开发时长期有效的做事方式。产品范围、系统边界和接口行为分别由
 `specs/`、`docs/architecture/` 和 `docs/contracts/` 负责，不在这里重复。
 
+多仓工作区共同遵循的工程红线和测试证据见外层
+`docs/development/engineering-rules.md`；本文补充 Hermit Desktop 的工具链、运行时和发布约定。
+
 ## 修改原则
 
 - 先理解相关代码、调用关系、类型、测试和已有约定，再修改。

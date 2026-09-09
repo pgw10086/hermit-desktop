@@ -2425,7 +2425,6 @@ Hermit Product Surface v1 已按 ADR-0003 落地并通过同一插件 artifact �
   公共 contract spike；未确认前不依赖私有实现。
 
 项目仓库、工具链、PR0、第一条 Core-only vertical slice、GitHub/CI 和社区插件
-开放顺序见 `start-readiness.md`。已确认 Day-1 只新建 Private
-`pgw10086/hermit-vnext`，公开门通过后以 Apache-2.0 开放；本地仓库位于
-独立 checkout，当前 Mac 路径为 `/Users/pgw/Developer/codes/hermit-vnext`，不在旧仓库内
-创建嵌套 vNext 仓库。checkout 的绝对路径只是机器事实，不属于产品兼容契约。
+开放顺序见 `start-readiness.md`。当前产品仓库为 Private
+`pgw10086/hermit-desktop`，位于 `hermit-platform/hermit-desktop/` sibling checkout；旧
+`hermit-vnext` 只作为迁移源和回滚参考。checkout 的绝对路径只是机器事实，不属于产品兼容契约。

@@ -4,6 +4,9 @@
 
 日期：2026-09-04
 
+当前多仓工作区的跨项目入口见外层 `docs/adr/0007-agent-desktop-core-runtime-adapters.md`；本文件
+保留在 Hermit Desktop 作为产品仓库内的迁移来源说明。后续跨项目边界变更先更新外层文档。
+
 ## 背景
 
 原来的 `desktop-core` package 同时放了通用 Electron/Desktop 能力和 DSH 专属运行协议。两类代码

@@ -6,6 +6,10 @@
 API、生命周期和打包规则见[DSH 官方资料](../DEEPSEEK-HARNESS-UPSTREAM.md)，桌面能力见
 [Agent Desktop Core 开发规范](../docs/development/desktop-core-development.md)。
 
+多仓工作区的通用插件规则以外层
+`docs/development/product-plugin-development.md` 为准；本文只保留 Hermit DSH/Layout、Product
+Surface 和当前宿主组合的具体约定。
+
 ## 一个插件是什么
 
 一个插件是一套完整业务，可以有自己的 Host、Client、Tool 或 Agent Desktop Core 接入，但不要求

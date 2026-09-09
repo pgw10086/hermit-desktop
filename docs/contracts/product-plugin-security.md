@@ -1,5 +1,8 @@
 # 产品插件安全契约
 
+多仓工作区的共享安全规则见外层 `docs/contracts/shared-security-rules.md`；本文只定义 Hermit
+Product Plugin 的信任、Package Gate、Capability 和生命周期细节。
+
 产品插件（Product Plugin）是 Hermit 的信任和打包边界，不等同于进程内 Cordis
 plugin。
 

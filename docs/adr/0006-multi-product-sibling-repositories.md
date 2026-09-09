@@ -6,6 +6,9 @@
 
 替代：[ADR-0007：Agent Desktop Core 与 Runtime Adapter 分层](0007-agent-desktop-core-runtime-adapters.md)
 
+跨项目的当前入口已迁移到外层 `docs/adr/0007-agent-desktop-core-runtime-adapters.md`；本文只保留
+Hermit Desktop 仓库内的历史记录。
+
 以下正文保留原多产品拆仓决定，用于历史追溯；当前仓库不再维护 `new-product-desktop`。
 
 ## 背景

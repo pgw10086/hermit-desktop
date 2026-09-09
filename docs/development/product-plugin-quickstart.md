@@ -7,6 +7,9 @@
 被三个业务插件和 [`@hermit/dsh-plugin-reference`](../../packages/dsh-plugin-reference/README.md)
 验证过的公开契约，不提供业务基类，也不复制 DSH 私有实现。
 
+多仓工作区的通用插件边界和接入顺序见外层
+`docs/development/product-plugin-quickstart.md`；本文补充 Hermit 当前 runtime 和 capability 状态。
+
 ## Core 能力一览
 
 这里的平台分成三层：DSH 负责插件运行时和 AI；Agent Desktop Core 负责 Electron、操作系统
