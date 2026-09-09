@@ -17,7 +17,7 @@
     "sync:platform-lock": "node scripts/platform-lock.mjs sync",
     "update:platform-lock": "node scripts/update-platform-lock.mjs",
     "verify:toolchain": "node scripts/check-environment.mjs --require qualification",
-    "test:toolchain": "node --test scripts/toolchain-policy.test.mjs scripts/prepare-macos-release-assets.test.mjs scripts/prepare-windows-release-assets.test.mjs scripts/verify-release-input.test.mjs scripts/aggregate-release-assets.test.mjs scripts/publish-product-release.test.mjs apps/desktop-vnext/scripts/verify-windows-artifact.test.mjs apps/desktop-vnext/scripts/windows-release-environment.test.mjs",
+    "test:toolchain": "node --test scripts/toolchain-policy.test.mjs scripts/prepare-macos-release-assets.test.mjs scripts/prepare-windows-release-assets.test.mjs scripts/verify-release-input.test.mjs scripts/aggregate-release-assets.test.mjs scripts/publish-product-release.test.mjs apps/desktop-vnext/scripts/prepare-windows-icon.test.mjs apps/desktop-vnext/scripts/verify-windows-artifact.test.mjs apps/desktop-vnext/scripts/windows-release-environment.test.mjs",
     "test:platform-lock": "node --test scripts/platform-lock.test.mjs scripts/update-platform-lock.test.mjs",
     "test:package-product": "node --test scripts/package-product.test.mjs",
     "build:desktop": "corepack pnpm --filter @hermit/desktop build",

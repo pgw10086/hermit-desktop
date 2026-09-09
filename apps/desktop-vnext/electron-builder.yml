@@ -55,7 +55,7 @@ directories:
   output: dist
 win:
   # Windows 与 macOS 使用同一个 Hermit App Icon treatment；electron-builder 会从 PNG 生成 ICO。
-  icon: assets/brand/hermit/previews/hermit-app-icon-256.png
+  icon: ../../.hermit/artifacts/windows-app-icon.ico
   artifactName: "Hermit-${version}-${arch}.${ext}"
   target:
     - target: nsis

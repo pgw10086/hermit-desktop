@@ -36,6 +36,7 @@ const builderCli = path.join(appRoot, "node_modules", "electron-builder", "out",
 const electronInstallScript = path.join(appRoot, "node_modules", "electron", "install.js");
 const verifier = path.join(appRoot, "scripts", "verify-mac-artifact.mjs");
 const windowsVerifier = path.join(appRoot, "scripts", "verify-windows-artifact.mjs");
+const windowsIconScript = path.join(appRoot, "scripts", "prepare-windows-icon.mjs");
 const expectedNodeVersion = fs.readFileSync(path.join(repositoryRoot, ".node-version"), "utf8").trim();
 
 const mode = process.argv[2];
@@ -108,6 +109,7 @@ function packageDesktop(selectedMode) {
   run(bundledNode, [typescriptCli, "-p", "tsconfig.json"], appRoot, buildEnvironment);
   run(bundledNode, [tsdownCli, "-c", "tsdown.quick-retrieval.config.ts"], appRoot, buildEnvironment);
   run(bundledNode, [copyDesktopAssetsScript], appRoot, buildEnvironment);
+  if (isWindows) run(bundledNode, [windowsIconScript], repositoryRoot, buildEnvironment);
 
   if (selectedMode === "dir") {
     // 目录包用于本机测试，必须和已安装的 Hermit 隔离单实例锁与 userData。

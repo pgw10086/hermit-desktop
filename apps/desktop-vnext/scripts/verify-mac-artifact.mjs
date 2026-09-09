@@ -51,7 +51,7 @@ try {
 const cleanupFailures = [];
 if (mounted) {
   try {
-    run("hdiutil", ["detach", mountPoint]);
+    detachDiskImage(mountPoint);
   } catch (cause) {
     cleanupFailures.push(cause);
   }
@@ -183,5 +183,15 @@ function run(command, args, environment = process.env) {
   if (result.error !== undefined) throw result.error;
   if (result.status !== 0) {
     throw new Error(`${command} ${args.join(" ")} exited with ${String(result.status)}`);
+  }
+}
+
+/** 正常卸载优先；macOS runner 偶尔残留应用句柄时显式记录后强制卸载，仍保留最终失败。 */
+function detachDiskImage(mountPoint) {
+  try {
+    run("hdiutil", ["detach", mountPoint]);
+  } catch (cause) {
+    console.error(`Normal DMG detach failed; retrying with -force: ${cause instanceof Error ? cause.message : String(cause)}`);
+    run("hdiutil", ["detach", "-force", mountPoint]);
   }
 }
