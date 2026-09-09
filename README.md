@@ -16,7 +16,8 @@ Tool/Approval、插件双端、Electron main 强杀清理、预置 generation �
 Tray/登录项读写/正常退出证据已通过；Hermit 自有图标和第三方 attribution 已进入产物。
 最近一次启动状态会原子记录启动原因和 DSH ready；跨注销资格脚本只在明确授权后注册登录项，
 不会自行安装或删除应用，也不会触发注销。
-Windows 留到后续平台阶段；通用 AI Quick Panel 已完成独立模块 spec，首条 `conversation.quick`
+Windows x64 原生 candidate 已通过 GitHub Actions；Windows 正式签名和 Product Release 仍待远端
+凭据与发布门禁配置。通用 AI Quick Panel 已完成独立模块 spec，首条 `conversation.quick`
 和 Smart Clipboard 窗口迁移已经落地并通过 macOS packaged 验收，Smart Clipboard
 M1/M2 已形成 macOS 候选，包含插件专属快捷取回、完整 History、SQLite/FTS5 和
 主进程专用 Objective-C++ native bridge。无人值守测试没有读取或改写用户 General

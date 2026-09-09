@@ -2,7 +2,7 @@
 
 状态：`IN_PROGRESS`
 
-更新时间：2026-09-09
+更新时间：2026-09-10
 
 本文是 Hermit 从开发、Git 协作、第一方 package 制品到 Product Desktop 正式 Release 的当前
 需求和实施顺序。它只负责交付链路，不替代产品需求、系统边界、`platform-lock.json` 或
@@ -369,14 +369,16 @@ SHA，再写入内容寻址路径并更新产品锁。旧制品保留，不做�
 - Phase 1 的 spec、权威索引、正式发布输入门禁和发布清单来源证据；
 - Core/Plugin 的 package 制品准备、package Release publisher 和 hash-aware 幂等测试；
 - Product Desktop 的 `update-platform-lock.mjs`，以及内容寻址 tarball 接线；
-- Windows x64 candidate 打包入口、安装包命名、PE/app.asar 形状验证和本地计划测试。
+- Windows x64 candidate 打包入口、安装包命名、PE/app.asar 形状验证，以及原生 GitHub Actions
+  runner 的实跑证据（Product Desktop commit `f9bd2d4`，workflow run `34376669373`）。
 - macOS/Windows release 脚本、双平台聚合、Draft/下载回验 publisher 和 tag-only workflow
   的代码路径及单元测试。
 
 未完成：
 
 - package 仓库的远程 tag/Release 实跑；
-- Windows 正式签名和双平台原生 runner 实跑；
+- Windows 正式 Authenticode 签名仍未实跑；macOS arm64 和 Windows x64 的无签名 candidate
+  已在同一 Product Desktop commit 上通过原生 runner 验证；
 - Product Desktop tag-driven Release 的远端 Environment 审批、ruleset、签名 secret 和
   immutable Release 设置；
 - GitHub ruleset、签名 secret、生产 Environment 和正式发布演练。
