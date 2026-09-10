@@ -225,14 +225,19 @@ async function dismissOnboarding(page) {
 /** 重新启用 generation 可能恢复首次启动提示；只在遮罩真实出现时处理，避免掩盖正常启动失败。 */
 async function dismissOnboardingIfPresent(page) {
   const welcome = page.getByRole('dialog', { name: /^(Internal Testing Notice|内测声明)$/u })
-  if (await welcome.count() > 0 && await welcome.first().isVisible().catch(() => false)) {
-    await dismissOnboarding(page)
-    return
-  }
   const credential = page.getByRole('dialog', { name: /^(Add an API key to get started|添加一个 API Key 开始使用)$/u })
-  if (await credential.count() > 0 && await credential.first().isVisible().catch(() => false)) {
-    await credential.first().getByRole('button', { name: /^(Configure later|稍后配置)$/u }).click()
-    await credential.first().waitFor({ state: 'detached', timeout: 20_000 })
+  const deadline = Date.now() + 8_000
+  while (Date.now() < deadline) {
+    if (await welcome.count() > 0 && await welcome.first().isVisible().catch(() => false)) {
+      await dismissOnboarding(page)
+      return
+    }
+    if (await credential.count() > 0 && await credential.first().isVisible().catch(() => false)) {
+      await credential.first().getByRole('button', { name: /^(Configure later|稍后配置)$/u }).click()
+      await credential.first().waitFor({ state: 'detached', timeout: 20_000 })
+      return
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100))
   }
 }
 
