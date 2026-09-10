@@ -33,7 +33,7 @@ jobs:
       - name: Enable Corepack
         run: corepack enable
       - name: Verify tag, version and main commit
-        run: corepack pnpm run verify:release-input
+        run: node scripts/verify-release-input.mjs
       - name: Verify exact-commit candidate
         shell: bash
         env:
