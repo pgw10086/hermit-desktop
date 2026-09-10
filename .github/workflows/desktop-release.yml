@@ -166,7 +166,7 @@ jobs:
           cp ".hermit/artifacts/releases/$GITHUB_REF_NAME/release-manifest.json" release-assets/
           cp ".hermit/artifacts/releases/$GITHUB_REF_NAME/SHA256SUMS.txt" release-assets/
       - name: Upload Windows release evidence
-        uses: actions/upload-artifact@ea165f8f65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: hermit-release-windows-${{ github.sha }}
           path: release-assets
