@@ -61,6 +61,7 @@ Pasteboard；真实复制/自动粘贴/物理快捷键仍待 disposable 资格�
 - [Agent Desktop Core 适配器 ADR](docs/adr/0007-agent-desktop-core-runtime-adapters.md)：通用桌面 Core、Agent Runtime Adapter 和当前 package 边界；
 - [DSH 官方上游资料](DEEPSEEK-HARNESS-UPSTREAM.md)：当前 DSH 文档快照、版本和更新规则；
 - [macOS 发布流程](docs/development/macos-release.md)：版本、DMG、可选签名、Draft、下载回验和正式发布；
+- [GitHub 签名配置](docs/development/github-signing-setup.md)：macOS/Windows Environment secrets、证书编码和 reviewer 配置；
 - [端到端交付链路](specs/2026-09-09-product-delivery-pipeline.md)：从开发、package 制品、platform-lock 到 tag 驱动的跨平台 Release；
 - [Git 与 Hermit 打包入门](docs/development/git-and-release-beginner-guide.md)：面向 Git 新手的分支、commit、push、tag 和三种打包模式说明；
 - [平台制品锁](platform-lock.json)：本产品使用的 Core、Runtime Adapter、插件和 DSH 版本批次；
