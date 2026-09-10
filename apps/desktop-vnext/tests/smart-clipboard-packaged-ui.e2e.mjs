@@ -247,29 +247,9 @@ async function openSidebar(page) {
   const modalMask = page.locator('[aria-hidden="true"][class*="mask"]')
   if (await modalMask.isVisible().catch(() => false)) {
     await page.keyboard.press('Escape')
-    try {
-      await modalMask.waitFor({ state: 'hidden', timeout: 5_000 })
-    } catch (cause) {
-      const diagnostics = await modalMask.evaluateAll((nodes) => nodes.map((node) => ({
-        className: node.getAttribute('class'),
-        parentText: node.parentElement?.textContent?.slice(0, 500),
-        parentHtml: node.parentElement?.outerHTML?.slice(0, 3_000),
-      })))
-      console.error(`Smart Clipboard packaged UI modal diagnostics: ${JSON.stringify(diagnostics)}`)
-      throw cause
-    }
+    await modalMask.waitFor({ state: 'hidden', timeout: 5_000 })
   }
-  try {
-    await open.click()
-  } catch (cause) {
-    const diagnostics = await modalMask.evaluateAll((nodes) => nodes.map((node) => ({
-      className: node.getAttribute('class'),
-      parentText: node.parentElement?.textContent?.slice(0, 500),
-      parentHtml: node.parentElement?.outerHTML?.slice(0, 3_000),
-    })))
-    console.error(`Smart Clipboard packaged UI modal diagnostics: ${JSON.stringify(diagnostics)}`)
-    throw cause
-  }
+  await open.click()
 }
 
 async function waitForVisibleText(scope, text, timeout = 20_000) {
