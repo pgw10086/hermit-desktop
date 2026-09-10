@@ -36,6 +36,8 @@ topics:
     authority: docs/development/dsh-plugin-development-and-packaging.md
   macos-release:
     authority: docs/development/macos-release.md
+  github-signing-setup:
+    authority: docs/development/github-signing-setup.md
   git-and-release-beginner-guide:
     authority: docs/development/git-and-release-beginner-guide.md
   product-delivery-pipeline:

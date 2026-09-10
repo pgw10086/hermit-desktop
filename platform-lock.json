@@ -3,7 +3,7 @@
   "kind": "platform-lock",
   "product": {
     "id": "hermit",
-    "version": "0.2.2",
+    "version": "0.2.3",
     "repository": "https://github.com/pgw10086/hermit-desktop.git",
     "desktopManifest": "apps/desktop-vnext/package.json",
     "runtimeBundleManifest": "apps/desktop-vnext/runtime-bundle-manifest.json"
