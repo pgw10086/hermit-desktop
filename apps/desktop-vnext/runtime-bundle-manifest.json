@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "productSurfacePackage": {
     "packageName": "@deepseek-ai/dsh-client-ui-layout",
     "source": "packages/dsh-client-ui-layout",
@@ -7,17 +7,17 @@
   },
   "bundledPackages": [
     {
-      "moduleId": "organizer",
+      "packageName": "@hermit/organizer",
       "source": "apps/desktop-vnext/node_modules/@hermit/organizer",
       "hashPaths": ["package.json", "cordis.patch.yml", "lib"]
     },
     {
-      "moduleId": "smart-clipboard",
+      "packageName": "@hermit/smart-clipboard",
       "source": "apps/desktop-vnext/node_modules/@hermit/smart-clipboard",
       "hashPaths": ["package.json", "cordis.patch.yml", "lib"]
     },
     {
-      "moduleId": "file-workspace",
+      "packageName": "@hermit/file-workspace",
       "source": "apps/desktop-vnext/node_modules/@hermit/file-workspace",
       "hashPaths": ["package.json", "cordis.patch.yml", "lib"]
     }

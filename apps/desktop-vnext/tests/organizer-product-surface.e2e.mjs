@@ -9,16 +9,17 @@ import { createRequire } from 'node:module'
 import electronPath from 'electron'
 import { _electron as playwrightElectron } from 'playwright-core'
 import { copyRuntimeClosure } from '../scripts/after-pack.mjs'
-import { lockedPlatformArtifact } from './locked-platform-artifact.mjs'
+import { packInstalledPackage } from './installed-package-artifact.mjs'
 
 const appRoot = path.resolve(fileURLToPath(new URL('..', import.meta.url)))
 const repositoryRoot = path.resolve(appRoot, '..', '..')
-const pluginArtifact = lockedPlatformArtifact(repositoryRoot, 'organizer')
 const runtimeRoot = path.join(repositoryRoot, '.hermit', 'runtime')
 const bundledNode = path.join(runtimeRoot, 'node', process.platform === 'win32' ? 'node.exe' : path.join('bin', 'node'))
 const bundledDshRoot = path.join(runtimeRoot, 'dsh')
 const bundledDsh = path.join(bundledDshRoot, 'node_modules', '@deepseek-ai', 'dsh', 'lib', 'bin.js')
 const packageName = '@hermit/organizer'
+const artifactRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'hermit-organizer-package-'))
+const pluginArtifact = packInstalledPackage({ repositoryRoot, packageName, outputDirectory: artifactRoot })
 
 for (const required of [bundledNode, bundledDsh, pluginArtifact, electronPath]) {
   assert.equal(fs.existsSync(required), true, `Personal Organizer 资格缺少运行时文件：${required}`)
@@ -36,6 +37,7 @@ try {
   console.error(`Personal Organizer Product Surface 资格目录已保留：${root}`)
   throw cause
 } finally {
+  fs.rmSync(artifactRoot, { recursive: true, force: true })
   if (succeeded) fs.rmSync(root, { recursive: true, force: true })
 }
 

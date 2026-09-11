@@ -46,7 +46,8 @@ const runtimeManifest = JSON.parse(
 const dshUpstream = readDshUpstreamRegistry(repositoryRoot);
 if (
   JSON.stringify(generationManifest.dshUpstream) !== JSON.stringify(runtimeManifest.dshUpstream) ||
-  runtimeManifest.artifactMode !== "packed-tarball-v1" ||
+  runtimeManifest.artifactMode !== "installed-package-v1" ||
+  runtimeManifest.materializationPolicy !== "dsh-runtime-files-v1" ||
   generationManifest.dshUpstream?.packageVersion !== generationManifest.dshVersion ||
   generationManifest.dshUpstream?.commit !== dshUpstream.upstreamCommit ||
   generationManifest.dshUpstream?.snapshotChecksum !== dshUpstream.snapshotChecksum

@@ -4,7 +4,6 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { assertReleaseInput } from "./verify-release-input.mjs";
-import { windowsReleaseSigningMode } from "../apps/desktop-vnext/scripts/windows-release-environment.mjs";
 import { expectedWindowsInstallerName } from "../apps/desktop-vnext/scripts/verify-windows-artifact.mjs";
 
 const scriptPath = fileURLToPath(import.meta.url);
@@ -30,8 +29,6 @@ export function writeWindowsReleaseAssets({
   version,
   tag,
   commit,
-  signingMode,
-  platformLock,
   source = { tag, commit },
   build = {},
 }) {
@@ -56,16 +53,15 @@ export function writeWindowsReleaseAssets({
       ...source,
       tag: source.tag ?? tag,
       commit: source.commit ?? commit,
-      platformLockSha256: source.platformLockSha256 ?? platformLock.sha256,
     },
     build,
-    platformLock,
     artifact: { name: expectedName, bytes: info.size, sha256 },
+    signed: false,
+    notarized: false,
     steps: {
       sourceAndTag: "PASS",
       build: "PASS",
       installerVerification: "PASS",
-      signing: signingMode === "required" ? "PASS" : "SKIPPED",
     },
   };
   fs.mkdirSync(outputDirectory, { recursive: true });
@@ -132,27 +128,10 @@ function main() {
     version: source.version,
     tag: source.tag,
     commit: source.commit,
-    signingMode: windowsReleaseSigningMode(),
-    platformLock: readPlatformLockEvidence(defaultRepositoryRoot),
     source: readSourceEvidence(defaultRepositoryRoot, source),
     build: readBuildEvidence(),
   });
   console.log("Windows release assets prepared: " + output.checksumPath + "; " + output.manifestPath);
-}
-
-function readPlatformLockEvidence(repositoryRoot) {
-  const file = path.join(repositoryRoot, "platform-lock.json");
-  const lock = JSON.parse(fs.readFileSync(file, "utf8"));
-  return {
-    sha256: sha256File(file),
-    modules: lock.modules.map((module) => ({
-      id: module.id,
-      packageName: module.packageName,
-      version: module.version,
-      sourceCommit: module.sourceCommit,
-      artifactSha256: module.artifact.sha256,
-    })),
-  };
 }
 
 if (process.argv[1] !== undefined && path.resolve(process.argv[1]) === scriptPath) {

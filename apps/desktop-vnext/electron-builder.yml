@@ -1,15 +1,13 @@
 appId: io.github.pgw10086.hermit
 asar: true
 npmRebuild: false
-# package-desktop.mjs 会先准备锁定版本，Builder 只消费本地发行目录，避免二次下载。
 electronDist: node_modules/electron/dist
 afterPack: ./scripts/after-pack.mjs
-afterSign: ./scripts/after-sign.mjs
 files:
   - lib/**
   - package.json
   - '!node_modules/**'
-  # Core 与 Runtime Adapter 从 platform-lock 已验证 tarball 的物理 staging 装入 App；
+  # Core 与 Runtime Adapter 从 frozen install 后的 runtime staging 装入 App；
   # 禁止依赖开发仓库向上查找 node_modules 后“碰巧能启动”。
   - from: ../../.hermit/runtime/app-dependencies/node_modules/@platform/agent-desktop-core
     to: node_modules/@platform/agent-desktop-core
@@ -23,9 +21,8 @@ files:
       - package.json
       - LICENSE
       - lib/**/*
-  # 桌面主进程的 SQLite/动作逻辑静态引用 Smart Clipboard 的 host 包。
-  # 来源必须是已验证的 DSH runtime 闭包，而不是 workspace 源目录，保证
-  # app.asar 与 DSH profile 消费同一份构建字节。
+  # 桌面主进程的 SQLite/动作逻辑静态引用 Smart Clipboard 的 host 包，
+  # 来源必须是同一次 frozen install 生成的 DSH runtime 闭包。
   - from: ../../.hermit/runtime/dsh/node_modules/@hermit/smart-clipboard
     to: node_modules/@hermit/smart-clipboard
     filter:
@@ -75,8 +72,7 @@ mac:
     - dir
   category: public.app-category.productivity
   icon: build/icon.icns
-  hardenedRuntime: true
-  notarize: true
+  hardenedRuntime: false
   extendInfo:
     CFBundleAllowMixedLocalizations: true
     CFBundleDevelopmentRegion: zh_CN

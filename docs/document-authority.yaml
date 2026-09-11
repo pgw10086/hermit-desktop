@@ -36,14 +36,10 @@ topics:
     authority: docs/development/dsh-plugin-development-and-packaging.md
   macos-release:
     authority: docs/development/macos-release.md
-  github-signing-setup:
-    authority: docs/development/github-signing-setup.md
   git-and-release-beginner-guide:
     authority: docs/development/git-and-release-beginner-guide.md
   product-delivery-pipeline:
-    authority: specs/2026-09-09-product-delivery-pipeline.md
-  platform-lock:
-    authority: platform-lock.json
+    authority: specs/2026-09-11-npm-decoupled-delivery-pipeline.md
   dsh-upstream-documents:
     authority: DEEPSEEK-HARNESS-UPSTREAM.md
   product-plugin-ui:

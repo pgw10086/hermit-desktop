@@ -14,7 +14,9 @@ test("聚合 macOS/Windows 平台清单并生成最终 SHA256SUMS", () => {
     const output = path.join(root, "output");
     const result = aggregateReleaseAssets({ macDirectory: mac, windowsDirectory: windows, outputDirectory: output });
     assert.equal(result.manifest.artifacts.length, 2);
-    assert.equal(result.manifest.sources.win32.sourceLockfileSha256, "d".repeat(64));
+    assert.equal(result.manifest.signed, false);
+    assert.equal(result.manifest.notarized, false);
+    assert.equal(result.manifest.sources.win32.runner, "windows");
     assert.equal(fs.existsSync(path.join(output, "Hermit-0.2.2-arm64.dmg")), true);
     assert.match(fs.readFileSync(result.checksumPath, "utf8"), /release-manifest\.json/u);
   } finally {
@@ -22,7 +24,7 @@ test("聚合 macOS/Windows 平台清单并生成最终 SHA256SUMS", () => {
   }
 });
 
-test("平台版本或 platform-lock 不一致时拒绝聚合", () => {
+test("平台版本不一致时拒绝聚合", () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "hermit-release-aggregate-"));
   try {
     const mac = createPlatform(root, "mac", "darwin", "arm64", "Hermit-0.2.2-arm64.dmg", "mac artifact");
@@ -52,9 +54,10 @@ function createPlatform(root, name, platform, architecture, artifactName, conten
     tag: "v0.2.2",
     commit: "a".repeat(40),
     target: { platform, architecture },
-    source: { sourceLockfileSha256: "d".repeat(64) },
+    source: { runner: name },
     build: { runner: name },
-    platformLock: { sha256: "b".repeat(64), modules: [] },
+    signed: false,
+    notarized: false,
     artifact: { name: artifactName, bytes: Buffer.byteLength(contents), sha256: sha256File(artifactPath) },
   };
   fs.writeFileSync(path.join(directory, "release-manifest.json"), JSON.stringify(manifest, null, 2));

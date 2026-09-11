@@ -35,7 +35,6 @@ const allowedTopLevel = new Set([
   "LICENSE",
   "NOTICE",
   "package.json",
-  "platform-lock.json",
   "pnpm-lock.yaml",
   "pnpm-workspace.yaml",
   "README.md",
@@ -50,7 +49,6 @@ const allowedTopLevel = new Set([
   "plugins",
   "scripts",
   "specs",
-  "vendor",
 ]);
 
 // 当前没有真实的局部规则。新增 scoped AGENTS 时必须在布局评审中同步登记。

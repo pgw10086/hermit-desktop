@@ -11,18 +11,12 @@
   },
   "scripts": {
     "doctor": "node scripts/check-environment.mjs",
-    "verify:platform-lock": "node scripts/platform-lock.mjs verify --mode release",
-    "prepare:platform:release": "node scripts/platform-lock.mjs prepare --mode release",
-    "prepare:platform:dev": "node scripts/platform-lock.mjs prepare --mode dev --build-on-miss",
-    "sync:platform-lock": "node scripts/platform-lock.mjs sync",
-    "update:platform-lock": "node scripts/update-platform-lock.mjs",
     "verify:toolchain": "node scripts/check-environment.mjs --require qualification",
-    "test:toolchain": "node --test scripts/toolchain-policy.test.mjs scripts/prepare-macos-release-assets.test.mjs scripts/prepare-windows-release-assets.test.mjs scripts/verify-release-input.test.mjs scripts/verify-candidate-run.test.mjs scripts/aggregate-release-assets.test.mjs scripts/publish-product-release.test.mjs apps/desktop-vnext/scripts/prepare-windows-icon.test.mjs apps/desktop-vnext/scripts/verify-windows-artifact.test.mjs apps/desktop-vnext/scripts/windows-release-environment.test.mjs",
-    "test:platform-lock": "node --test scripts/platform-lock.test.mjs scripts/update-platform-lock.test.mjs",
-    "test:package-product": "node --test scripts/package-product.test.mjs",
+    "test:toolchain": "node --test scripts/toolchain-policy.test.mjs scripts/prepare-macos-release-assets.test.mjs scripts/prepare-windows-release-assets.test.mjs scripts/verify-release-input.test.mjs scripts/aggregate-release-assets.test.mjs scripts/publish-product-release.test.mjs apps/desktop-vnext/scripts/prepare-windows-icon.test.mjs apps/desktop-vnext/scripts/verify-windows-artifact.test.mjs",
+    "build": "corepack pnpm --filter @hermit/desktop build",
     "build:desktop": "corepack pnpm --filter @hermit/desktop build",
     "test:desktop": "corepack pnpm --filter @hermit/desktop test",
-    "prepare:desktop-runtime": "node scripts/platform-lock.mjs prepare --mode release && corepack pnpm --filter @hermit/desktop prepare:runtime",
+    "prepare:desktop-runtime": "corepack pnpm --filter @hermit/desktop prepare:runtime",
     "package:desktop:dir": "corepack pnpm --filter @hermit/desktop package:dir",
     "dist:desktop:mac:smoke": "corepack pnpm --filter @hermit/desktop dist:mac:smoke",
     "dist:desktop:mac": "corepack pnpm --filter @hermit/desktop dist:mac",
@@ -56,7 +50,7 @@
     "qualification:install": "node scripts/qualification/verify-clean-install.mjs",
     "qualification:typecheck": "node node_modules/typescript/bin/tsc -p scripts/qualification/tsconfig.json",
     "test:qualification": "node --test scripts/qualification/qualification.test.mjs",
-    "test": "corepack pnpm run verify:toolchain && corepack pnpm run test:toolchain && corepack pnpm run test:platform-lock && corepack pnpm run test:package-product && node scripts/verify-agent-contracts.mjs && node scripts/check-document-governance.mjs && node scripts/verify-plugin-manifests.mjs && node scripts/verify-dsh-upstream-snapshot.mjs && corepack pnpm run verify:peers && corepack pnpm run qualification:public-contracts && node --test scripts/qualification/qualification.test.mjs && corepack pnpm --filter @hermit/desktop test"
+    "test": "corepack pnpm run verify:toolchain && corepack pnpm run test:toolchain && node scripts/verify-agent-contracts.mjs && node scripts/check-document-governance.mjs && node scripts/verify-plugin-manifests.mjs && node scripts/verify-dsh-upstream-snapshot.mjs && corepack pnpm run verify:peers && corepack pnpm run qualification:public-contracts && node --test scripts/qualification/qualification.test.mjs && corepack pnpm --filter @hermit/desktop test"
   },
   "devDependencies": {
     "@deepseek-ai/dsh": "0.1.1-rc.2",

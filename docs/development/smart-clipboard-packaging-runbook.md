@@ -12,12 +12,12 @@ Smart Clipboard 不是把一个页面复制进桌面包。一次完整交付包�
 
 | 制品 | 用途 | 当前产出方式 |
 | --- | --- | --- |
-| `@hermit/smart-clipboard-*.tgz` | 安装到 stock DSH 或 Hermit 的 DSH profile | `pnpm pack` |
+| `@hermit/smart-clipboard` npm package | Desktop 通过 exact version 消费 | package release workflow |
 | `Hermit.app` 目录包 | 本机开发和隔离启动验收 | `package:desktop:dir` |
 | `Hermit-<version>-arm64.dmg` | macOS smoke 或发布制品 | `dist:desktop:mac:smoke` / `dist:desktop:mac` |
 
-插件 package 当前是 `private`，所以只生成本地 `.tgz`，不发布到 npm。桌面包内仍有两处
-有明确职责的物理投影，但它们必须来自同一个 runtime 制品来源：
+插件 package 已发布到 public npm。桌面包内仍有两处有明确职责的物理投影，但它们必须来自
+同一次 frozen install 的同一 package 版本：
 
 - `Resources/runtime/.../dsh/node_modules/@hermit/smart-clipboard`：给 DSH profile 安装和
   Client/Host 运行的插件制品；
@@ -64,11 +64,11 @@ userData 切到 `~/Library/Application Support/Hermit Test`，因此不会被已
 corepack pnpm --filter @hermit/smart-clipboard test
 ```
 
-如果要检查可安装包内容，在临时目录生成一次 tarball：
+如果要检查可安装包内容，在临时目录从已安装 package 生成一次测试 tarball：
 
 ```sh
 artifact_dir=$(mktemp -d /tmp/hermit-smart-clipboard-artifact-XXXXXX)
-corepack pnpm --filter @hermit/smart-clipboard pack --pack-destination "$artifact_dir"
+(cd apps/desktop-vnext/node_modules/@hermit/smart-clipboard && corepack pnpm pack --pack-destination "$artifact_dir")
 tar -tzf "$artifact_dir"/*.tgz
 ```
 
@@ -80,7 +80,7 @@ tar -tzf "$artifact_dir"/*.tgz
 corepack pnpm run test:smart-clipboard:product-surface
 ```
 
-该测试会从当前源码打包同一个 `.tgz`，在 stock DSH 中确认 settings fallback 和
+该测试会从当前已安装 package 生成同一个临时 `.tgz`，在 stock DSH 中确认 settings fallback 和
 unavailable，在 Hermit bundled DSH 中确认侧栏和 History 入口。stock 与 Hermit 不生成
 两份插件实现；stock 缺少 Hermit 专属 capability 时显示明确不可用是预期行为。
 
@@ -166,39 +166,34 @@ smoke 只用于日常打包检查。需要发布 GitHub Release 时，继续执�
 | packaged UI 失败 | 桌面集成或生命周期回归 | 不进入 DMG |
 | DMG 中 `ERR_MODULE_NOT_FOUND` | app.asar 依赖漏打包 | 检查 `electron-builder.yml` 的 app 内 host 依赖和隔离启动 |
 | DMG 首次启动卡在系统对话框 | macOS 人工授权尚未完成 | 把应用切到前台完成授权后重跑；不要改成静默绕过 |
-| native bridge 无法加载 | 平台、Electron/N-API 或签名不匹配 | 按 manifest、架构和动态依赖检查修复 |
-| 没有 Developer ID | 本次不能执行签名、公证和 staple | 若发布决定为 `skip`，如实记录三个 `SKIPPED`；若决定为 `required`，停止发布 |
+| native bridge 无法加载 | 平台、Electron/N-API 或依赖闭包不匹配 | 按 manifest、架构和动态依赖检查修复 |
+| 未签名安全提示 | 当前阶段未购买签名和公证 | 在 Release 说明中标记 unsigned/not notarized；这不是构建失败 |
 
 ## 版本更新清单
 
 1. 先更新外层工作区的 `../plugin-smart-clipboard/DESIGN.md`（若产品行为变化），再改实现和测试。
-2. 更新插件版本；如果桌面随包版本或 DSH/runtime 发生变化，按同一变更更新对应 manifest
-   和锁文件。
-3. 清理并重新构建插件和 bundled runtime，不能复用上一次 `.tgz`、`dist` 或 profile。
-4. 按本文第 1 至第 5 步重跑；任何输入 hash、解析版本、source patch 或 native manifest
-   变化都要重新做资格检查。
-5. 记录 `.tgz`、app-dir 和 DMG 的版本、SHA-256、平台架构和测试结果；证据放在
-   `.hermit/artifacts/`，不提交本地缓存。
-6. 需要形成 GitHub 版本时，按统一发布流程显式选择签名方式并运行正式入口：
+2. 更新插件版本并发布 public npm package；Desktop 使用 exact version 更新依赖和 `pnpm-lock.yaml`。
+3. 清理并重新构建插件和 bundled runtime，不能复用上一次 `dist` 或 profile。
+4. 按本文第 1 至第 5 步重跑；任何 package、runtime 或 native manifest 变化都要重新做资格检查。
+5. 记录 npm package、app-dir 和 DMG 的版本、平台架构和测试结果；证据放在 `.hermit/artifacts/`，
+   不提交本地缓存。
+6. 需要形成 GitHub 版本时，直接运行未签名的 macOS 打包入口：
 
    ```sh
-   HERMIT_MAC_RELEASE_SIGNING=skip corepack pnpm run dist:desktop:mac
-   # 有完整 Developer ID 和公证凭据时使用 required
-   HERMIT_MAC_RELEASE_SIGNING=required corepack pnpm run dist:desktop:mac
+   corepack pnpm run dist:desktop:mac
    ```
 
 ## 明确不要做
 
 - 不要手工把 workspace 的 `lib` 目录复制到用户 profile 或安装目录；
 - 不要把 workspace symlink 当成发布制品；
-- 不要发布当前 `private` 插件包到 npm；
+- package 发布前必须移除 `private: true` 并设置 public npm access；
 - 不要用真实用户 profile、真实剪贴板或真实文件做自动化测试；
 - 不要为了通过启动而把 `NODE_PATH`、私有 DOM/Router 或第二套插件实现塞进桌面包；
-- 不要隐瞒或模糊签名、公证、staple 的实际状态。
+- 不要把未签名制品描述成已经签名或公证。
 
 ## 当前仍未闭合的资格
 
 当前代码和 smoke DMG 已证明插件、桌面、DSH runtime、Product Surface、app.asar 依赖和
 DMG 冷启动闭环。真实 General Pasteboard 的复制/显式粘贴、辅助功能授权、物理快捷键、
-签名、公证、Gatekeeper 和真实重启仍是独立证据，不因 smoke DMG 通过而自动视为完成；
-其中发布步骤是否为必做，以统一发布流程和当次选择为准。
+Gatekeeper 和真实重启仍是独立证据，不因 smoke DMG 通过而自动视为完成。
