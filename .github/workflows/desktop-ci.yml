@@ -42,4 +42,4 @@ jobs:
         run: corepack pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Run Desktop checks
-        run: corepack pnpm test
+        run: xvfb-run --auto-servernum --server-args='-screen 0 1920x1080x24' corepack pnpm test
