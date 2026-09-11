@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   verify:
-    name: Verify Desktop dependency composition
+    name: Product Desktop only
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
