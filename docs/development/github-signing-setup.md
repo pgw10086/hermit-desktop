@@ -149,10 +149,12 @@ GitHub → pgw10086/hermit-desktop → Settings → Environments → production-
 
     git ls-remote origin refs/tags/v0.2.3^{}
 
-当前应指向 57460de...。配置完成后重跑已有失败的正式 workflow：
+应指向当前远端 main 的同一个 commit；如果不一致，先停止并让发布负责人重新对齐 tag 和
+Candidate，不能直接移动已经发布的 tag。配置完成后重跑对应的正式 workflow：
 
-    gh run rerun 34430131506 --repo pgw10086/hermit-desktop
-    gh run watch 34430131506 --repo pgw10086/hermit-desktop
+    release_run=$(gh run list --repo pgw10086/hermit-desktop --workflow desktop-release.yml --limit 1 --json databaseId --jq '.[0].databaseId')
+    gh run rerun "$release_run" --repo pgw10086/hermit-desktop
+    gh run watch "$release_run" --repo pgw10086/hermit-desktop
 
 正常顺序：
 
