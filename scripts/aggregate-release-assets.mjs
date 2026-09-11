@@ -16,15 +16,11 @@ export function aggregateReleaseAssets({
 } = {}) {
   const mac = readPlatformRelease(macDirectory, { platform: "darwin", architecture: "arm64" });
   const windows = readPlatformRelease(windowsDirectory, { platform: "win32", architecture: "x64" });
-  for (const field of ["product", "version", "tag", "commit"]) {
+  for (const field of ["product", "version", "tag", "commit", "signed", "notarized"]) {
     if (JSON.stringify(mac.manifest[field]) !== JSON.stringify(windows.manifest[field])) {
       throw new Error("Release platform manifests disagree on " + field);
     }
   }
-  if (mac.manifest.platformLock?.sha256 !== windows.manifest.platformLock?.sha256) {
-    throw new Error("Release platform manifests disagree on platform-lock SHA-256");
-  }
-
   fs.mkdirSync(outputDirectory, { recursive: true });
   const artifacts = [mac, windows].map(({ directory, manifest }) => {
     const source = path.join(directory, manifest.artifact.name);
@@ -60,7 +56,8 @@ export function aggregateReleaseAssets({
       darwin: mac.manifest.build,
       win32: windows.manifest.build,
     },
-    platformLock: mac.manifest.platformLock,
+    signed: mac.manifest.signed,
+    notarized: mac.manifest.notarized,
     artifacts,
     steps: {
       sourceAndTag: "PASS",

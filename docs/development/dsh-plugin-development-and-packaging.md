@@ -6,9 +6,9 @@
 DSH/Cordis 的插件 API、生命周期、Bundle/Profile、CLI 和 Client Modules 规则不在本文重新
 定义，统一以[当前 DSH 官方上游资料快照](../../DEEPSEEK-HARNESS-UPSTREAM.md)为准。
 
-本产品使用的 Core、Runtime Adapter 和第一方插件版本、来源 commit、子项目 lockfile 摘要及制品
-SHA-256 统一记录在仓库根目录的 [`platform-lock.json`](../../platform-lock.json)；本文不再复制
-一份模块版本表。
+本产品使用的 Core、Runtime Adapter 和第一方插件由各自仓库发布为 public npm package；
+Product Desktop 通过 `package.json` 的 exact version 和 `pnpm-lock.yaml` 选择实际组合。本文不再
+复制一份模块版本表。
 
 插件平时如何写，见[Product Plugin 开发规范](../../plugins/development-guidelines.md)；需要
 Electron、系统剪贴板、全局快捷键或原生窗口时，先看[Desktop Core 开发规范](desktop-core-development.md)。
@@ -34,7 +34,7 @@ Hermit 只在这里增加自己的规则：
 
 - DSH 官方 Git commit 和 tag；
 - 实际 DSH package 版本；
-- Hermit lockfile 解析结果；
+- Hermit `pnpm-lock.yaml` 解析结果；
 - Product Surface source patch 的上游 commit（如有）；
 - runtime generation 和插件制品摘要。
 
@@ -55,18 +55,16 @@ Electron 主进程也不属于普通插件的公共依赖。只有确实拥有�
 
 ## 一次构建、一个制品
 
-候选插件从当前源码只构建一次，并保留同一个 `.tgz`：
+插件仓库从当前源码只构建一次，并发布一个不可变 npm 版本：
 
 ```sh
 corepack pnpm --filter @hermit/<plugin> test
-artifact_dir=$(mktemp -d /tmp/hermit-plugin-artifact-XXXXXX)
-corepack pnpm --filter @hermit/<plugin> pack --pack-destination "$artifact_dir"
-tar -tzf "$artifact_dir"/*.tgz
-shasum -a 256 "$artifact_dir"/*.tgz
+corepack pnpm pack --dry-run
 ```
 
-制品必须预先构建，目标 Profile 不得依赖 `prepare` 或目标机器重新编译。stock DSH 和 Hermit
-bundled DSH 安装、运行和验收同一份 `.tgz`，不能为两个宿主维护两套实现。
+制品必须预先构建，目标 Profile 不得依赖目标机器重新编译。stock DSH 和 Hermit bundled DSH
+都消费同一 npm package 版本；资格测试需要临时 tarball 时，从当前安装的 package 生成，不回到
+兄弟仓库源码。
 
 ## Hermit runtime 闭包
 
@@ -74,29 +72,29 @@ bundled DSH 安装、运行和验收同一份 `.tgz`，不能为两个宿主维�
 负责声明：
 
 - Product Surface patch package；
-- runtime 闭包需要携带的 `platform-lock` 模块 ID；
+- runtime 闭包需要携带的 package name；
 - 已安装 package 在仓库内的投影位置和需要计算内容摘要的发布路径。
 
-插件 package name、版本、repository、source commit、tarball 路径和 SHA-256 只在
-`platform-lock.json` 维护，runtime 清单不得复制。准备 runtime 时先按 `moduleId` 关联两份清单；
-关联失败或插件集合不一致直接失败。
+插件 package name 和版本由 Desktop `package.json`/`pnpm-lock.yaml` 决定，runtime 清单不复制
+版本事实，只声明需要投影的 package name 和合法来源路径。准备 runtime 时如果 package 缺失或
+名称不一致直接失败。
 
 `prepare:dsh-runtime` 应完成以下工作：
 
-1. 按 `platform-lock` 关联并校验选定的固定制品；
-2. 用 bundled Node 构建仓库内 Product Surface package，并把锁定的插件 tarball 内容物化进 runtime 闭包；
-3. 计算 lock、workspace、runtime 清单和构建产物的 SHA-256；
+1. 使用当前 frozen install 的已发布 npm package；
+2. 用 bundled Node 构建仓库内 Product Surface package，并把已安装插件 package 内容物化进 runtime 闭包；
+3. 计算 package、workspace、runtime 清单和构建产物的 SHA-256；
 4. 生成可搬运的物理 `node_modules` 闭包；
 5. 安装并校验 Hermit layout Product Surface source patch，以及固定 DSH Workspace 的前台
    会话导航 source patch；
 6. 校验 DSH CLI、pnpm、链接、依赖和闭包路径；
 7. 写入 runtime generation manifest，并记录 DSH 版本批次、两个 source patch 的摘要、
-   `packed-tarball-v1` 模式、发布文件内容摘要和实际 `.tgz` 摘要。
+   `installed-package-v1` 模式和发布文件内容摘要。
 
 Electron 只把自己的壳放入 ASAR。DSH 闭包、bundled Node、pnpm 和 source patch 放在
 `resources/runtime/`。只有 Electron 主进程静态 import 的 host package 才能额外进入
 `app.asar/node_modules`；这份复制必须来自同一个已构建制品，不能重新从 workspace 取一份。
-其中 Core 和 Runtime Adapter 由 `platform-lock prepare` 从锁定 tarball 物化到
+其中 Core 和 Runtime Adapter 从 frozen install 后的 npm package 物化到
 `.hermit/runtime/app-dependencies`，Electron Builder 只能从这个物理 staging 装配，不能依赖
 仓库根或 pnpm store 的向上查找。
 
@@ -156,12 +154,12 @@ corepack pnpm --filter @hermit/desktop verify:packaged-runtime
 ```
 
 需要桌面或 native 能力时，再运行对应的 Product Surface、packaged UI 和目标平台资格测试。
-插件检查通过后，桌面版本统一进入 [macOS 发布流程](macos-release.md)。签名、公证和 staple
-是否执行由该次发布明确选择并记录，不在插件规范里重复设置发布门槛。
+插件检查通过后，桌面版本统一进入 [macOS 发布流程](macos-release.md)。当前发布不执行签名、公证
+或 staple，未来重新启用时另行更新发布规范。
 
 ## 证据和失败处理
 
-- 每个候选记录 DSH 版本批次、插件版本、发布内容摘要、`.tgz` SHA-256、解析版本、runtime generation、
+- 每个候选记录 DSH 版本批次、插件版本、发布内容摘要、解析版本、runtime generation、
   平台架构和 Package Gate 结果；
 - 构建、类型或业务测试失败，从 L1 修复后重跑；
 - stock unavailable、Hermit available 如果确实是 capability 差异，记录为宿主差异，不复制

@@ -1,6 +1,6 @@
 import { forwardRef, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
-import { actionAvailable, actionLabel, DEFAULT_ACTION_MAPPING, type ActionMapping, type ClipboardAction } from '@hermit/smart-clipboard/actions'
-import type { ClipboardOperationResult, ClipboardWireEntry, SmartClipboardClientApi } from '@hermit/smart-clipboard/client-api'
+import { actionAvailable, actionLabel, DEFAULT_ACTION_MAPPING, type ActionMapping, type ClipboardAction } from '@tianbuyv/smart-clipboard/actions'
+import type { ClipboardOperationResult, ClipboardWireEntry, SmartClipboardClientApi } from '@tianbuyv/smart-clipboard/client-api'
 import css from './QuickRetrievalApp.module.css'
 
 declare global {

@@ -1,6 +1,6 @@
 import { BrowserWindow, dialog, nativeImage, Notification, type IpcMain, type IpcMainInvokeEvent } from 'electron'
-import type { DesktopSurfaceCloseOptions } from '@platform/agent-desktop-core'
-import type { ClipboardEntry } from '@hermit/smart-clipboard/domain'
+import type { DesktopSurfaceCloseOptions } from '@tianbuyv/agent-desktop-core'
+import type { ClipboardEntry } from '@tianbuyv/smart-clipboard/domain'
 import type { ClipboardCoreService } from './service.js'
 import { parseRequest, type ClipboardWireEntry, type SmartClipboardRequest } from './ipc-contract.js'
 

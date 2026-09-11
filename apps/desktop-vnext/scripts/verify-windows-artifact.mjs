@@ -4,15 +4,11 @@ import { execFileSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { windowsReleaseSigningMode } from "./windows-release-environment.mjs";
 
 const scriptPath = fileURLToPath(import.meta.url);
 const appRoot = path.resolve(path.dirname(scriptPath), "..");
 
-/**
- * 验证 Windows x64 安装包和 unpacked 目录的真实内容。签名模式为 release 时才调用
- * signtool；candidate 不读取签名凭据，也不因机器上是否存在证书改变结果。
- */
+/** 验证 Windows x64 安装包和 unpacked 目录的真实内容。 */
 export function verifyWindowsArtifact({
   appRoot: root = appRoot,
   mode = "smoke",
@@ -25,7 +21,6 @@ export function verifyWindowsArtifact({
     throw new Error("Windows artifact verification requires a native Windows x64 host");
   }
   const desktopManifest = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
-  const signingMode = mode === "release" ? windowsReleaseSigningMode() : "skip";
   const outputDirectory = path.join(root, "dist", mode === "release" ? "win-release" : "win-smoke");
   const installerName = expectedWindowsInstallerName(desktopManifest.version);
   const installerPath = path.join(outputDirectory, installerName);
@@ -41,8 +36,7 @@ export function verifyWindowsArtifact({
   for (const required of ["lib/main.js", "package.json"]) {
     if (!entries.includes(required)) throw new Error("Windows app.asar is missing " + required);
   }
-  if (mode === "release" && signingMode === "required") verifySignature(run, installerPath);
-  console.log("Windows " + mode + " artifact passed: " + installerPath);
+  console.log("Windows " + mode + " unsigned artifact passed: " + installerPath);
   return { installerPath, installerName, mode };
 }
 
@@ -82,14 +76,6 @@ export function findAsarCli(root) {
     if (candidate !== undefined) return candidate;
   }
   throw new Error("Unable to locate the @electron/asar CLI");
-}
-
-function verifySignature(run, installerPath) {
-  const output = run("signtool.exe", ["verify", "/pa", "/all", "/v", installerPath]);
-  const expectedSubject = process.env.WINDOWS_SIGNER_SUBJECT?.trim();
-  if (expectedSubject !== undefined && expectedSubject !== "" && !output.includes(expectedSubject)) {
-    throw new Error("Windows installer signer does not match WINDOWS_SIGNER_SUBJECT");
-  }
 }
 
 function assertRegularNonEmptyFile(file) {

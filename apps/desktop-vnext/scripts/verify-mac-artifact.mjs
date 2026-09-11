@@ -6,7 +6,6 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { readDshUpstreamRegistry } from "../../../scripts/dsh-upstream.mjs";
-import { macReleaseSigningMode } from "./mac-release-environment.mjs";
 
 const scriptPath = fileURLToPath(import.meta.url);
 const appRoot = path.resolve(path.dirname(scriptPath), "..");
@@ -16,7 +15,6 @@ const mode = process.argv[2];
 if (!new Set(["smoke", "release"]).has(mode)) {
   throw new Error("Usage: verify-mac-artifact.mjs <smoke|release> [dist-directory]");
 }
-const signingMode = mode === "release" ? macReleaseSigningMode(process.env) : "skip";
 if (process.platform !== "darwin" || process.arch !== "arm64") {
   throw new Error("macOS artifact verification requires a native Apple Silicon host");
 }
@@ -43,7 +41,7 @@ let failure;
 try {
   run("hdiutil", ["attach", dmgPath, "-mountpoint", mountPoint, "-nobrowse", "-readonly"]);
   mounted = true;
-  verifyApplication(appPath, mode);
+  verifyApplication(appPath);
 } catch (cause) {
   failure = cause;
 }
@@ -67,12 +65,9 @@ if (failure !== undefined || cleanupFailures.length > 0) {
   throw new AggregateError(errors, `Failed to verify macOS ${mode} DMG ${path.basename(dmgPath)}`);
 }
 
-const optionalSteps = mode === "release"
-  ? `; signing=${signingMode === "required" ? "PASS" : "SKIPPED"}; notarization=${signingMode === "required" ? "PASS" : "SKIPPED"}; stapling=${signingMode === "required" ? "PASS" : "SKIPPED"}`
-  : "";
-console.log(`macOS ${mode} DMG passed: ${dmgPath}${optionalSteps}`);
+console.log(`macOS ${mode} unsigned DMG passed: ${dmgPath}`);
 
-function verifyApplication(applicationPath, verificationMode) {
+function verifyApplication(applicationPath) {
   const contents = path.join(applicationPath, "Contents");
   const resources = path.join(contents, "Resources");
   const executable = path.join(contents, "MacOS", "Hermit");
@@ -144,12 +139,6 @@ function verifyApplication(applicationPath, verificationMode) {
     },
   );
 
-  if (verificationMode === "release" && signingMode === "required") {
-    run("codesign", ["--verify", "--deep", "--strict", "--verbose=2", applicationPath]);
-    run("codesign", ["--verify", "--strict", "--verbose=2", nodeBinary]);
-    run("spctl", ["--assess", "--type", "execute", "--verbose=4", applicationPath]);
-    run("xcrun", ["stapler", "validate", applicationPath]);
-  }
 }
 
 function assertRegularNonEmptyFile(file) {

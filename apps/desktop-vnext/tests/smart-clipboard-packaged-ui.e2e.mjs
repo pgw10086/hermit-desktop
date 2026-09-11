@@ -125,7 +125,7 @@ try {
   application = undefined
   const profilePath = path.join(userData, 'dsh-home', 'profiles', 'web', 'package.json')
   const profile = JSON.parse(fs.readFileSync(profilePath, 'utf8'))
-  profile.dsh.profile.bundles = profile.dsh.profile.bundles.filter((name) => name !== '@hermit/smart-clipboard')
+  profile.dsh.profile.bundles = profile.dsh.profile.bundles.filter((name) => name !== '@tianbuyv/smart-clipboard')
   fs.writeFileSync(profilePath, `${JSON.stringify(profile, null, 2)}\n`)
 
   application = await launchApplication()
@@ -138,7 +138,7 @@ try {
   await application.close()
   application = undefined
 
-  profile.dsh.profile.bundles.push('@hermit/smart-clipboard')
+  profile.dsh.profile.bundles.push('@tianbuyv/smart-clipboard')
   fs.writeFileSync(profilePath, `${JSON.stringify(profile, null, 2)}\n`)
   application = await launchApplication()
   const reenabledPage = await waitForMainWindow(application)

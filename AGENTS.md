@@ -55,8 +55,8 @@
   `docs/development/engineering-rules.md`。
 - 打包、校验、创建 tag 或发布 GitHub Release：读取
   `docs/development/macos-release.md`。
-- 修改产品依赖、第一方制品或最终打包组合：先读取 `platform-lock.json` 和父目录的
-  `docs/development/platform-packaging.md`。
+- 修改产品依赖、第一方制品或最终打包组合：先读取 `apps/desktop-vnext/package.json`、
+  `pnpm-lock.yaml` 和父目录的 `docs/development/platform-packaging.md`。
 
 ## 项目红线
 

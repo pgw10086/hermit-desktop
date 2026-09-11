@@ -1,4 +1,4 @@
-import { ActivationLease } from "@platform/agent-desktop-core";
+import { ActivationLease } from "@tianbuyv/agent-desktop-core";
 import type {
   ClipboardQualificationPort,
   LockQualificationPort,

@@ -1,8 +1,12 @@
 # Hermit Product Desktop 端到端交付链路
 
-状态：`IN_PROGRESS`
+状态：`SUPERSEDED`
 
 更新时间：2026-09-10
+
+本文件已由
+[2026-09-11-npm-decoupled-delivery-pipeline.md](2026-09-11-npm-decoupled-delivery-pipeline.md)
+取代。旧内容仅保留用于回溯之前的 tarball、Candidate、签名和公证方案，不再作为当前实现依据。
 
 本文是 Hermit 从开发、Git 协作、第一方 package 制品到 Product Desktop 正式 Release 的当前
 需求和实施顺序。它只负责交付链路，不替代产品需求、系统边界、`platform-lock.json` 或

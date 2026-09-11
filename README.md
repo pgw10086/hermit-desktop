@@ -1,170 +1,82 @@
 # Hermit Desktop
 
-Hermit Desktop 是以通过兼容性检查的 DeepSeek Harness（DSH）为底座的本地优先
-桌面 AI 工作台。Electron 只负责桌面外壳和 DSH 进程生命周期；DSH 负责官方 Web、AI
-Session、Tool、Approval、Settings 和插件运行时；个人事务、文件工作台、智能剪贴板
-等能力以可独立安装的 DSH Product Plugin 提供。
+Hermit Desktop 是以 DeepSeek Harness（DSH）为底座的本地优先桌面 AI 工作台。Electron 负责
+桌面外壳和 DSH 进程生命周期；DSH 负责官方 Web、Session、Tool、Approval、Settings 和插件
+运行时；个人事务、文件工作台、智能剪贴板等能力由独立 Product Plugin 提供。
 
-当前状态：Public incubation。M1 Electron + stock DSH Web 桌面底座实现已完成，后续 Hermit
-bundled DSH generation 在必要时可按 [ADR-0003](docs/adr/0003-hermit-bundled-dsh-web-source-patch.md)
-携带经过审计的最小 source patch；Product Surface v1 已完成源码、许可证、摘要门禁和
-Smart Clipboard 同制品双宿主验证。macOS Apple Silicon 的本地资格已通过真实菜单栏交互和注销后自动启动；版本发布统一按
-[macOS 发布流程](docs/development/macos-release.md)执行，某一版是否签名、公证及其实际制品
-以 [GitHub Releases](https://github.com/pgw10086/hermit-desktop/releases) 和随包发布清单为准。
-runtime closure、app-dir、DMG 只读挂载冷启动、官方 UI、keyless
-Tool/Approval、插件双端、Electron main 强杀清理、预置 generation 回滚，以及 packaged
-Tray/登录项读写/正常退出证据已通过；Hermit 自有图标和第三方 attribution 已进入产物。
-最近一次启动状态会原子记录启动原因和 DSH ready；跨注销资格脚本只在明确授权后注册登录项，
-不会自行安装或删除应用，也不会触发注销。
-Windows x64 原生 candidate 已通过 GitHub Actions；Windows 正式签名和 Product Release 仍待远端
-凭据与发布门禁配置。通用 AI Quick Panel 已完成独立模块 spec，首条 `conversation.quick`
-和 Smart Clipboard 窗口迁移已经落地并通过 macOS packaged 验收，Smart Clipboard
-M1/M2 已形成 macOS 候选，包含插件专属快捷取回、完整 History、SQLite/FTS5 和
-主进程专用 Objective-C++ native bridge。无人值守测试没有读取或改写用户 General
-Pasteboard；真实复制/自动粘贴/物理快捷键仍待 disposable 资格。签名、公证和 staple 是
-完整发布流程中的可选步骤，执行或跳过都必须明确记录，不能由本机证书状态自动决定。
-产品范围见[核心需求](specs/2026-08-24-hermit-dsh-vnext/core-requirements.md)，M1
-入口见[项目启动准备](specs/2026-08-24-hermit-dsh-vnext/start-readiness.md)和
-[M1 设计](specs/2026-08-24-hermit-dsh-vnext/m1-foundation-qualification.md)。二期路线见
-[二期总方向](specs/2026-08-24-hermit-dsh-vnext/phase-2-roadmap.md)。
+当前状态：`Public incubation`。M1 Electron + stock DSH Web 桌面底座、Product Surface、
+Smart Clipboard 和本地 runtime 已完成主要实现。macOS/Windows 当前发布未签名、未公证，首次
+启动可能出现系统安全提示；正式发布以 GitHub Releases 和随包 manifest 为准。
 
-本仓库位于 `hermit-platform` 多仓工作区。多仓协作、跨项目依赖、共享安全和测试证据规则见父目录
-的 `AGENTS.md` 与 `docs/`；本文只负责 Hermit Desktop 自身的产品、运行时和发布入口。
-
-本产品的第一方 package 组合、来源 commit、子项目 lockfile 摘要和制品 SHA-256 见
-[`platform-lock.json`](platform-lock.json)；它随本仓库版本和发布 tag 管理，不是外层共享 lockfile。
-
-收到已发布的 package `package-manifest.json` 和 `.tgz` 后，使用
-`corepack pnpm run update:platform-lock -- --module <module-id> --manifest <manifest> --artifact <tgz>`
-更新产品锁和内容寻址制品，再提交 Product Desktop PR。该入口只接受 manifest 中声明且摘要
-一致的已发布 package，不从 sibling 源码补包，也不删除旧制品。
+本仓库的第一方依赖来自 public npm package，`apps/desktop-vnext/package.json` 使用 exact
+version，`pnpm-lock.yaml` 固定完整解析图。Desktop 不读取兄弟仓库源码，也不使用本地 vendor
+tarball。包仓库发布不会触发 Desktop；Desktop 通过自己的 tag 决定产品组合和最终版本。
 
 ## 文档入口
 
-本仓库只负责 Hermit 产品。共享 Agent Desktop 平台位于独立的
-[`agent-desktop-core`](https://github.com/pgw10086/agent-desktop-core) 仓库，提供
-`@platform/agent-desktop-core` 和 `@platform/dsh-runtime-adapter` 两个 package；Hermit 通过
-`vendor/` 中的固定 tarball 接入，不从 sibling 目录导入源码。
-
-- [Agent 规则](AGENTS.md)：编码任务的入口和红线；
-- [文档权威索引](docs/document-authority.yaml)：某类事实应该查哪份文档；
-- [系统边界](docs/architecture/system-boundaries.md)：Electron、DSH、插件的当前职责；
-- [Agent Desktop Core 开发规范](docs/development/desktop-core-development.md)：桌面能力边界、desktop API 和生命周期；
-- [Product Plugin 最小接入](docs/development/product-plugin-quickstart.md)：新插件的唯一 `Start Here` 入口和当前 Core 能力一览；
-- [Product Plugin 开发规范](plugins/development-guidelines.md)：三个第一方插件共同遵循的开发方式；
-- [Product Plugin 入口](plugins/README.md)：三个插件的设计、开发和文档导航；
+- [Agent 规则](AGENTS.md)：编码任务入口和红线；
+- [文档权威索引](docs/document-authority.yaml)：各类事实的唯一来源；
+- [系统边界](docs/architecture/system-boundaries.md)：Electron、DSH、插件职责；
+- [Agent Desktop Core 开发规范](docs/development/desktop-core-development.md)：桌面能力和生命周期；
+- [Product Plugin 最小接入](docs/development/product-plugin-quickstart.md)：插件接入入口；
+- [Product Plugin 开发规范](plugins/development-guidelines.md)：第一方插件共用规则；
 - [DSH 集成契约](docs/contracts/dsh-integration.md)：启动、loopback、renderer 和恢复；
 - [核心需求](specs/2026-08-24-hermit-dsh-vnext/core-requirements.md)：产品能力和用户闭环；
-- [Desktop Surface 与 Quick Panel spec](specs/2026-08-24-hermit-dsh-vnext/desktop-surface-quick-panel.md)：Quick Panel、对话小窗口和剪贴板窗口迁移；
-- [M1 设计](specs/2026-08-24-hermit-dsh-vnext/m1-foundation-qualification.md)：M1 阶段、gate 和退出条件；
-- [仓库布局](docs/repository-layout.md)：目录所有权和生命周期；
-- [Agent Desktop Core 适配器 ADR](docs/adr/0007-agent-desktop-core-runtime-adapters.md)：通用桌面 Core、Agent Runtime Adapter 和当前 package 边界；
-- [DSH 官方上游资料](DEEPSEEK-HARNESS-UPSTREAM.md)：当前 DSH 文档快照、版本和更新规则；
-- [macOS 发布流程](docs/development/macos-release.md)：版本、DMG、可选签名、Draft、下载回验和正式发布；
-- [GitHub 签名配置](docs/development/github-signing-setup.md)：macOS/Windows Environment secrets、证书编码和 reviewer 配置；
-- [端到端交付链路](specs/2026-09-09-product-delivery-pipeline.md)：从开发、package 制品、platform-lock 到 tag 驱动的跨平台 Release；
-- [Git 与 Hermit 打包入门](docs/development/git-and-release-beginner-guide.md)：面向 Git 新手的分支、commit、push、tag 和三种打包模式说明；
-- [平台制品锁](platform-lock.json)：本产品使用的 Core、Runtime Adapter、插件和 DSH 版本批次；
-- [Smart Clipboard 打包与更新流程](docs/development/smart-clipboard-packaging-runbook.md)：插件制品、桌面包、DMG 和版本更新的执行清单；
-- [ADR-0002](docs/adr/0002-electron-loopback-dsh-carrier.md)：M1 为什么采用 Electron + stock DSH Web（历史底座决定）。
-- [ADR-0003](docs/adr/0003-hermit-bundled-dsh-web-source-patch.md)：何时允许 Hermit 自带 DSH Web 携带受控 source patch。
+- [产品边界](docs/architecture/system-boundaries.md)：当前系统和产品边界；
+- [Agent Desktop Core 适配器 ADR](docs/adr/0007-agent-desktop-core-runtime-adapters.md)：Core 和 Adapter 边界；
+- [DSH 官方上游资料](DEEPSEEK-HARNESS-UPSTREAM.md)：DSH 版本和快照规则；
+- [macOS 发布流程](docs/development/macos-release.md)：未签名 DMG 构建和回验；
+- [npm 解耦交付规范](specs/2026-09-11-npm-decoupled-delivery-pipeline.md)：多仓 package、Desktop CI 和 Release；
+- [public npm 发布配置](docs/development/npm-publishing.md)：scope、Trusted Publisher、bootstrap 和故障恢复；
+- [Git 与 Hermit 打包入门](docs/development/git-and-release-beginner-guide.md)：分支、commit、push、tag 和打包；
+- [Smart Clipboard 打包与更新流程](docs/development/smart-clipboard-packaging-runbook.md)：插件专属验收清单；
+- [ADR-0002](docs/adr/0002-electron-loopback-dsh-carrier.md)：Electron + stock DSH Web 底座；
+- [ADR-0003](docs/adr/0003-hermit-bundled-dsh-web-source-patch.md)：受控 DSH Web source patch。
 
 ## 当前验证
 
 在仓库根目录运行：
 
 ```sh
-# 先用任意版本管理器进入 Node 24.x
 node --version
-corepack pnpm doctor
-node scripts/platform-lock.mjs install --mode release
+corepack pnpm --version
+corepack pnpm install --frozen-lockfile --ignore-scripts
 corepack pnpm test
 ```
 
-该入口会先读取并校验 `platform-lock.json`，确认桌面依赖、pnpm overrides、pnpm lock 和
-DSH runtime 投影一致，再执行 frozen install。必须直接使用 `node` 调用，避免 pnpm 在脚本执行前
-自动补装依赖。开发环境只有在固定制品确实缺失时，才显式使用
-`node scripts/platform-lock.mjs install --mode dev --build-on-miss` 从锁定 commit 重建；重建
-字节与锁定 SHA 不同会失败。
-
-`.github/workflows/platform-lock.yml` 在只 checkout 本仓库、没有任何 sibling 源码的 Linux
-环境中重跑正式准备、frozen install 和投影检查，防止发布链悄悄依赖开发机目录。
-
-桌面包和安装后 runtime 验证：
+日常目录包：
 
 ```sh
-# 日常目录包
-node scripts/package-product.mjs dev
-
-# 未签名测试候选 DMG
-node scripts/package-product.mjs candidate
-
-# 正式候选必须明确选择 skip 或 required
-node scripts/package-product.mjs release --signing skip
-node scripts/package-product.mjs release --signing required
-
-# 以下命令保留给单项诊断和资格复跑
-corepack pnpm test:desktop
-corepack pnpm test:m1:desktop:packaged
-corepack pnpm test:m1:replay:packaged
-corepack pnpm test:dsh:long-session
-corepack pnpm test:smart-clipboard:product-surface
-corepack pnpm test:smart-clipboard:packaged-ui
-corepack pnpm test:smart-clipboard:focus-restore
-corepack pnpm --filter @hermit/desktop test:conversation:quick:packaged
-corepack pnpm test:smart-clipboard:native
-corepack pnpm qualification:desktop:mac-login:status
+corepack pnpm --filter @hermit/desktop package:dir
 ```
 
-统一入口只生成本地制品和 `.hermit/artifacts/builds/` 下的结构化报告，不创建或移动 tag。
-正式跨平台发布由 `.github/workflows/desktop-release.yml` 的受保护 `v*` tag 触发，完成原生
-构建、Draft、下载回验和 `production-release` 审批后再发布 GitHub Release。
+平台打包：
 
-### DSH 长会话性能测试
+```sh
+# 原生 macOS arm64
+corepack pnpm run dist:desktop:mac
 
-该测试只使用本地 `@deepseek-ai/dsh-llm-replay`，不会调用真实模型或消耗 API token。它会
-动态生成约 10 万字符、128 轮的会话 fixture，启动已打包 Hermit，逐轮写入并流式回放；随后
-关闭进程、重新打开同一个 userData，在原 Session 上追加一轮，再进行第三次冷启动读取。
+# 原生 Windows x64
+corepack pnpm run dist:desktop:win
+```
 
-首次运行前准备本机目录包和 bundled runtime：
+平台打包只生成本地未签名制品和 `.hermit/artifacts/` 证据，不创建或移动 tag。正式跨平台发布
+由 `.github/workflows/desktop-release.yml` 的 `vX.Y.Z` tag 触发，两个平台完成后由一个 publish
+job 创建 Draft 并发布 GitHub Release。
+
+## 依赖升级
+
+先在 Core 或 Plugin 仓库发布 npm 版本，再在 Desktop 中使用 exact version 更新依赖并提交
+`pnpm-lock.yaml`。依赖升级通过普通 PR 完成，CI 验证组合兼容性；包仓库不会自动修改 Desktop。
+
+## DSH 长会话性能测试
+
+该测试只使用本地 replay fixture，不调用真实模型。首次运行前准备目录包：
 
 ```sh
 corepack pnpm --filter @hermit/desktop package:dir
 corepack pnpm test:dsh:long-session
 ```
 
-性能基线默认使用 `paceMs=2` 和 32 字符/chunk。先做小规模试跑时可以使用：
-
-```sh
-HERMIT_DSH_LONG_TARGET_CHARS=2000 \
-HERMIT_DSH_LONG_TURNS=8 \
-HERMIT_DSH_LONG_CHUNK_CHARS=32 \
-HERMIT_DSH_LONG_PACE_MS=0 \
-corepack pnpm test:dsh:long-session
-```
-
-可调环境变量包括 `HERMIT_DSH_LONG_TARGET_CHARS`、`HERMIT_DSH_LONG_TURNS`、
-`HERMIT_DSH_LONG_SEED`、`HERMIT_DSH_LONG_CHUNK_CHARS`、`HERMIT_DSH_LONG_PACE_MS` 和
-`HERMIT_DSH_LONG_STREAM_TIMEOUT_MS`。成功后的结构化结果写入 `.hermit/artifacts/`；失败时会
-保留临时 userData、fixture 和 manifest，并在 stderr 输出诊断目录。设置
-`HERMIT_DSH_LONG_KEEP=1` 可在成功后也保留该临时目录。
-
-文档治理检查可单独运行：
-
-```sh
-corepack pnpm verify:document-governance
-corepack pnpm verify:plugin-manifests
-corepack pnpm verify:dsh-upstream
-```
-
-仓库脚本入口允许 Node `22.13.x` 以上的 22 系、Node 24-26 和 pnpm 10-12；正式资格范围
-仍是 Node `24.x` 和 pnpm `11.x`。桌面打包入口会自动切换到 bundled Node 24，lockfile 与
-runtime manifest 记录候选的精确解析版本。DSH 仍处于 RC，因此当前资格闭包精确使用
-`0.1.1-rc.2`。
-
-当前 Q0 脚本仍用于记录 DSH `0.1.1-rc.2` 的发布物和公开 contract 证据；它不再把
-缺少 transport-neutral Client Host 当作 Electron M1 的前置阻塞。
-
-DSH 官方插件开发资料的当前版本、上游 commit 和快照校验以
-[`DEEPSEEK-HARNESS-UPSTREAM.md`](DEEPSEEK-HARNESS-UPSTREAM.md)为准；runtime 与文档必须
-属于同一个版本批次。
+成功后的结构化结果写入 `.hermit/artifacts/`；真实用户 profile、剪贴板、凭据和临时目录不能
+提交到 Git。

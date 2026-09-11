@@ -13,12 +13,9 @@ allowBuilds:
   koffi: true
   node-pty: true
   protobufjs: false
-# platform-lock-overrides:start
-# 由 scripts/platform-lock.mjs sync 生成；第一方依赖只能解析到锁定 tarball。
-overrides:
-  '@hermit/file-workspace': file:vendor/platform/file-workspace/ecb1ef3f9477200f9437ab9c3cbf3f4a415d25958b5884c00b99803a22f5e347.tgz
-  '@hermit/organizer': file:vendor/platform/organizer/17bf9d1bcbeaed23fca6a7450856f95681942f01400d5770c07c7f17e8dd033c.tgz
-  '@hermit/smart-clipboard': file:vendor/platform/smart-clipboard/0d33bebb4f7906714c201d4bce00f71bcea1cf2e8f24f5eab62b33d191a3d8a1.tgz
-  '@platform/agent-desktop-core': file:vendor/platform/agent-desktop-core/8a081f75707b42508406ea34feb13af81ff30c69fd46e319e1a55190b4addeed.tgz
-  '@platform/dsh-runtime-adapter': file:vendor/platform/dsh-runtime-adapter/36d18e69494733c4f63c548591c1c26b8e56a95178f7815707e29690fec031da.tgz
-# platform-lock-overrides:end
+minimumReleaseAgeExclude:
+  - '@tianbuyv/agent-desktop-core@0.1.1'
+  - '@tianbuyv/dsh-runtime-adapter@0.1.1'
+  - '@tianbuyv/file-workspace@0.2.2'
+  - '@tianbuyv/organizer@0.2.2'
+  - '@tianbuyv/smart-clipboard@0.2.2'

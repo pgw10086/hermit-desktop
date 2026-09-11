@@ -3,7 +3,7 @@ import { existsSync, statSync } from 'node:fs'
 import { basename } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { clipboard, nativeImage, systemPreferences } from 'electron'
-import type { ClipboardEntry } from '@hermit/smart-clipboard/domain'
+import type { ClipboardEntry } from '@tianbuyv/smart-clipboard/domain'
 import type { ClipboardPlatformBridge, ClipboardSnapshot } from './service.js'
 import type {
   MacApplicationIdentity,

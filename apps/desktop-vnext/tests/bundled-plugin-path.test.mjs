@@ -9,19 +9,19 @@ const resourcesPath = path.join("/tmp", "hermit-resources");
 test("开发环境的插件路径来自 runtime bundle manifest", () => {
   assert.equal(
     resolveBundledPluginPath({
-      packageName: "@hermit/smart-clipboard",
+      packageName: "@tianbuyv/smart-clipboard",
       isPackaged: false,
       appPath,
       resourcesPath,
     }),
-    path.resolve(appPath, "node_modules", "@hermit", "smart-clipboard"),
+    path.resolve(appPath, "node_modules", "@tianbuyv", "smart-clipboard"),
   );
 });
 
 test("打包环境的插件路径来自当前 generation 的 DSH 闭包", () => {
   assert.equal(
     resolveBundledPluginPath({
-      packageName: "@hermit/organizer",
+      packageName: "@tianbuyv/organizer",
       isPackaged: true,
       appPath,
       resourcesPath,
@@ -34,7 +34,7 @@ test("打包环境的插件路径来自当前 generation 的 DSH 闭包", () => 
       "bundled",
       "dsh",
       "node_modules",
-      "@hermit",
+      "@tianbuyv",
       "organizer",
     ),
   );
@@ -43,7 +43,7 @@ test("打包环境的插件路径来自当前 generation 的 DSH 闭包", () => 
 test("插件 package name 不能通过路径片段逃逸", () => {
   assert.throws(
     () => resolveBundledPluginPath({
-      packageName: "@hermit/../escape",
+      packageName: "@tianbuyv/../escape",
       isPackaged: true,
       appPath,
       resourcesPath,

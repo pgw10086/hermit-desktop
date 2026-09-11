@@ -32,8 +32,8 @@ import {
   registerDesktopSurfaceIpc,
   ShortcutRegistry,
   SURFACE_ACTIVATION_GUARD_MS,
-} from "@platform/agent-desktop-core";
-import { createElectronNotificationFactory } from "@platform/agent-desktop-core/electron-notification-factory";
+} from "@tianbuyv/agent-desktop-core";
+import { createElectronNotificationFactory } from "@tianbuyv/agent-desktop-core/electron-notification-factory";
 import {
   DshRuntimeController,
   DshSupervisor,
@@ -42,7 +42,7 @@ import {
   RuntimeGenerationManager,
   type DshReadyEvent,
   type DshUnavailableEvent,
-} from "@platform/dsh-runtime-adapter";
+} from "@tianbuyv/dsh-runtime-adapter";
 import { ShutdownCoordinator } from "./desktop/shutdown-coordinator.js";
 import {
   FileMainWindowStateStore,

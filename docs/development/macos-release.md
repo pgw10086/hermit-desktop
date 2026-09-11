@@ -2,47 +2,29 @@
 
 状态：`current`
 
-本文负责 Hermit macOS 平台的构建、签名、公证和制品验收细节。跨平台从 package 制品到
-Product Desktop GitHub Release 的完整顺序以[端到端交付链路](../../specs/2026-09-09-product-delivery-pipeline.md)
-为准；无论这次是否签名、公证，都走同一套步骤、使用正常版本号和正常 GitHub Release。
+更新时间：2026-09-11
 
-插件怎样进入桌面包由 [DSH 集成与打包标准](dsh-plugin-development-and-packaging.md)负责；
-Smart Clipboard 的原生能力检查由[专属清单](smart-clipboard-packaging-runbook.md)补充。本文只
-负责把已经通过检查的代码变成一个可下载、可核对的 macOS Release。
+本文只说明 Hermit macOS arm64 未签名制品的构建和回验。跨平台组合发布的总流程以
+[npm 解耦交付规范](../../specs/2026-09-11-npm-decoupled-delivery-pipeline.md)为准。
 
-## 怎么记录结果
-
-每个步骤只使用三种状态：
-
-- `PASS`：执行并通过；
-- `SKIPPED`：这一步属于完整流程，但本次明确不做；
-- `FAIL`：执行失败，停止发布。
-
-`SKIPPED` 不等于漏做，也不需要特殊版本号。发布说明必须如实写出跳过了什么以及对用户的
-影响。例如跳过签名和公证后，macOS 可能阻止第一次打开，用户需要在系统设置里手工允许。
+本阶段不做 Developer ID 签名、公证或 staple。发布说明必须明确标记 unsigned / not notarized；
+首次打开时出现 Gatekeeper 提示属于未签名分发的预期限制。
 
 ## 固定流程
 
-| 顺序 | 步骤 | 是否必须 | 通过标准 |
-| --- | --- | --- | --- |
-| 1 | 整理源码和第三方声明 | 必须 | 没有 secret、本机构建物、悬空链接或遗漏的许可证信息 |
-| 2 | 确认版本、提交和 tag | 必须 | 应用版本为 `X.Y.Z`，发布 tag 为 `vX.Y.Z`，tag 指向干净提交 |
-| 3 | 安装依赖并跑项目检查 | 必须 | frozen lock、治理、插件、桌面和原生相关检查通过 |
-| 4 | 生成 DMG | 必须 | 从当前提交生成唯一的目标平台 DMG |
-| 5 | Developer ID 签名 | 可选 | 执行时必须通过 `codesign`；不执行则记录 `SKIPPED` |
-| 6 | Apple 公证和 staple | 可选 | 执行时必须通过 Apple 和 `stapler` 校验；不执行则记录 `SKIPPED` |
-| 7 | 挂载并启动制品 | 必须 | DMG 可只读挂载，应用、bundled Node、DSH、插件和退出流程通过 |
-| 8 | 生成 SHA 和发布清单 | 必须 | 文件名、版本、commit、平台、platform lock、模块制品 SHA-256 和可选步骤状态一致 |
-| 9 | 创建 Draft Release | 必须 | tag、说明和产品制品、清单、校验和上传完整 |
-| 10 | 从 GitHub 下载回验 | 必须 | 下载后的 SHA-256、DMG 挂载和启动检查仍通过 |
-| 11 | 发布 Release 并回读 | 必须 | Release 不再是 draft，tag、commit 和下载链接可从 GitHub 读回 |
+| 顺序 | 步骤 | 通过标准 |
+| --- | --- | --- |
+| 1 | 干净 tag | `vX.Y.Z` 与 `apps/desktop-vnext/package.json` 一致，tag 指向 main 提交 |
+| 2 | Frozen install | `pnpm install --frozen-lockfile --ignore-scripts` 成功 |
+| 3 | Desktop CI | 类型、契约、集成 smoke 和构建通过 |
+| 4 | 原生打包 | macOS arm64 生成唯一 DMG |
+| 5 | 制品回验 | DMG 可挂载，App、bundled Node、DSH 和插件闭包完整 |
+| 6 | 发布附件 | 生成 `release-manifest.json` 和 `SHA256SUMS.txt`，标记未签名/未公证 |
+| 7 | Draft/Publish | 与 Windows 制品一起由单一 publish job 发布 |
 
-可选步骤一旦选择执行，就不能失败后静默改成跳过。需要改变选择时，应先说明原因，再重新从
-DMG 构建开始执行并更新发布说明。
+## 本地命令
 
-## 1. 发布前整理
-
-发布必须在原生 Apple Silicon Mac 上执行。先确认工作区、工具链、远程和登录状态：
+在 `hermit-desktop/` 根目录执行：
 
 ```sh
 git status --short --branch
@@ -50,139 +32,32 @@ git diff --check
 node --version
 corepack pnpm --version
 uname -m
-git remote -v
-gh auth status
+corepack pnpm install --frozen-lockfile --ignore-scripts
+corepack pnpm run dist:desktop:mac
+node scripts/prepare-macos-release-assets.mjs
 ```
 
-逐项确认未提交文件确实属于源码或文档，生成目录已由 `.gitignore` 排除。不得提交 `.env`、
-证书、私钥、真实用户数据、`.hermit/`、`node_modules/`、`dist/`、`lib/` 或 native build 输出。
-
-跨网下载时使用仓库统一代理：
+跨网下载使用统一代理：
 
 ```sh
 export HTTP_PROXY=http://127.0.0.1:7897
 export HTTPS_PROXY=http://127.0.0.1:7897
 ```
 
-安装命令可以继续使用 `--ignore-scripts`。正式打包入口会先通过 Electron 自带的安装脚本
-显式准备 lockfile 锁定的原生 Electron；检测到 `HTTP_PROXY` 或 `HTTPS_PROXY` 时会同步开启
-`@electron/get` 的代理支持。electron-builder 随后只从本地 `node_modules/electron/dist`
-组装应用，不再为同一个版本发起第二次下载。
+## 发布附件
 
-## 2. 版本和源码
+`prepare-macos-release-assets.mjs` 会检查当前 tag、版本和唯一 DMG，并生成：
 
-桌面版本取自 `apps/desktop-vnext/package.json`，文件名固定为
-`Hermit-<version>-arm64.dmg`，tag 固定为 `v<version>`。第一方插件如果随这一版一起交付，
-它们的实际版本和 lock 解析结果必须已经进入同一个提交。
+- `.hermit/artifacts/releases/v<version>/release-manifest.json`；
+- `.hermit/artifacts/releases/v<version>/SHA256SUMS.txt`。
 
-先在功能分支完成检查和提交，再合并到 `main` 并推送。创建 tag 前必须确认：
+manifest 记录 Desktop commit、package manifest 摘要、pnpm lock 摘要、runner 和 Node 版本，
+以及 `signed: false`、`notarized: false`。它不记录已经删除的 `platform-lock.json` 或本地
+vendor 路径。
 
-```sh
-git status --porcelain
-git rev-parse HEAD
-git rev-parse origin/main
-```
+## 失败和回滚
 
-工作区必须为空，本地 `main` 与 `origin/main` 必须指向同一提交，然后才创建并推送 tag。
-
-## 3. 必须检查
-
-正式打包统一执行：
-
-```sh
-node scripts/package-product.mjs release --signing skip
-```
-
-签名版把 `skip` 改为 `required`。统一入口会按顺序完成 platform lock/frozen install、项目检查、
-runtime、native、三个 Product Surface、目录包、packaged UI、最终 DMG 验证和发布附件生成。
-任一步失败立即停止，并在 `.hermit/artifacts/builds/` 保留失败步骤和未执行步骤。
-
-## 4. 构建和制品验证
-
-发布入口要求明确选择本次是否签名，避免机器上是否恰好存在证书改变结果。
-
-只需要生成不要求干净 tag 的未签名测试候选时执行：
-
-```sh
-node scripts/package-product.mjs candidate
-```
-
-正式候选的签名选择已经由上一节的 `--signing` 参数明确传入。`required` 会检查 Developer ID
-和完整公证凭据，并执行 `codesign`、Gatekeeper 和 staple 校验；任何一项失败都停止。`skip`
-会隔离签名凭据，仍执行相同的桌面测试、DMG 构建、只读挂载、bundled runtime 和真实应用
-启动检查，只把签名、公证和 staple 记录为 `SKIPPED`。
-
-需要单独诊断底层 DMG 打包时仍可执行：
-
-```sh
-HERMIT_MAC_RELEASE_SIGNING=skip corepack pnpm run dist:desktop:mac
-```
-
-## 5. 生成发布附件
-
-统一 `release` 入口已经自动执行本步骤。只在诊断或重新生成附件时单独运行：
-
-```sh
-HERMIT_MAC_RELEASE_SIGNING=skip corepack pnpm run release:desktop:mac:assets
-```
-
-签名版把 `skip` 改成 `required`。脚本核对当前 tag、commit、版本和唯一 DMG，然后在
-`.hermit/artifacts/releases/v<version>/` 生成：
-
-- `SHA256SUMS.txt`；
-- `release-manifest.json`。
-
-发布清单同时记录 `platform-lock.json` 摘要，以及 Core、Runtime Adapter 和每个 Product Plugin
-的版本、来源 commit 和制品 SHA，确保最终 DMG 可以回溯到同一批第一方字节。
-
-当前清单使用 `schemaVersion: 2`，额外记录 Product Desktop manifest、pnpm lock、构建
-workflow run、runner 和 Node 版本摘要；这些字段只作为来源证据，版本和制品身份仍以
-`platform-lock.json`、tag 和最终文件 SHA 为准。
-
-macOS 单平台诊断流程上传 DMG、SHA 文件和发布清单；统一跨平台发布还会由 aggregate job
-加入 Windows 安装包，并以最终 `release-manifest.json` 和 `SHA256SUMS` 作为整批证据。
-发布说明至少写清主要功能、目标平台、安装方式、已知限制，以及签名、公证、staple 的实际状态。
-
-正式 CI 入口是 `.github/workflows/desktop-release.yml`：它只接受 `v*` tag，macOS 和
-Windows 构建 job 分别持有各自签名环境，Release 写权限只授予后续 publisher job。
-
-## 6. Draft、下载回验和发布
-
-先创建 Draft，不直接公开：
-
-```sh
-gh release create "v<version>" \
-  "apps/desktop-vnext/dist/mac-release/Hermit-<version>-arm64.dmg" \
-  ".hermit/artifacts/releases/v<version>/SHA256SUMS.txt" \
-  ".hermit/artifacts/releases/v<version>/release-manifest.json" \
-  --draft --verify-tag --title "Hermit <version>" --notes-file "<release-notes>"
-```
-
-再下载到新的临时目录，校验 SHA，并对下载后的 DMG 重跑制品验证：
-
-```sh
-download_dir=$(mktemp -d /tmp/hermit-release-download-XXXXXX)
-gh release download "v<version>" --dir "$download_dir"
-(cd "$download_dir" && shasum -a 256 -c SHA256SUMS.txt)
-HERMIT_MAC_RELEASE_SIGNING=skip \
-  node apps/desktop-vnext/scripts/verify-mac-artifact.mjs release "$download_dir"
-```
-
-全部通过后发布并回读：
-
-```sh
-gh release edit "v<version>" --draft=false --latest
-gh release view "v<version>" --json tagName,isDraft,isPrerelease,url,targetCommitish,assets
-git ls-remote --heads --tags origin main "refs/tags/v<version>"
-```
-
-## 失败怎么处理
-
-- 代码、测试或打包失败：修复源码，形成新提交，重新执行必须检查和后续步骤；
-- tag 已推送但制品需要改代码：不要移动公开 tag，提升补丁版本重新发布；
-- Draft 附件上传或回验失败：保持 Draft，替换附件后从 GitHub 重新下载验证；
-- 已发布附件有误：先下架或标记问题，再用新补丁版本修复，不悄悄替换用户已经下载的文件；
-- 签名或公证失败：如果本次原本选择 `required`，失败就是 `FAIL`，不能自动降级为 `skip`。
-
-GitHub Release 页面和随包 `release-manifest.json` 记录每次发布的实际结果；M1、插件设计或
-README 不再复制某一版的发布状态。
+- 构建、挂载或回验失败：保持 tag 不变，修复后提升 patch 版本；
+- 已发布版本不移动 tag、不覆盖资产；
+- 未签名警告不是构建失败，但必须在 Release 说明中如实说明；
+- 回滚通过新的 Desktop patch 重新选择旧的可用 npm package 版本。

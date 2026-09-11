@@ -2,7 +2,7 @@ import type {
   DesktopFocusLease,
   DesktopFocusPort,
   DesktopFocusRestoreResult,
-} from '@platform/agent-desktop-core'
+} from '@tianbuyv/agent-desktop-core'
 import {
   loadMacClipboardNativeBridge,
   macClipboardNativeModulePath,

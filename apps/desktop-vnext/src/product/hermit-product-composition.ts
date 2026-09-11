@@ -2,8 +2,8 @@ import type { BrowserWindow, IpcMain } from 'electron'
 import type {
   DesktopSurfaceManager,
   ShortcutRegistry,
-} from '@platform/agent-desktop-core'
-import type { RuntimeGenerationManager } from '@platform/dsh-runtime-adapter'
+} from '@tianbuyv/agent-desktop-core'
+import type { RuntimeGenerationManager } from '@tianbuyv/dsh-runtime-adapter'
 import type { NavigationActions } from '../desktop/window-policy.js'
 import { ConversationQuickRuntime } from '../desktop/conversation-quick-runtime.js'
 import { SmartClipboardDesktopRuntime } from '../desktop/smart-clipboard-runtime.js'
@@ -64,7 +64,7 @@ export class HermitProductComposition {
     this.#syncOrganizerProfile()
     try {
       const profileCommand = this.#profileCommand()
-      const smartClipboardPath = this.#pluginPath('@hermit/smart-clipboard')
+      const smartClipboardPath = this.#pluginPath('@tianbuyv/smart-clipboard')
       const clipboardProfile = ensureSmartClipboardProfile({
         nodeBinary: profileCommand.executable,
         dshEntry: profileCommand.args[1] ?? '',
@@ -74,9 +74,9 @@ export class HermitProductComposition {
       })
 
       try {
-        const fileWorkspacePath = this.#pluginPath('@hermit/file-workspace')
+      const fileWorkspacePath = this.#pluginPath('@tianbuyv/file-workspace')
         const fileWorkspaceProfile = ensureBundledPluginProfile({
-          packageName: '@hermit/file-workspace',
+          packageName: '@tianbuyv/file-workspace',
           markerName: 'file-workspace',
           nodeBinary: profileCommand.executable,
           dshEntry: profileCommand.args[1] ?? '',
@@ -107,9 +107,9 @@ export class HermitProductComposition {
   #syncOrganizerProfile(): void {
     try {
       const profileCommand = this.#profileCommand()
-      const pluginPath = this.#pluginPath('@hermit/organizer')
+      const pluginPath = this.#pluginPath('@tianbuyv/organizer')
       const profile = ensureBundledPluginProfile({
-        packageName: '@hermit/organizer',
+        packageName: '@tianbuyv/organizer',
         markerName: 'personal-organizer',
         nodeBinary: profileCommand.executable,
         dshEntry: profileCommand.args[1] ?? '',

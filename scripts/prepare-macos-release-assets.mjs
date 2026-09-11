@@ -3,7 +3,6 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { macReleaseSigningMode } from "../apps/desktop-vnext/scripts/mac-release-environment.mjs";
 import { assertReleaseInput } from "./verify-release-input.mjs";
 
 const scriptPath = fileURLToPath(import.meta.url);
@@ -15,8 +14,6 @@ export function writeMacReleaseAssets({
   version,
   tag,
   commit,
-  signingMode,
-  platformLock,
   source = { tag, commit },
   build = {},
   generatedAt = new Date().toISOString(),
@@ -31,7 +28,6 @@ export function writeMacReleaseAssets({
   }
 
   const sha256 = sha256File(dmgPath);
-  const optionalStatus = signingMode === "required" ? "PASS" : "SKIPPED";
   const manifest = {
     schemaVersion: 2,
     product: "Hermit",
@@ -44,18 +40,15 @@ export function writeMacReleaseAssets({
       ...source,
       tag: source.tag ?? tag,
       commit: source.commit ?? commit,
-      platformLockSha256: source.platformLockSha256 ?? platformLock.sha256,
     },
     build,
-    platformLock,
     artifact: { name: expectedName, bytes: info.size, sha256 },
+    signed: false,
+    notarized: false,
     steps: {
       sourceAndTag: "PASS",
       build: "PASS",
       dmgVerification: "PASS",
-      signing: optionalStatus,
-      notarization: optionalStatus,
-      stapling: optionalStatus,
     },
   };
 
@@ -100,7 +93,6 @@ function main() {
   if (dmgPaths.length !== 1) {
     throw new Error(`Expected exactly one release DMG in ${distDirectory}; found ${dmgPaths.length}`);
   }
-  const signingMode = macReleaseSigningMode(process.env);
   const verifier = path.join(
     repositoryRoot,
     "apps",
@@ -121,8 +113,6 @@ function main() {
     version,
     tag,
     commit,
-    signingMode,
-    platformLock: readPlatformLockEvidence(repositoryRoot),
     source: readSourceEvidence(repositoryRoot, { tag, commit }),
     build: readBuildEvidence(),
   });
@@ -131,25 +121,6 @@ function main() {
 
 function git(repositoryRoot, args) {
   return execFileSync("git", args, { cwd: repositoryRoot, encoding: "utf8" }).trim();
-}
-
-function readJson(file) {
-  return JSON.parse(fs.readFileSync(file, "utf8"));
-}
-
-function readPlatformLockEvidence(repositoryRoot) {
-  const file = path.join(repositoryRoot, "platform-lock.json");
-  const lock = readJson(file);
-  return {
-    sha256: sha256File(file),
-    modules: lock.modules.map((module) => ({
-      id: module.id,
-      packageName: module.packageName,
-      version: module.version,
-      sourceCommit: module.sourceCommit,
-      artifactSha256: module.artifact.sha256,
-    })),
-  };
 }
 
 function readSourceEvidence(repositoryRoot, { tag, commit }) {

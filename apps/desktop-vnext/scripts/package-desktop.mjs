@@ -5,19 +5,10 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { assertNativeTarget } from "./assert-native-target.mjs";
-import {
-  resolveMacReleaseSigning,
-  withoutMacReleaseSecrets,
-} from "./mac-release-environment.mjs";
-import {
-  resolveWindowsReleaseSigning,
-  withoutWindowsReleaseSecrets,
-} from "./windows-release-environment.mjs";
 
 const scriptPath = fileURLToPath(import.meta.url);
 const appRoot = path.resolve(path.dirname(scriptPath), "..");
 const repositoryRoot = path.resolve(appRoot, "..", "..");
-const platformLockScript = path.join(repositoryRoot, "scripts", "platform-lock.mjs");
 const bundledNode = path.join(
   repositoryRoot,
   ".hermit",
@@ -45,8 +36,6 @@ if (!new Set(["dir", "mac-smoke", "mac-release", "win-smoke", "win-release"]).ha
 }
 
 if (!process.argv.includes("--qualified-runtime")) {
-  // Product Desktop 打包必须先冻结并校验第一方制品，不能从 sibling 源码隐式补包。
-  run(process.execPath, [platformLockScript, "prepare", "--mode", "release"], repositoryRoot, process.env);
   run(process.execPath, [prepareNodeScript], repositoryRoot, process.env);
   run(bundledNode, [scriptPath, mode, "--qualified-runtime"], repositoryRoot, process.env);
 } else {
@@ -65,9 +54,7 @@ function packageDesktop(selectedMode) {
     }
   }
 
-  const buildEnvironment = qualifiedEnvironment(
-    withoutWindowsReleaseSecrets(withoutMacReleaseSecrets(process.env)),
-  );
+  const buildEnvironment = qualifiedEnvironment(process.env);
   const isMac = selectedMode === "mac-smoke" || selectedMode === "mac-release";
   const isWindows = selectedMode === "win-smoke" || selectedMode === "win-release";
   assertNativeTarget();
@@ -78,29 +65,7 @@ function packageDesktop(selectedMode) {
     throw new Error("Windows delivery requires a native Windows x64 host");
   }
 
-  const macReleaseConfiguration = selectedMode === "mac-release"
-    ? resolveMacReleaseSigning({ environment: process.env })
-    : undefined;
-  const windowsReleaseConfiguration = selectedMode === "win-release"
-    ? resolveWindowsReleaseSigning({ environment: process.env })
-    : undefined;
-  if (macReleaseConfiguration !== undefined) {
-    if (macReleaseConfiguration.mode === "required") {
-      console.log(
-        `macOS release preflight passed: ${macReleaseConfiguration.identity}; signing=required; notarization=${macReleaseConfiguration.notarizationCredentials}`,
-      );
-    } else {
-      console.log("macOS release preflight passed: signing=SKIPPED; notarization=SKIPPED; stapling=SKIPPED");
-    }
-    runDesktopTests(buildEnvironment);
-  }
-  if (windowsReleaseConfiguration !== undefined) {
-    console.log(
-      `Windows release preflight passed: signing=${windowsReleaseConfiguration.mode === "required" ? "required" : "SKIPPED"}`,
-    );
-    runDesktopTests(buildEnvironment);
-  }
-  if (selectedMode === "win-smoke") runDesktopTests(buildEnvironment);
+  if (selectedMode !== "dir") runDesktopTests(buildEnvironment);
 
   // 安装阶段允许跳过依赖脚本；打包入口必须显式准备锁定版本的 Electron。
   run(bundledNode, [electronInstallScript], appRoot, buildEnvironment);
@@ -128,17 +93,14 @@ function packageDesktop(selectedMode) {
     return;
   }
 
-  const release = macReleaseConfiguration !== undefined || windowsReleaseConfiguration !== undefined;
-  const signedRelease = macReleaseConfiguration?.mode === "required" || windowsReleaseConfiguration?.mode === "required";
+  const release = selectedMode === "mac-release" || selectedMode === "win-release";
   const outputDirectory = path.join(
     appRoot,
     "dist",
     isMac ? (release ? "mac-release" : "mac-smoke") : (release ? "win-release" : "win-smoke"),
   );
   resetGeneratedOutput(outputDirectory);
-  const builderEnvironment = signedRelease
-    ? qualifiedEnvironment(process.env)
-    : { ...buildEnvironment, CSC_IDENTITY_AUTO_DISCOVERY: "false" };
+  const builderEnvironment = buildEnvironment;
   const builderArgs = isMac
     ? [
       builderCli,
@@ -149,9 +111,9 @@ function packageDesktop(selectedMode) {
       "never",
       "--config.npmRebuild=false",
       `--config.directories.output=${outputDirectory}`,
-      signedRelease ? "--config.forceCodeSigning=true" : "--config.mac.identity=null",
-      signedRelease ? "--config.mac.notarize=true" : "--config.mac.notarize=false",
-      signedRelease ? "--config.mac.hardenedRuntime=true" : "--config.mac.hardenedRuntime=false",
+      "--config.mac.identity=null",
+      "--config.mac.notarize=false",
+      "--config.mac.hardenedRuntime=false",
     ]
     : [
       builderCli,
@@ -162,7 +124,7 @@ function packageDesktop(selectedMode) {
       "never",
       "--config.npmRebuild=false",
       `--config.directories.output=${outputDirectory}`,
-      signedRelease ? "--config.forceCodeSigning=true" : "--config.forceCodeSigning=false",
+      "--config.forceCodeSigning=false",
     ];
   run(bundledNode, builderArgs, appRoot, builderEnvironment);
   run(

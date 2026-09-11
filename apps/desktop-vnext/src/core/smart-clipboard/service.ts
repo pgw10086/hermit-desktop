@@ -7,14 +7,14 @@ import type {
   ClipboardRepository,
   HistoryFilter,
   Retention,
-} from '@hermit/smart-clipboard/domain'
+} from '@tianbuyv/smart-clipboard/domain'
 import {
   actionAvailable,
   DEFAULT_ACTION_MAPPING,
   validateActionMapping,
-} from '@hermit/smart-clipboard/actions'
-import type { ActionMapping, ClipboardAction } from '@hermit/smart-clipboard/actions'
-import { ClipboardHistoryStore as HistoryStore } from '@hermit/smart-clipboard/domain'
+} from '@tianbuyv/smart-clipboard/actions'
+import type { ActionMapping, ClipboardAction } from '@tianbuyv/smart-clipboard/actions'
+import { ClipboardHistoryStore as HistoryStore } from '@tianbuyv/smart-clipboard/domain'
 import { createZip } from './zip.js'
 
 /**

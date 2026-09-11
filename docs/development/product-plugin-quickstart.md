@@ -13,7 +13,7 @@
 ## Core 能力一览
 
 这里的平台分成三层：DSH 负责插件运行时和 AI；Agent Desktop Core 负责 Electron、操作系统
-和桌面资源；具体 DSH 启停、ready 和 generation 由 `@platform/dsh-runtime-adapter` 负责。能力
+和桌面资源；具体 DSH 启停、ready 和 generation 由 `@tianbuyv/dsh-runtime-adapter` 负责。能力
 “已经存在”不等于“插件可以直接调用”，以“插件接入状态”为准。
 
 | 能力 | 主要用途 | 插件接入方式 | 插件接入状态 |
@@ -22,7 +22,7 @@
 | Product Navigation v1 | 注册产品入口，统一处理 active、排序和收起状态 | `ctx.get('layout')`、`registerProductEntry()` | 可接入，仅 Hermit patched DSH |
 | Product Surface v1 | 提供插件自己的产品工作面 | `product.surface` typed slot | 可接入，仅 Hermit patched DSH |
 | 桌面应用生命周期 | 窗口、Tray、单实例和退出 | 无插件直接 API | Agent Desktop Core 内部能力 |
-| Agent Runtime 生命周期 | 启动、ready、停止、崩溃恢复和 generation | 产品组合根创建具体 adapter | DSH 由 `@platform/dsh-runtime-adapter` 提供 |
+| Agent Runtime 生命周期 | 启动、ready、停止、崩溃恢复和 generation | 产品组合根创建具体 adapter | DSH 由 `@tianbuyv/dsh-runtime-adapter` 提供 |
 | 系统剪贴板 | 捕获、读取和写回剪贴板 | 当前没有通用插件 API | Smart Clipboard 专属 |
 | 全局快捷键 | 注册系统级快捷键 | Core `ShortcutRegistry` | 可申请，仍由 Core 统一注册 |
 | Desktop Surface / Quick Panel | 受控桌面窗口、对话或插件工作面 | `DesktopSurfaceClient` typed contract | `conversation.quick` 与 `approval.companion` 已接入，并通过 macOS packaged Quick 烟测 |

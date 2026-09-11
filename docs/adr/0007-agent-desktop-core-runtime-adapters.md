@@ -18,9 +18,9 @@ carrier 和 generation 会随 DSH 版本变化。新产品计划已取消，当�
 
 共享仓库改名为 `agent-desktop-core`，先在同一个 Git 仓库维护两个 package：
 
-- `@platform/agent-desktop-core`：窗口/Surface、快捷键、通知、deadline、生命周期、受控 IPC、
+- `@tianbuyv/agent-desktop-core`：窗口/Surface、快捷键、通知、deadline、生命周期、受控 IPC、
   证据和最小 `AgentRuntimeAdapter` 生命周期契约；不理解 DSH 或 Agent 业务语义；
-- `@platform/dsh-runtime-adapter`：DSH command、ready 探测、carrier 停止协议、DSH 进程监督、
+- `@tianbuyv/dsh-runtime-adapter`：DSH command、ready 探测、carrier 停止协议、DSH 进程监督、
   DSH generation 和相关诊断；依赖前者，不反向被 Core 依赖。
 
 Product Desktop 是组合根，负责选择 Node、Agent Runtime、版本、profile、layout、插件和打包
@@ -41,10 +41,10 @@ Desktop Surface 的运行时内容使用中性的 `runtime-view` 并携带 `runt
 ## 依赖方向
 
 ```text
-@platform/dsh-runtime-adapter -> @platform/agent-desktop-core
+@tianbuyv/dsh-runtime-adapter -> @tianbuyv/agent-desktop-core
 
-hermit-desktop -> @platform/agent-desktop-core
-hermit-desktop -> @platform/dsh-runtime-adapter
+hermit-desktop -> @tianbuyv/agent-desktop-core
+hermit-desktop -> @tianbuyv/dsh-runtime-adapter
 hermit-desktop -> bundled DSH/Layout + first-party plugins
 ```
 

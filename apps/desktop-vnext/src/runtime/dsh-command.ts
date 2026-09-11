@@ -2,9 +2,9 @@ import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import type { DshCommand } from "@platform/dsh-runtime-adapter";
+import type { DshCommand } from "@tianbuyv/dsh-runtime-adapter";
 
-export type { DshCommand } from "@platform/dsh-runtime-adapter";
+export type { DshCommand } from "@tianbuyv/dsh-runtime-adapter";
 
 export interface DshCommandOptions {
   /** 是否从 bundled runtime 解析路径。 */

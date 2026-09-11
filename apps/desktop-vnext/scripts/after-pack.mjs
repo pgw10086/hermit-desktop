@@ -423,7 +423,8 @@ export default async function afterPack(context) {
   if (
     dshRuntimeManifest.dshUpstream === undefined ||
     dshRuntimeManifest.dshUpstream.packageVersion !== dshManifest.version ||
-    dshRuntimeManifest.artifactMode !== "packed-tarball-v1"
+    dshRuntimeManifest.artifactMode !== "installed-package-v1" ||
+    dshRuntimeManifest.materializationPolicy !== "dsh-runtime-files-v1"
   ) {
     throw new Error("Packaged DSH upstream cohort does not match the DSH package");
   }

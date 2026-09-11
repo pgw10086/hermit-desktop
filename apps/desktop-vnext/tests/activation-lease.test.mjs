@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { ActivationLease } from "@platform/agent-desktop-core";
+import { ActivationLease } from "@tianbuyv/agent-desktop-core";
 
 test("ActivationLease 先使 generation 失效，再按逆序且仅一次回收资源", async () => {
   const events = [];
