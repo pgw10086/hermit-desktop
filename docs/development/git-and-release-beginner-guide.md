@@ -60,7 +60,7 @@ public package。npm 的 package version 一旦发布就不能覆盖；发布失
 先确认 package 已经出现在 npm registry，再在 Desktop 仓库更新：
 
 ```sh
-corepack pnpm --filter @hermit/desktop add -E @hermit/smart-clipboard@0.2.3
+corepack pnpm --filter @hermit/desktop add -E @tianbuyv/smart-clipboard@0.2.2
 corepack pnpm install --frozen-lockfile --ignore-scripts
 corepack pnpm test
 git add apps/desktop-vnext/package.json pnpm-lock.yaml

@@ -2,7 +2,7 @@
 
 状态：`APPROVED`
 
-实现状态：`LOCAL_VERIFIED_PENDING_NPM_BOOTSTRAP_AND_WINDOWS_CI`
+实现状态：`LOCAL_VERIFIED_NPM_BOOTSTRAPPED_PENDING_TRUSTED_PUBLISHING_AND_WINDOWS_CI`
 
 更新时间：2026-09-11
 
@@ -58,8 +58,8 @@ Candidate 精确 run 绑定以及签名/公证强制要求，作为后续实现�
 | npm | 不可变 package 版本和安装来源 | Desktop 产品组合决定 |
 | GitHub Release | Desktop 最终安装包 | 重新决定 package 版本 |
 
-当前 `agent-desktop-core` 仓库包含 `@platform/agent-desktop-core` 和
-`@platform/dsh-runtime-adapter` 两个 package。第一阶段保持一个仓库、一个 tag、一个 release
+当前 `agent-desktop-core` 仓库包含 `@tianbuyv/agent-desktop-core` 和
+`@tianbuyv/dsh-runtime-adapter` 两个 package。第一阶段保持一个仓库、一个 tag、一个 release
 workflow，但分别发布两个 npm package；物理拆仓另行决策，不作为本次简化前置条件。
 
 ## 4. Package CI/CD
@@ -92,7 +92,7 @@ workflow 只使用 `contents: read`，不读取 Desktop 写权限和发布凭据
 package manifest 必须删除 `private: true`，使用 `publishConfig.access=public`，并声明有效的
 `files`、`exports`、`main`、`types`、`repository` 和 `license`。
 
-正式启用 npm Trusted Publishing 前，npm 账号必须确认 `@platform`、`@hermit` scope 的公开发布
+正式启用 npm Trusted Publishing 前，npm 账号必须确认 `@tianbuyv` user scope 的公开发布
 权限；每个 package 分别绑定对应 GitHub 仓库、`.github/workflows/package-release.yml` 和
 `npm-publish` environment。GitHub job 使用 `contents: read` 与 `id-token: write`，不设置长期
 `NPM_TOKEN`。这些是远端配置前置条件，不由仓库代码自动完成。
@@ -113,8 +113,8 @@ Desktop Release，也不修改 Desktop 仓库。
 ```json
 {
   "dependencies": {
-    "@platform/agent-desktop-core": "0.1.1",
-    "@hermit/smart-clipboard": "0.2.2"
+    "@tianbuyv/agent-desktop-core": "0.1.1",
+    "@tianbuyv/smart-clipboard": "0.2.2"
   }
 }
 ```
@@ -218,7 +218,7 @@ Gatekeeper/SmartScreen 警告误认为构建错误。
 
 ## 9. 暂不解决的问题
 
-- npm scope `@platform`、`@hermit` 的组织归属和发布权限需要在 npm 账号侧确认；
+- npm user scope `@tianbuyv` 的发布权限需要在 npm 账号侧确认；
 - 当前 `agent-desktop-core` 两个 package 是否最终拆为两个仓库；
 - 未来是否增加签名、公证、SBOM 或 artifact attestation；
 - 是否启用 Dependabot/Renovate 以及更新频率。

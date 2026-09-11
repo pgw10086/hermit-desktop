@@ -9,8 +9,8 @@ bundled DSH 可以在同一 pinned generation 上携带经过审计的最小 sou
 
 ## Agent Runtime Adapter 边界
 
-`@platform/agent-desktop-core` 只提供通用桌面能力和 Agent Runtime 生命周期契约，不认识 DSH
-ready 协议、DSH generation 或产品插件清单。`@platform/dsh-runtime-adapter` 依赖 Core，负责
+`@tianbuyv/agent-desktop-core` 只提供通用桌面能力和 Agent Runtime 生命周期契约，不认识 DSH
+ready 协议、DSH generation 或产品插件清单。`@tianbuyv/dsh-runtime-adapter` 依赖 Core，负责
 DSH 命令、ready 探测、carrier、崩溃恢复和 DSH generation。
 
 Hermit Desktop 负责选择 DSH 上游 commit、版本、profile/home、layout/source patch、插件

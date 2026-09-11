@@ -67,10 +67,10 @@ test("DSH runtime bundle manifest 明确列出每个随包 package 和构建哈�
 
 test("Electron 主进程 host 包从已准备的 DSH runtime 闭包取同一份制品", () => {
   const builder = fs.readFileSync(path.join(appRoot, "electron-builder.yml"), "utf8");
-  assert.match(builder, /from: \.\.\/\.\.\/\.hermit\/runtime\/app-dependencies\/node_modules\/@platform\/agent-desktop-core/u);
-  assert.match(builder, /from: \.\.\/\.\.\/\.hermit\/runtime\/app-dependencies\/node_modules\/@platform\/dsh-runtime-adapter/u);
-  assert.match(builder, /from: \.\.\/\.\.\/\.hermit\/runtime\/dsh\/node_modules\/@hermit\/smart-clipboard/u);
-  assert.match(builder, /from: \.\.\/\.\.\/\.hermit\/runtime\/dsh\/node_modules\/@hermit\/organizer/u);
+  assert.match(builder, /from: \.\.\/\.\.\/\.hermit\/runtime\/app-dependencies\/node_modules\/@tianbuyv\/agent-desktop-core/u);
+  assert.match(builder, /from: \.\.\/\.\.\/\.hermit\/runtime\/app-dependencies\/node_modules\/@tianbuyv\/dsh-runtime-adapter/u);
+  assert.match(builder, /from: \.\.\/\.\.\/\.hermit\/runtime\/dsh\/node_modules\/@tianbuyv\/smart-clipboard/u);
+  assert.match(builder, /from: \.\.\/\.\.\/\.hermit\/runtime\/dsh\/node_modules\/@tianbuyv\/organizer/u);
   assert.doesNotMatch(builder, /from: \.\.\/\.\.\/plugins\/(?:smart-clipboard|organizer)/u);
 });
 

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { registerDesktopShortcutIpc } from '@platform/agent-desktop-core'
+import { registerDesktopShortcutIpc } from '@tianbuyv/agent-desktop-core'
 
 test('快捷键 IPC 只允许 DSH 主窗口读取和修改 Core 目录', async () => {
   const calls = []

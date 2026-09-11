@@ -1,7 +1,7 @@
 import type { BundledPluginProfileOptions, BundledPluginProfileResult } from './bundled-plugin-profile.js'
 import { ensureBundledPluginProfile } from './bundled-plugin-profile.js'
 
-const PACKAGE_NAME = '@hermit/smart-clipboard'
+const PACKAGE_NAME = '@tianbuyv/smart-clipboard'
 
 /** Smart Clipboard profile 所需参数，package 身份由本模块固定。 */
 export type SmartClipboardProfileOptions = Omit<BundledPluginProfileOptions, 'packageName' | 'markerName'>

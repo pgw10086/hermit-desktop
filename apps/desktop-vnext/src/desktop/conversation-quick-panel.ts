@@ -1,4 +1,4 @@
-import type { DesktopSurfaceHostDefinition, DesktopSurfaceDefinition, DesktopSurfaceOpenOptions } from '@platform/agent-desktop-core'
+import type { DesktopSurfaceHostDefinition, DesktopSurfaceDefinition, DesktopSurfaceOpenOptions } from '@tianbuyv/agent-desktop-core'
 import { screen, type BrowserWindow } from 'electron'
 import { fileURLToPath } from 'node:url'
 import type { NavigationActions } from './window-policy.js'

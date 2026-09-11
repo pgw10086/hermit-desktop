@@ -17,7 +17,7 @@ const runtimeRoot = path.join(repositoryRoot, '.hermit', 'runtime')
 const bundledNode = path.join(runtimeRoot, 'node', process.platform === 'win32' ? 'node.exe' : path.join('bin', 'node'))
 const bundledDshRoot = path.join(runtimeRoot, 'dsh')
 const bundledDsh = path.join(bundledDshRoot, 'node_modules', '@deepseek-ai', 'dsh', 'lib', 'bin.js')
-const packageName = '@hermit/organizer'
+const packageName = '@tianbuyv/organizer'
 const artifactRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'hermit-organizer-package-'))
 const pluginArtifact = packInstalledPackage({ repositoryRoot, packageName, outputDirectory: artifactRoot })
 

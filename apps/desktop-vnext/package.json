@@ -45,11 +45,11 @@
   },
   "dependencies": {
     "@deepseek-ai/dsh": "0.1.1-rc.2",
-    "@platform/agent-desktop-core": "0.1.1",
-    "@platform/dsh-runtime-adapter": "0.1.1",
-    "@hermit/file-workspace": "0.2.2",
-    "@hermit/organizer": "0.2.2",
-    "@hermit/smart-clipboard": "0.2.2",
+    "@tianbuyv/agent-desktop-core": "0.1.1",
+    "@tianbuyv/dsh-runtime-adapter": "0.1.1",
+    "@tianbuyv/file-workspace": "0.2.2",
+    "@tianbuyv/organizer": "0.2.2",
+    "@tianbuyv/smart-clipboard": "0.2.2",
     "pnpm": "11.24.0"
   },
   "devDependencies": {

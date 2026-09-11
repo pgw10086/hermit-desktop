@@ -1,5 +1,5 @@
-import type { ActionMapping, ClipboardAction } from '@hermit/smart-clipboard/actions'
-import type { ClipboardEntry, HistoryFilter } from '@hermit/smart-clipboard/domain'
+import type { ActionMapping, ClipboardAction } from '@tianbuyv/smart-clipboard/actions'
+import type { ClipboardEntry, HistoryFilter } from '@tianbuyv/smart-clipboard/domain'
 
 /** Quick Panel/History IPC 使用的安全剪贴板投影；图片正文只以 previewUrl 暴露。 */
 export type ClipboardWireEntry =

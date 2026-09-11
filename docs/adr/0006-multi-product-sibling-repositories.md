@@ -25,7 +25,7 @@ Hermit vNext 当前把 Desktop、DSH Layout 和三个 Product Plugin 放在同�
 采用同一普通父文件夹下的多个 sibling Git 仓库。父文件夹不是 Git 仓库，也不是超级
 pnpm workspace：
 
-- `desktop-core/` 提供版本化 `@platform/agent-desktop-core` package，负责 Electron、系统能力、
+- `desktop-core/` 提供版本化 `@tianbuyv/agent-desktop-core` package，负责 Electron、系统能力、
   受控 IPC、生命周期、Surface 和 DSH 进程监管；
 - `hermit-desktop/` 独立拥有 Hermit 产品壳、Hermit DSH Layout/source patch、runtime
   generation、profile、插件组合、打包和发布；

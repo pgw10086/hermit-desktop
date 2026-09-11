@@ -7,7 +7,7 @@ import type {
   FileListItem,
   HistoryState,
   TextClipboardEntry,
-} from '@hermit/smart-clipboard/domain'
+} from '@tianbuyv/smart-clipboard/domain'
 
 interface StoredPayload {
   /** 进入 Trash 的时间；活动记录不写入该字段。 */

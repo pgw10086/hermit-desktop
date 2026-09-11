@@ -49,11 +49,11 @@ Agent Desktop Core 是桌面外壳和原生能力的负责人，常见范围包�
 
 ## Agent Runtime Adapter 边界
 
-`@platform/agent-desktop-core` 是可以被多个 Agent Desktop 消费的版本化 package。它只提供稳定的
+`@tianbuyv/agent-desktop-core` 是可以被多个 Agent Desktop 消费的版本化 package。它只提供稳定的
 桌面平台能力和 typed contract，不拥有某个 Agent 的 Web/Layout、Conversation、Session、Settings、
 Approval、导航、插件清单或业务数据库。
 
-`@platform/dsh-runtime-adapter` 是当前 DSH 的具体 runtime adapter。它依赖 Core，负责 DSH command、
+`@tianbuyv/dsh-runtime-adapter` 是当前 DSH 的具体 runtime adapter。它依赖 Core，负责 DSH command、
 ready 探测、carrier、崩溃恢复和 generation。未来其他 Agent 只能通过自己的 adapter 接入，不把
 Agent 的 Conversation、Session、Tool、Approval 或模型 API 塞进 Core。
 

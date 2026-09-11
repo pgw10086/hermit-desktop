@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { registerDesktopDeadlineIpc, registerDesktopNotificationIpc, parseDeadlineRequest, parseNotificationRequest } from '@platform/agent-desktop-core'
+import { registerDesktopDeadlineIpc, registerDesktopNotificationIpc, parseDeadlineRequest, parseNotificationRequest } from '@tianbuyv/agent-desktop-core'
 
 test('能力 IPC 解析 UTC deadline 和有限通知动作', () => {
   assert.deepEqual(parseDeadlineRequest({ op: 'arm', input: { id: 'occ-1', fireAt: '2026-09-02T00:00:00.000Z' } }), {

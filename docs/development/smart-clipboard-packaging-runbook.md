@@ -12,16 +12,16 @@ Smart Clipboard 不是把一个页面复制进桌面包。一次完整交付包�
 
 | 制品 | 用途 | 当前产出方式 |
 | --- | --- | --- |
-| `@hermit/smart-clipboard` npm package | Desktop 通过 exact version 消费 | package release workflow |
+| `@tianbuyv/smart-clipboard` npm package | Desktop 通过 exact version 消费 | package release workflow |
 | `Hermit.app` 目录包 | 本机开发和隔离启动验收 | `package:desktop:dir` |
 | `Hermit-<version>-arm64.dmg` | macOS smoke 或发布制品 | `dist:desktop:mac:smoke` / `dist:desktop:mac` |
 
 插件 package 已发布到 public npm。桌面包内仍有两处有明确职责的物理投影，但它们必须来自
 同一次 frozen install 的同一 package 版本：
 
-- `Resources/runtime/.../dsh/node_modules/@hermit/smart-clipboard`：给 DSH profile 安装和
+- `Resources/runtime/.../dsh/node_modules/@tianbuyv/smart-clipboard`：给 DSH profile 安装和
   Client/Host 运行的插件制品；
-- `app.asar/node_modules/@hermit/smart-clipboard`：从上述 runtime 闭包复制给 Electron
+- `app.asar/node_modules/@tianbuyv/smart-clipboard`：从上述 runtime 闭包复制给 Electron
   主进程的 SQLite、动作和 IPC 代码按 Node 模块规则解析的 host 运行依赖。
 
 两处必须来自同一版本、同一构建闭包，不能再次从 `plugins/` workspace 源目录取文件。只把插件放进 DSH runtime，桌面主进程仍可能在
@@ -61,14 +61,14 @@ userData 切到 `~/Library/Application Support/Hermit Test`，因此不会被已
 ### 1. 构建并验证插件
 
 ```sh
-corepack pnpm --filter @hermit/smart-clipboard test
+corepack pnpm --filter @tianbuyv/smart-clipboard test
 ```
 
 如果要检查可安装包内容，在临时目录从已安装 package 生成一次测试 tarball：
 
 ```sh
 artifact_dir=$(mktemp -d /tmp/hermit-smart-clipboard-artifact-XXXXXX)
-(cd apps/desktop-vnext/node_modules/@hermit/smart-clipboard && corepack pnpm pack --pack-destination "$artifact_dir")
+(cd apps/desktop-vnext/node_modules/@tianbuyv/smart-clipboard && corepack pnpm pack --pack-destination "$artifact_dir")
 tar -tzf "$artifact_dir"/*.tgz
 ```
 

@@ -1,4 +1,4 @@
-import type { EvidenceSink } from "@platform/agent-desktop-core";
+import type { EvidenceSink } from "@tianbuyv/agent-desktop-core";
 
 export type ShutdownSource =
   | "app-quit"

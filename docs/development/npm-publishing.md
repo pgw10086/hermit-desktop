@@ -12,13 +12,13 @@ workflow 已经准备好，但 npm scope、Trusted Publisher 和 GitHub Environm
 
 | GitHub 仓库 | npm package |
 | --- | --- |
-| `pgw10086/agent-desktop-core` | `@platform/agent-desktop-core`、`@platform/dsh-runtime-adapter` |
-| `pgw10086/plugin-smart-clipboard` | `@hermit/smart-clipboard` |
-| `pgw10086/plugin-organizer` | `@hermit/organizer` |
-| `pgw10086/plugin-file-workspace` | `@hermit/file-workspace` |
+| `pgw10086/agent-desktop-core` | `@tianbuyv/agent-desktop-core`、`@tianbuyv/dsh-runtime-adapter` |
+| `pgw10086/plugin-smart-clipboard` | `@tianbuyv/smart-clipboard` |
+| `pgw10086/plugin-organizer` | `@tianbuyv/organizer` |
+| `pgw10086/plugin-file-workspace` | `@tianbuyv/file-workspace` |
 
-确认 npm 账号拥有 `@platform` 和 `@hermit` scope 的公开发布权限。当前 package manifest 已
-设置：
+所有包使用当前 npm 账号 `tianbuyv` 的 user scope，不依赖额外组织。当前 npm 账号必须拥有这些
+scope 的公开发布权限；package manifest 已设置：
 
 ```json
 {
@@ -50,7 +50,7 @@ permissions:
 
 ## 3. 配置 npm Trusted Publisher
 
-对上表中的每一个 npm package 分别配置 Trusted Publisher：
+首次 bootstrap 发布后，对上表中的每一个 npm package 分别配置 Trusted Publisher：
 
 1. 打开 npm package 的 `Settings`；
 2. 找到 `Publishing access` 或 `Trusted Publishers`；
@@ -69,7 +69,7 @@ fork 后不要沿用错误的 owner/repository 配置。
 
 ## 4. 首次发布
 
-如果 package 还不存在于 npm registry，先在维护者本机完成一次 bootstrap：
+如果 package 还不存在于 npm registry，先在维护者本机完成一次 bootstrap（user-scoped public package）：
 
 ```sh
 npm login
@@ -104,8 +104,8 @@ workflow 会严格校验 `vX.Y.Z`、package version、public access 和 registry
 每个 package 发布后确认：
 
 ```sh
-npm view @hermit/smart-clipboard versions --json
-npm view @hermit/smart-clipboard@0.2.3 dist.integrity
+npm view @tianbuyv/smart-clipboard versions --json
+npm view @tianbuyv/smart-clipboard@0.2.2 dist.integrity
 ```
 
 再到 Desktop 仓库更新 exact dependency 和 `pnpm-lock.yaml`。Desktop CI 通过后，才创建

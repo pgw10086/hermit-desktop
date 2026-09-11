@@ -4,13 +4,13 @@ import {
   DEFAULT_ACTION_MAPPING,
   validateActionMapping,
   type ActionMapping,
-} from '@hermit/smart-clipboard/actions'
+} from '@tianbuyv/smart-clipboard/actions'
 import {
   DEFAULT_HISTORY_LIMIT,
   DEFAULT_TOTAL_BYTES,
   type ClipboardKind,
   type Retention,
-} from '@hermit/smart-clipboard/domain'
+} from '@tianbuyv/smart-clipboard/domain'
 
 /** 动作映射的持久化语义版本；只用于识别旧版默认组合，不改变剪贴板数据。 */
 const CURRENT_ACTION_MAPPING_VERSION = 2 as const

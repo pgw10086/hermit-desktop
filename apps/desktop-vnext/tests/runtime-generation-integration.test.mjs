@@ -12,7 +12,7 @@ import {
   FileGenerationStateStore,
   RuntimeGenerationCatalog,
   RuntimeGenerationManager,
-} from "@platform/dsh-runtime-adapter";
+} from "@tianbuyv/dsh-runtime-adapter";
 
 const appRoot = path.resolve(".");
 const repositoryRoot = path.resolve(appRoot, "..", "..");

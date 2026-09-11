@@ -13,3 +13,9 @@ allowBuilds:
   koffi: true
   node-pty: true
   protobufjs: false
+minimumReleaseAgeExclude:
+  - '@tianbuyv/agent-desktop-core@0.1.1'
+  - '@tianbuyv/dsh-runtime-adapter@0.1.1'
+  - '@tianbuyv/file-workspace@0.2.2'
+  - '@tianbuyv/organizer@0.2.2'
+  - '@tianbuyv/smart-clipboard@0.2.2'

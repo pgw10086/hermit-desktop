@@ -7,18 +7,18 @@
   },
   "bundledPackages": [
     {
-      "packageName": "@hermit/organizer",
-      "source": "apps/desktop-vnext/node_modules/@hermit/organizer",
+      "packageName": "@tianbuyv/organizer",
+      "source": "apps/desktop-vnext/node_modules/@tianbuyv/organizer",
       "hashPaths": ["package.json", "cordis.patch.yml", "lib"]
     },
     {
-      "packageName": "@hermit/smart-clipboard",
-      "source": "apps/desktop-vnext/node_modules/@hermit/smart-clipboard",
+      "packageName": "@tianbuyv/smart-clipboard",
+      "source": "apps/desktop-vnext/node_modules/@tianbuyv/smart-clipboard",
       "hashPaths": ["package.json", "cordis.patch.yml", "lib"]
     },
     {
-      "packageName": "@hermit/file-workspace",
-      "source": "apps/desktop-vnext/node_modules/@hermit/file-workspace",
+      "packageName": "@tianbuyv/file-workspace",
+      "source": "apps/desktop-vnext/node_modules/@tianbuyv/file-workspace",
       "hashPaths": ["package.json", "cordis.patch.yml", "lib"]
     }
   ]

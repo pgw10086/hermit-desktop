@@ -14,12 +14,12 @@ Desktop 的产品架构、runtime 组合和宿主生命周期。
 ## 长期运行形态
 
 ```text
-Agent Desktop Core (`@platform/agent-desktop-core`)
+Agent Desktop Core (`@tianbuyv/agent-desktop-core`)
 |-- 窗口、Tray、Surface、快捷键、通知、系统能力、受控 IPC 和退出生命周期
 |-- Agent Runtime 生命周期契约和通用桌面证据
 `-- 不拥有任何 Agent 的 Web/Layout、会话或业务状态
 
-DSH Runtime Adapter (`@platform/dsh-runtime-adapter`)
+DSH Runtime Adapter (`@tianbuyv/dsh-runtime-adapter`)
 |-- DSH 命令、ready 探测、carrier、崩溃恢复和 DSH generation
 `-- 依赖 Agent Desktop Core，不反向进入 Core
 
@@ -136,8 +136,8 @@ Product Plugin -/-> another Product Plugin internals
 当前物理依赖方向为：
 
 ```text
-hermit-desktop      -> @platform/agent-desktop-core + @platform/dsh-runtime-adapter + Hermit DSH generation + Hermit plugins
-@platform/dsh-runtime-adapter -> @platform/agent-desktop-core
+hermit-desktop      -> @tianbuyv/agent-desktop-core + @tianbuyv/dsh-runtime-adapter + Hermit DSH generation + Hermit plugins
+@tianbuyv/dsh-runtime-adapter -> @tianbuyv/agent-desktop-core
 plugin              -> DSH public contract + declared Desktop capability
 ```
 
