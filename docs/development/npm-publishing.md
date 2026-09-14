@@ -5,7 +5,7 @@
 更新时间：2026-09-11
 
 Hermit 的 Core、Runtime Adapter 和 Product Plugin 通过 GitHub Actions 发布到 public npm。仓库
-workflow 已经准备好，但 npm scope、Trusted Publisher 和 GitHub Environment 必须由 package
+workflow 已经准备好，并将 release job 的 npm CLI 固定为 11.15.0；npm scope、Trusted Publisher 和 GitHub Environment 必须由 package
 维护者在网页端配置；代码不会保存长期 `NPM_TOKEN`。
 
 ## 1. 需要配置的 package
