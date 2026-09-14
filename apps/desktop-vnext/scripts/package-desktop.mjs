@@ -65,8 +65,6 @@ function packageDesktop(selectedMode) {
     throw new Error("Windows delivery requires a native Windows x64 host");
   }
 
-  if (selectedMode !== "dir") runDesktopTests(buildEnvironment);
-
   // 安装阶段允许跳过依赖脚本；打包入口必须显式准备锁定版本的 Electron。
   run(bundledNode, [electronInstallScript], appRoot, buildEnvironment);
   run(bundledNode, [prepareDshScript], repositoryRoot, buildEnvironment);
@@ -75,6 +73,10 @@ function packageDesktop(selectedMode) {
   run(bundledNode, [tsdownCli, "-c", "tsdown.quick-retrieval.config.ts"], appRoot, buildEnvironment);
   run(bundledNode, [copyDesktopAssetsScript], appRoot, buildEnvironment);
   if (isWindows) run(bundledNode, [windowsIconScript], repositoryRoot, buildEnvironment);
+
+  // packaged runtime 测试依赖上面准备好的干净 DSH 闭包，必须在测试前完成，避免 fresh runner
+  // 因没有旧缓存而产生非确定性失败。
+  if (selectedMode !== "dir") runDesktopTests(buildEnvironment);
 
   if (selectedMode === "dir") {
     // 目录包用于本机测试，必须和已安装的 Hermit 隔离单实例锁与 userData。
