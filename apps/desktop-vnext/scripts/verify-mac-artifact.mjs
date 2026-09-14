@@ -15,6 +15,7 @@ const mode = process.argv[2];
 if (!new Set(["smoke", "release"]).has(mode)) {
   throw new Error("Usage: verify-mac-artifact.mjs <smoke|release> [dist-directory]");
 }
+const skipE2e = process.argv.includes("--skip-e2e");
 if (process.platform !== "darwin" || process.arch !== "arm64") {
   throw new Error("macOS artifact verification requires a native Apple Silicon host");
 }
@@ -129,15 +130,17 @@ function verifyApplication(applicationPath) {
   }
 
   run(process.execPath, [path.join(appRoot, "scripts", "verify-packaged-runtime.mjs"), resources]);
-  run(
-    process.execPath,
-    [path.join(appRoot, "tests", "m1-desktop-packaged.e2e.mjs")],
-    {
-      ...process.env,
-      HERMIT_PACKAGED_EXECUTABLE: executable,
-      HERMIT_PACKAGED_QUALIFICATION: "1",
-    },
-  );
+  if (!skipE2e) {
+    run(
+      process.execPath,
+      [path.join(appRoot, "tests", "m1-desktop-packaged.e2e.mjs")],
+      {
+        ...process.env,
+        HERMIT_PACKAGED_EXECUTABLE: executable,
+        HERMIT_PACKAGED_QUALIFICATION: "1",
+      },
+    );
+  }
 
 }
 
