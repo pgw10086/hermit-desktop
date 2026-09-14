@@ -27,6 +27,7 @@ const builderCli = path.join(appRoot, "node_modules", "electron-builder", "out",
 const electronInstallScript = path.join(appRoot, "node_modules", "electron", "install.js");
 const verifier = path.join(appRoot, "scripts", "verify-mac-artifact.mjs");
 const windowsVerifier = path.join(appRoot, "scripts", "verify-windows-artifact.mjs");
+const packagedQualificationTest = path.join(appRoot, "tests", "m1-desktop-packaged.e2e.mjs");
 const windowsIconScript = path.join(appRoot, "scripts", "prepare-windows-icon.mjs");
 const expectedNodeVersion = fs.readFileSync(path.join(repositoryRoot, ".node-version"), "utf8").trim();
 
@@ -129,10 +130,30 @@ function packageDesktop(selectedMode) {
       "--config.forceCodeSigning=false",
     ];
   run(bundledNode, builderArgs, appRoot, builderEnvironment);
+  if (isMac) {
+    const packagedExecutable = path.join(
+      outputDirectory,
+      "mac-arm64",
+      "Hermit.app",
+      "Contents",
+      "MacOS",
+      "Hermit",
+    );
+    run(
+      bundledNode,
+      [packagedQualificationTest],
+      appRoot,
+      {
+        ...buildEnvironment,
+        HERMIT_PACKAGED_EXECUTABLE: packagedExecutable,
+        HERMIT_PACKAGED_QUALIFICATION: "1",
+      },
+    );
+  }
   run(
     bundledNode,
     isMac
-      ? [verifier, release ? "release" : "smoke", outputDirectory]
+      ? [verifier, release ? "release" : "smoke", outputDirectory, "--skip-e2e"]
       : [windowsVerifier, release ? "release" : "smoke"],
     appRoot,
     buildEnvironment,
