@@ -24,6 +24,7 @@ test("Windows 发布附件记录未签名 manifest 和 SHA", () => {
     assert.equal(result.manifest.artifact.name, "Hermit-0.2.2-x64.exe");
     assert.equal(result.manifest.signed, false);
     assert.equal(result.manifest.notarized, false);
+    assert.equal(fs.readFileSync(path.join(path.dirname(result.checksumPath), result.manifest.artifact.name), "utf8"), "release-exe");
     assert.match(fs.readFileSync(result.checksumPath, "utf8"), /Hermit-0\.2\.2-x64\.exe\n$/u);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
