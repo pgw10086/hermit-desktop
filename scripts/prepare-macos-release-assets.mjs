@@ -100,7 +100,9 @@ function main() {
     "scripts",
     "verify-mac-artifact.mjs",
   );
-  execFileSync(process.execPath, [verifier, "release", distDirectory], {
+  // packaged E2E 已在 package-desktop 对可写 unpacked App 完成；DMG 阶段只做静态制品校验，
+  // 避免直接从只读挂载点启动 unsigned App。
+  execFileSync(process.execPath, [verifier, "release", distDirectory, "--skip-e2e"], {
     cwd: repositoryRoot,
     env: process.env,
     stdio: "inherit",
