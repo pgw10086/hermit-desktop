@@ -2,7 +2,7 @@
 
 状态：`APPROVED`
 
-实现状态：`LOCAL_VERIFIED_UNSIGNED_PACKAGED_E2E_PASSED_PENDING_CANARY_AND_WINDOWS_CI`
+实现状态：`FULLY_VERIFIED_UNSIGNED_RELEASE_PIPELINE`
 
 更新时间：2026-09-14
 
@@ -104,6 +104,9 @@ package manifest 必须删除 `private: true`，使用 `publishConfig.access=pub
 GitHub job 使用 `contents: read` 与 `id-token: write`，不设置长期 `NPM_TOKEN`。Trusted
 Publisher 的账号侧配置不由仓库代码自动完成，但已通过 npm 包 Settings 页面逐项回读确认。
 
+OIDC canary 已通过 `agent-desktop-core` 仓库的 `v0.1.2` tag workflow 验证；两个 package
+publish step 均成功并生成 provenance，随后从 npm registry 回读了 `0.1.2` 和 integrity。
+
 发布优先使用 npm Trusted Publishing/OIDC，不保存长期 npm token。package release 不创建
 Desktop Release，也不修改 Desktop 仓库。
 
@@ -166,6 +169,10 @@ PR 不签名、不公证、不发布 Release。必要时在 main 或手动运行
 未签名制品至少在 Release 说明和 manifest 中标记 `signed: false`、`notarized: false`，避免把
 Gatekeeper/SmartScreen 警告误认为构建错误。
 
+Desktop `v0.2.8` tag 已完成 macOS arm64 与 Windows x64 unsigned 构建、平台资产上传、汇总、
+Draft/Publish Release 和 immutable 回读；Release 资产包含 DMG、EXE、`release-manifest.json`
+和 `SHA256SUMS`。
+
 ## 6. 版本、兼容和回滚
 
 - 每个 package 使用独立 SemVer；Desktop 版本表示产品组合版本；
@@ -225,11 +232,6 @@ Gatekeeper/SmartScreen 警告误认为构建错误。
 
 ## 9. 暂不解决的问题
 
-- 本机 Apple Silicon 已生成 unsigned DMG，并在退出正式 Hermit 进程后通过 packaged E2E：
-  `tray=32x22`、login item cycle 和 shutdown order 均通过；
-- Trusted Publishing 尚未执行新的 tag canary 发布；配置已确认，但端到端 OIDC 发布仍需一次
-  新版本 canary 验证；
-- Windows CI/制品验证仍未完成；
 - 当前 `agent-desktop-core` 两个 package 是否最终拆为两个仓库；
 - 未来是否增加签名、公证、SBOM 或 artifact attestation；
 - 是否启用 Dependabot/Renovate 以及更新频率。
