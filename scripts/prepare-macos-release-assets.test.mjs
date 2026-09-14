@@ -69,6 +69,7 @@ test("发布附件记录未签名版本、摘要和构建来源", () => {
     assert.equal(result.manifest.source.repository, "https://github.com/pgw10086/hermit-desktop.git");
     assert.equal(result.manifest.source.productManifestSha256, "c".repeat(64));
     assert.equal(result.manifest.build.workflowRunId, "42");
+    assert.equal(fs.readFileSync(path.join(path.dirname(result.checksumPath), result.manifest.artifact.name), "utf8"), "release-dmg");
     assert.match(fs.readFileSync(result.checksumPath, "utf8"), /  Hermit-0\.1\.0-arm64\.dmg\n$/u);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });

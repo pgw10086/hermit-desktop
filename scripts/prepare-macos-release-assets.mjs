@@ -53,6 +53,7 @@ export function writeMacReleaseAssets({
   };
 
   fs.mkdirSync(outputDirectory, { recursive: true });
+  fs.copyFileSync(dmgPath, path.join(outputDirectory, expectedName));
   const checksumPath = path.join(outputDirectory, "SHA256SUMS.txt");
   const manifestPath = path.join(outputDirectory, "release-manifest.json");
   fs.writeFileSync(checksumPath, `${sha256}  ${expectedName}\n`, "utf8");
