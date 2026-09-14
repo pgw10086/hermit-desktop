@@ -2,7 +2,7 @@
 
 状态：`APPROVED`
 
-实现状态：`LOCAL_VERIFIED_TRUSTED_PUBLISHING_CONFIGURED_PENDING_CANARY_AND_WINDOWS_CI`
+实现状态：`LOCAL_VERIFIED_UNSIGNED_PACKAGED_E2E_PASSED_PENDING_CANARY_AND_WINDOWS_CI`
 
 更新时间：2026-09-14
 
@@ -225,6 +225,8 @@ Gatekeeper/SmartScreen 警告误认为构建错误。
 
 ## 9. 暂不解决的问题
 
+- 本机 Apple Silicon 已生成 unsigned DMG，并在退出正式 Hermit 进程后通过 packaged E2E：
+  `tray=32x22`、login item cycle 和 shutdown order 均通过；
 - Trusted Publishing 尚未执行新的 tag canary 发布；配置已确认，但端到端 OIDC 发布仍需一次
   新版本 canary 验证；
 - Windows CI/制品验证仍未完成；
