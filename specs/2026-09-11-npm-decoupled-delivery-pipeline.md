@@ -2,9 +2,9 @@
 
 状态：`APPROVED`
 
-实现状态：`LOCAL_VERIFIED_NPM_BOOTSTRAPPED_PENDING_TRUSTED_PUBLISHING_AND_WINDOWS_CI`
+实现状态：`LOCAL_VERIFIED_TRUSTED_PUBLISHING_CONFIGURED_PENDING_CANARY_AND_WINDOWS_CI`
 
-更新时间：2026-09-11
+更新时间：2026-09-14
 
 本文是 Hermit Desktop 当前交付链路的目标规范。它取代旧的 tarball、`platform-lock.json`、
 Candidate 精确 run 绑定以及签名/公证强制要求，作为后续实现、测试和文档同步的依据。
@@ -92,10 +92,17 @@ workflow 只使用 `contents: read`，不读取 Desktop 写权限和发布凭据
 package manifest 必须删除 `private: true`，使用 `publishConfig.access=public`，并声明有效的
 `files`、`exports`、`main`、`types`、`repository` 和 `license`。
 
-正式启用 npm Trusted Publishing 前，npm 账号必须确认 `@tianbuyv` user scope 的公开发布
-权限；每个 package 分别绑定对应 GitHub 仓库、`.github/workflows/package-release.yml` 和
-`npm-publish` environment。GitHub job 使用 `contents: read` 与 `id-token: write`，不设置长期
-`NPM_TOKEN`。这些是远端配置前置条件，不由仓库代码自动完成。
+五个第一方 package 已在 npm 账号侧分别完成 Trusted Publishing 配置，全部绑定对应仓库、
+`.github/workflows/package-release.yml` 和 `npm-publish` environment：
+
+- `@tianbuyv/agent-desktop-core`
+- `@tianbuyv/dsh-runtime-adapter`
+- `@tianbuyv/smart-clipboard`
+- `@tianbuyv/organizer`
+- `@tianbuyv/file-workspace`
+
+GitHub job 使用 `contents: read` 与 `id-token: write`，不设置长期 `NPM_TOKEN`。Trusted
+Publisher 的账号侧配置不由仓库代码自动完成，但已通过 npm 包 Settings 页面逐项回读确认。
 
 发布优先使用 npm Trusted Publishing/OIDC，不保存长期 npm token。package release 不创建
 Desktop Release，也不修改 Desktop 仓库。
@@ -218,7 +225,9 @@ Gatekeeper/SmartScreen 警告误认为构建错误。
 
 ## 9. 暂不解决的问题
 
-- npm user scope `@tianbuyv` 的发布权限需要在 npm 账号侧确认；
+- Trusted Publishing 尚未执行新的 tag canary 发布；配置已确认，但端到端 OIDC 发布仍需一次
+  新版本 canary 验证；
+- Windows CI/制品验证仍未完成；
 - 当前 `agent-desktop-core` 两个 package 是否最终拆为两个仓库；
 - 未来是否增加签名、公证、SBOM 或 artifact attestation；
 - 是否启用 Dependabot/Renovate 以及更新频率。
