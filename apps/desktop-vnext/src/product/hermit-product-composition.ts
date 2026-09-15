@@ -8,7 +8,11 @@ import type { NavigationActions } from '../desktop/window-policy.js'
 import { ConversationQuickRuntime } from '../desktop/conversation-quick-runtime.js'
 import { SmartClipboardDesktopRuntime } from '../desktop/smart-clipboard-runtime.js'
 import { createDshCommand, type DshCommand } from '../runtime/dsh-command.js'
-import { ensureBundledPluginProfile } from '../runtime/bundled-plugin-profile.js'
+import {
+  ensureBundledPluginProfile,
+  installBundledPluginProfiles,
+  migrateLegacyPluginProfiles,
+} from '../runtime/bundled-plugin-profile.js'
 import { ensureSmartClipboardProfile } from '../runtime/smart-clipboard-profile.js'
 import { resolveBundledPluginPath } from '../runtime/bundled-plugin-path.js'
 
@@ -61,6 +65,35 @@ export class HermitProductComposition {
 
   /** 根据当前 DSH generation 重新核验 Hermit 插件，并同步其产品专属运行单元。 */
   syncProfiles(): void {
+    const legacyMigrations = [
+      {
+        packageName: '@tianbuyv/organizer',
+        markerName: 'personal-organizer',
+        legacyPackageNames: ['@hermit/organizer'],
+      },
+      {
+        packageName: '@tianbuyv/smart-clipboard',
+        markerName: 'smart-clipboard',
+        legacyPackageNames: ['@hermit/smart-clipboard'],
+      },
+      {
+        packageName: '@tianbuyv/file-workspace',
+        markerName: 'file-workspace',
+        legacyPackageNames: ['@hermit/file-workspace'],
+      },
+    ] as const
+    const profileCommand = this.#profileCommand()
+    const migrated = migrateLegacyPluginProfiles(this.#options.profileHome, legacyMigrations)
+    const activeMigratedPackages = legacyMigrations
+      .map(({ packageName }) => packageName)
+      .filter((packageName) => migrated.get(packageName) === 'active')
+    installBundledPluginProfiles({
+      nodeBinary: profileCommand.executable,
+      dshEntry: profileCommand.args[1] ?? '',
+      profileHome: this.#options.profileHome,
+      environment: profileCommand.env,
+      pluginPaths: activeMigratedPackages.map((packageName) => this.#pluginPath(packageName)),
+    })
     this.#syncOrganizerProfile()
     try {
       const profileCommand = this.#profileCommand()
@@ -77,6 +110,7 @@ export class HermitProductComposition {
       const fileWorkspacePath = this.#pluginPath('@tianbuyv/file-workspace')
         const fileWorkspaceProfile = ensureBundledPluginProfile({
           packageName: '@tianbuyv/file-workspace',
+          legacyPackageNames: ['@hermit/file-workspace'],
           markerName: 'file-workspace',
           nodeBinary: profileCommand.executable,
           dshEntry: profileCommand.args[1] ?? '',
@@ -110,6 +144,7 @@ export class HermitProductComposition {
       const pluginPath = this.#pluginPath('@tianbuyv/organizer')
       const profile = ensureBundledPluginProfile({
         packageName: '@tianbuyv/organizer',
+        legacyPackageNames: ['@hermit/organizer'],
         markerName: 'personal-organizer',
         nodeBinary: profileCommand.executable,
         dshEntry: profileCommand.args[1] ?? '',
