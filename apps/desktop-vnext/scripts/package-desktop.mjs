@@ -18,6 +18,7 @@ const bundledNode = path.join(
 );
 const prepareNodeScript = path.join(appRoot, "scripts", "prepare-node-runtime.mjs");
 const prepareDshScript = path.join(appRoot, "scripts", "prepare-dsh-runtime.mjs");
+const prepareAppDependenciesScript = path.join(appRoot, "scripts", "prepare-app-dependencies.mjs");
 const copyDesktopAssetsScript = path.join(appRoot, "scripts", "copy-desktop-assets.mjs");
 const nativeBridgeBuildScript = path.join(repositoryRoot, "native", "macos-clipboard-bridge", "scripts", "build.mjs");
 const pnpmCli = path.join(appRoot, "node_modules", "pnpm", "bin", "pnpm.cjs");
@@ -27,6 +28,7 @@ const builderCli = path.join(appRoot, "node_modules", "electron-builder", "out",
 const electronInstallScript = path.join(appRoot, "node_modules", "electron", "install.js");
 const verifier = path.join(appRoot, "scripts", "verify-mac-artifact.mjs");
 const windowsVerifier = path.join(appRoot, "scripts", "verify-windows-artifact.mjs");
+const verifyPackagedAppDependenciesScript = path.join(appRoot, "scripts", "verify-packaged-app-dependencies.mjs");
 const packagedQualificationTest = path.join(appRoot, "tests", "m1-desktop-packaged.e2e.mjs");
 const windowsIconScript = path.join(appRoot, "scripts", "prepare-windows-icon.mjs");
 const expectedNodeVersion = fs.readFileSync(path.join(repositoryRoot, ".node-version"), "utf8").trim();
@@ -68,6 +70,7 @@ function packageDesktop(selectedMode) {
 
   // 安装阶段允许跳过依赖脚本；打包入口必须显式准备锁定版本的 Electron。
   run(bundledNode, [electronInstallScript], appRoot, buildEnvironment);
+  run(bundledNode, [prepareAppDependenciesScript], repositoryRoot, buildEnvironment);
   run(bundledNode, [prepareDshScript], repositoryRoot, buildEnvironment);
   run(bundledNode, [nativeBridgeBuildScript], repositoryRoot, buildEnvironment);
   run(bundledNode, [typescriptCli, "-p", "tsconfig.json"], appRoot, buildEnvironment);
@@ -130,6 +133,10 @@ function packageDesktop(selectedMode) {
       "--config.forceCodeSigning=false",
     ];
   run(bundledNode, builderArgs, appRoot, builderEnvironment);
+  const appAsar = isMac
+    ? path.join(outputDirectory, "mac-arm64", "Hermit.app", "Contents", "Resources", "app.asar")
+    : path.join(outputDirectory, "win-unpacked", "resources", "app.asar");
+  run(bundledNode, [verifyPackagedAppDependenciesScript, appAsar], appRoot, buildEnvironment);
   if (isMac) {
     const packagedExecutable = path.join(
       outputDirectory,
