@@ -4,7 +4,7 @@
 
 实现状态：`FULLY_VERIFIED_UNSIGNED_RELEASE_PIPELINE`
 
-更新时间：2026-09-14
+更新时间：2026-09-15
 
 本文是 Hermit Desktop 当前交付链路的目标规范。它取代旧的 tarball、`platform-lock.json`、
 Candidate 精确 run 绑定以及签名/公证强制要求，作为后续实现、测试和文档同步的依据。
@@ -135,7 +135,21 @@ Desktop Release，也不修改 Desktop 仓库。
 `platform-lock.json` 删除后，`runtime-bundle-manifest.json` 只记录实际需要投影到 DSH runtime
 的 package name 和来源路径，不再通过 module id 查询产品锁。
 
-### 5.2 Desktop CI
+### 5.2 Electron 主进程依赖闭包
+
+Core 和 Runtime Adapter 虽然仍在 Desktop 的 `dependencies` 中解析，但 pnpm 的链接入口不能
+直接作为 `app.asar` 的稳定来源。打包前必须运行
+`apps/desktop-vnext/scripts/prepare-app-dependencies.mjs`，按 Desktop manifest 的 exact
+version 从当前 frozen install 物化 package 内容；版本不一致或发布包缺少必要文件时直接失败。
+Electron builder 只从 `.hermit/runtime/app-dependencies` 读取这两项依赖，打包后再由
+`verify-packaged-app-dependencies.mjs` 检查 `app.asar` 的 manifest 和 `lib/index.js`。
+
+这条门禁修复了 `v0.2.8` 制品中的已知问题：旧制品启动时可能在主进程报
+`ERR_MODULE_NOT_FOUND: @tianbuyv/agent-desktop-core`。`v0.2.8` 本身不可变，修复需要新的
+Desktop patch 版本；源码和本地 macOS arm64 制品已验证，远端新版本发布前不能把旧版本标记为
+已修复。
+
+### 5.3 Desktop CI
 
 统一为一个 `desktop-ci.yml`，触发 PR、`main` 和手动运行：
 
@@ -148,7 +162,7 @@ checkout Desktop only
 
 PR 不签名、不公证、不发布 Release。必要时在 main 或手动运行增加目录包检查。
 
-### 5.3 Desktop Release
+### 5.4 Desktop Release
 
 唯一正式触发器是 Desktop `vX.Y.Z` tag：
 

@@ -12,7 +12,7 @@
   "scripts": {
     "doctor": "node scripts/check-environment.mjs",
     "verify:toolchain": "node scripts/check-environment.mjs --require qualification",
-    "test:toolchain": "node --test scripts/toolchain-policy.test.mjs scripts/prepare-macos-release-assets.test.mjs scripts/prepare-windows-release-assets.test.mjs scripts/verify-release-input.test.mjs scripts/aggregate-release-assets.test.mjs scripts/publish-product-release.test.mjs apps/desktop-vnext/scripts/prepare-windows-icon.test.mjs apps/desktop-vnext/scripts/verify-windows-artifact.test.mjs",
+    "test:toolchain": "node --test scripts/toolchain-policy.test.mjs scripts/prepare-macos-release-assets.test.mjs scripts/prepare-windows-release-assets.test.mjs scripts/verify-release-input.test.mjs scripts/aggregate-release-assets.test.mjs scripts/publish-product-release.test.mjs apps/desktop-vnext/scripts/prepare-app-dependencies.test.mjs apps/desktop-vnext/scripts/prepare-windows-icon.test.mjs apps/desktop-vnext/scripts/verify-windows-artifact.test.mjs",
     "build": "corepack pnpm --filter @hermit/desktop build",
     "build:desktop": "corepack pnpm --filter @hermit/desktop build",
     "test:desktop": "corepack pnpm --filter @hermit/desktop test",
