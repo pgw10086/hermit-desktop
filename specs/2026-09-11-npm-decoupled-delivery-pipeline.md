@@ -144,6 +144,10 @@ version 从当前 frozen install 物化 package 内容；版本不一致或发�
 Electron builder 只从 `.hermit/runtime/app-dependencies` 读取这两项依赖，打包后再由
 `verify-packaged-app-dependencies.mjs` 检查 `app.asar` 的 manifest 和 `lib/index.js`。
 
+Desktop 启动 DSH 前还会迁移受管 profile 中历史的 `@hermit/*` Product Plugin scope 到当前
+`@tianbuyv/*` scope，并一次性重新登记原本处于 active 状态的插件；停用和卸载状态保持不变。
+这是升级兼容逻辑，不改变 package 仓库的发布身份。
+
 这条门禁修复了 `v0.2.8` 制品中的已知问题：旧制品启动时可能在主进程报
 `ERR_MODULE_NOT_FOUND: @tianbuyv/agent-desktop-core`。`v0.2.8` 本身不可变，修复需要新的
 Desktop patch 版本；源码和本地 macOS arm64 制品已验证，远端新版本发布前不能把旧版本标记为

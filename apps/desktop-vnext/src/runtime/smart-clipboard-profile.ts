@@ -10,5 +10,10 @@ export type SmartClipboardProfileResult = BundledPluginProfileResult
 
 /** 确保 Smart Clipboard 使用当前随包制品，并返回 profile 状态。 */
 export function ensureSmartClipboardProfile(options: SmartClipboardProfileOptions): SmartClipboardProfileResult {
-  return ensureBundledPluginProfile({ ...options, packageName: PACKAGE_NAME, markerName: 'smart-clipboard' })
+  return ensureBundledPluginProfile({
+    ...options,
+    packageName: PACKAGE_NAME,
+    legacyPackageNames: ['@hermit/smart-clipboard'],
+    markerName: 'smart-clipboard',
+  })
 }
