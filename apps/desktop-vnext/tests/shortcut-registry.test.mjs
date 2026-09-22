@@ -17,10 +17,10 @@ test('快捷键注册成功后才报告 registered，并且触发回调', () => 
   })
 
   const registration = registry.register({
-    id: 'smart-clipboard.open',
+    id: 'smart-clipboard.open-recent',
     pluginId: 'smart-clipboard',
     pluginName: 'Smart Clipboard',
-    commandName: '打开剪贴板快速取回',
+    commandName: '打开最近复制',
     defaultAccelerator: 'CommandOrControl+Shift+Space',
     onTrigger: () => { triggered += 1 },
   })
@@ -30,6 +30,26 @@ test('快捷键注册成功后才报告 registered，并且触发回调', () => 
   assert.equal(triggered, 1)
   registration.dispose()
   assert.equal(port.isRegistered('CommandOrControl+Shift+Space'), false)
+})
+
+test('同一个 Smart Clipboard 可以注册最近复制和收藏信息两个命令', () => {
+  const port = createShortcutPort()
+  const registry = new ShortcutRegistry({ port, settings: new MemorySettingsStore() })
+  const recent = registry.register({
+    id: 'smart-clipboard.open-recent', pluginId: 'smart-clipboard', pluginName: 'Smart Clipboard',
+    commandName: '打开最近复制', defaultAccelerator: 'CommandOrControl+Shift+Space', onTrigger: () => undefined,
+  })
+  const favorites = registry.register({
+    id: 'smart-clipboard.open-favorites', pluginId: 'smart-clipboard', pluginName: 'Smart Clipboard',
+    commandName: '打开收藏信息', defaultAccelerator: 'CommandOrControl+Shift+F', onTrigger: () => undefined,
+  })
+  assert.deepEqual(registry.list().map(({ id, commandName, accelerator }) => ({ id, commandName, accelerator })).sort((left, right) => left.id.localeCompare(right.id)), [
+    { id: 'smart-clipboard.open-favorites', commandName: '打开收藏信息', accelerator: 'CommandOrControl+Shift+F' },
+    { id: 'smart-clipboard.open-recent', commandName: '打开最近复制', accelerator: 'CommandOrControl+Shift+Space' },
+  ])
+  recent.dispose()
+  favorites.dispose()
+  assert.deepEqual(registry.list(), [])
 })
 
 test('系统或其他应用冲突只产生 conflict，不影响其他快捷键绑定', () => {

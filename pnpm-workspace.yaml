@@ -18,4 +18,4 @@ minimumReleaseAgeExclude:
   - '@tianbuyv/dsh-runtime-adapter@0.1.1'
   - '@tianbuyv/file-workspace@0.2.2'
   - '@tianbuyv/organizer@0.2.2'
-  - '@tianbuyv/smart-clipboard@0.2.2'
+  - '@tianbuyv/smart-clipboard@0.2.2 || 0.2.3'

@@ -25,7 +25,7 @@ const entries = [
 ]
 
 const api = {
-  list: async () => entries,
+  list: async (filter) => filter?.pinnedOnly ? entries.filter((entry) => entry.pinned) : entries,
   trash: async () => [],
   settings: async () => ({
     historyLimit: 100,

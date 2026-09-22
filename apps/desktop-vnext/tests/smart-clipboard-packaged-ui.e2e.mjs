@@ -58,20 +58,31 @@ try {
   const shortcutCenter = desktopSettings.locator('[data-hermit-shortcut-center="ready"]')
   await shortcutCenter.waitFor({ timeout: 20_000 })
   await shortcutCenter.getByText('Smart Clipboard', { exact: true }).waitFor()
-  await shortcutCenter.getByText('打开剪贴板快速取回', { exact: true }).waitFor()
-  const shortcutRow = shortcutCenter.locator('[data-shortcut-status]').filter({ hasText: '打开剪贴板快速取回' })
-  const shortcutInput = shortcutRow.getByRole('textbox', { name: /Smart Clipboard 打开剪贴板快速取回/u })
-  await shortcutInput.press('Control+Shift+F12')
-  await shortcutRow.getByRole('button', { name: '应用' }).click()
-  await page.getByText('打开剪贴板快速取回 已保存', { exact: true }).waitFor()
-  assert.equal((await page.evaluate(async () => (await window.hermitDesktopShortcuts.list()).find((item) => item.id === 'smart-clipboard.open')?.accelerator)), 'CommandOrControl+Shift+F12')
-  await shortcutInput.press('Control+Shift+Enter')
-  await shortcutRow.getByRole('button', { name: '应用' }).click()
-  await page.getByText('打开剪贴板快速取回 未修改：与 Hermit 其他命令冲突', { exact: true }).waitFor()
-  assert.equal((await page.evaluate(async () => (await window.hermitDesktopShortcuts.list()).find((item) => item.id === 'smart-clipboard.open')?.accelerator)), 'CommandOrControl+Shift+F12')
-  await shortcutRow.getByRole('button', { name: '恢复默认' }).click()
-  await page.getByText('打开剪贴板快速取回 已恢复默认', { exact: true }).waitFor()
-  assert.equal((await page.evaluate(async () => (await window.hermitDesktopShortcuts.list()).find((item) => item.id === 'smart-clipboard.open')?.accelerator)), 'CommandOrControl+Shift+Space')
+  await shortcutCenter.getByText('打开最近复制', { exact: true }).waitFor()
+  await shortcutCenter.getByText('打开收藏信息', { exact: true }).waitFor()
+  const recentShortcutRow = shortcutCenter.locator('[data-shortcut-status]').filter({ hasText: '打开最近复制' })
+  const recentShortcutInput = recentShortcutRow.getByRole('textbox', { name: /Smart Clipboard 打开最近复制/u })
+  await recentShortcutInput.press('Control+Shift+F12')
+  await recentShortcutRow.getByRole('button', { name: '应用' }).click()
+  await page.getByText('打开最近复制 已保存', { exact: true }).waitFor()
+  assert.equal((await page.evaluate(async () => (await window.hermitDesktopShortcuts.list()).find((item) => item.id === 'smart-clipboard.open-recent')?.accelerator)), 'CommandOrControl+Shift+F12')
+  await recentShortcutInput.press('Control+Shift+Enter')
+  await recentShortcutRow.getByRole('button', { name: '应用' }).click()
+  await page.getByText('打开最近复制 未修改：与 Hermit 其他命令冲突', { exact: true }).waitFor()
+  assert.equal((await page.evaluate(async () => (await window.hermitDesktopShortcuts.list()).find((item) => item.id === 'smart-clipboard.open-recent')?.accelerator)), 'CommandOrControl+Shift+F12')
+  await recentShortcutRow.getByRole('button', { name: '恢复默认' }).click()
+  await page.getByText('打开最近复制 已恢复默认', { exact: true }).waitFor()
+  assert.equal((await page.evaluate(async () => (await window.hermitDesktopShortcuts.list()).find((item) => item.id === 'smart-clipboard.open-recent')?.accelerator)), 'CommandOrControl+Shift+Space')
+
+  const favoriteShortcutRow = shortcutCenter.locator('[data-shortcut-status]').filter({ hasText: '打开收藏信息' })
+  const favoriteShortcutInput = favoriteShortcutRow.getByRole('textbox', { name: /Smart Clipboard 打开收藏信息/u })
+  await favoriteShortcutInput.press('Control+Shift+F11')
+  await favoriteShortcutRow.getByRole('button', { name: '应用' }).click()
+  await page.getByText('打开收藏信息 已保存', { exact: true }).waitFor()
+  assert.equal((await page.evaluate(async () => (await window.hermitDesktopShortcuts.list()).find((item) => item.id === 'smart-clipboard.open-favorites')?.accelerator)), 'CommandOrControl+Shift+F11')
+  await favoriteShortcutRow.getByRole('button', { name: '恢复默认' }).click()
+  await page.getByText('打开收藏信息 已恢复默认', { exact: true }).waitFor()
+  assert.equal((await page.evaluate(async () => (await window.hermitDesktopShortcuts.list()).find((item) => item.id === 'smart-clipboard.open-favorites')?.accelerator)), 'CommandOrControl+Shift+F')
   await desktopSettings.press('Escape')
   await desktopSettings.waitFor({ state: 'detached' })
   const navigation = page.getByRole('button', { name: '剪贴板历史' })
@@ -132,9 +143,10 @@ try {
   const disabledPage = await waitForMainWindow(application)
   assert.equal(await disabledPage.getByRole('button', { name: '剪贴板历史' }).count(), 0)
   assert.deepEqual(await application.evaluate(({ BrowserWindow, globalShortcut }) => ({
-    shortcut: globalShortcut.isRegistered('CommandOrControl+Shift+Space'),
+    recentShortcut: globalShortcut.isRegistered('CommandOrControl+Shift+Space'),
+    favoriteShortcut: globalShortcut.isRegistered('CommandOrControl+Shift+F'),
     panels: BrowserWindow.getAllWindows().filter((window) => window.getTitle() === 'Smart Clipboard').length,
-  })), { shortcut: false, panels: 0 })
+  })), { recentShortcut: false, favoriteShortcut: false, panels: 0 })
   await application.close()
   application = undefined
 
@@ -146,7 +158,10 @@ try {
   await openSidebar(reenabledPage)
   const reenabledNavigation = reenabledPage.getByRole('button', { name: '剪贴板历史' })
   await reenabledNavigation.waitFor({ timeout: 20_000 })
-  assert.equal(await application.evaluate(({ globalShortcut }) => globalShortcut.isRegistered('CommandOrControl+Shift+Space')), true)
+  assert.deepEqual(await application.evaluate(({ globalShortcut }) => ({
+    recentShortcut: globalShortcut.isRegistered('CommandOrControl+Shift+Space'),
+    favoriteShortcut: globalShortcut.isRegistered('CommandOrControl+Shift+F'),
+  })), { recentShortcut: true, favoriteShortcut: true })
   assert.deepEqual((await reenabledPage.evaluate(() => window.hermitSmartClipboard.settings())).excludedKinds, ['IMAGE'])
 
   await application.close()

@@ -47,7 +47,8 @@ Plugin。本文是本阶段实现的需求与验收依据；插件自己的业�
     ├── 对话小窗
     │   └── 打开对话小窗       [⌘ ⇧ Enter]       已注册
     └── Smart Clipboard
-        └── 打开剪贴板快速取回 [⌃ ⇧ Space]       已注册
+        ├── 打开最近复制       [⌃ ⇧ Space]       已注册
+        └── 打开收藏信息       [⌃ ⇧ F]           已注册
 ```
 
 每一行至少显示：
@@ -223,7 +224,8 @@ facade 只传输 metadata、当前 accelerator 和状态，不传输回调、Ele
 
 ```json
 {
-  "smart-clipboard.open": "CommandOrControl+Shift+Space",
+  "smart-clipboard.open-recent": "CommandOrControl+Shift+Space",
+  "smart-clipboard.open-favorites": "CommandOrControl+Shift+F",
   "conversation.quick.open": "CommandOrControl+Shift+Enter"
 }
 ```

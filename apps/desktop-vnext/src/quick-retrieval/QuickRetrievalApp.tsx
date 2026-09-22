@@ -3,6 +3,10 @@ import { actionAvailable, actionLabel, DEFAULT_ACTION_MAPPING, type ActionMappin
 import type { ClipboardOperationResult, ClipboardWireEntry, SmartClipboardClientApi } from '@tianbuyv/smart-clipboard/client-api'
 import css from './QuickRetrievalApp.module.css'
 
+type QuickPanelMode = 'recent' | 'favorites'
+
+type QuickPanelShowEvent = CustomEvent<{ readonly mode?: QuickPanelMode }>
+
 declare global {
   interface Window {
     /** Quick Panel preload 注入的安全剪贴板 Client API。 */
@@ -20,6 +24,7 @@ export function QuickRetrievalApp(): ReactNode {
 /** 快速取回工作面，统一拥有筛选、选择、预览和键盘交互状态。 */
 function ConnectedQuickRetrieval({ api }: { readonly api: SmartClipboardClientApi }): ReactNode {
   const [entries, setEntries] = useState<readonly ClipboardWireEntry[]>([])
+  const [mode, setMode] = useState<QuickPanelMode>('recent')
   const [mapping, setMapping] = useState<ActionMapping>(DEFAULT_ACTION_MAPPING)
   const [query, setQuery] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(0)
@@ -37,10 +42,14 @@ function ConnectedQuickRetrieval({ api }: { readonly api: SmartClipboardClientAp
   const safeIndex = visible.length === 0 ? 0 : Math.min(selectedIndex, visible.length - 1)
   const selected = visible[safeIndex]
 
-  /** 并行刷新历史、设置和捕获状态，返回当前历史条数供窗口布局使用。 */
-  const refresh = useCallback(async (): Promise<number> => {
+  /** 按当前浮窗模式并行刷新记录、设置和捕获状态，返回当前记录数供窗口布局使用。 */
+  const refresh = useCallback(async (nextMode: QuickPanelMode = mode): Promise<number> => {
     try {
-      const [loadedEntries, settings, capture] = await Promise.all([api.list(), api.settings(), api.status()])
+      const [loadedEntries, settings, capture] = await Promise.all([
+        nextMode === 'favorites' ? api.list({ pinnedOnly: true }) : api.list(),
+        api.settings(),
+        api.status(),
+      ])
       setEntries(loadedEntries)
       setMapping(settings.actionMapping)
       setPaused(settings.paused)
@@ -52,7 +61,7 @@ function ConnectedQuickRetrieval({ api }: { readonly api: SmartClipboardClientAp
     } finally {
       setLoading(false)
     }
-  }, [api])
+  }, [api, mode])
 
   useEffect(() => {
     void refresh()
@@ -60,8 +69,10 @@ function ConnectedQuickRetrieval({ api }: { readonly api: SmartClipboardClientAp
   }, [api, refresh])
 
   useLayoutEffect(() => {
-    /** 每次打开都清理上次预览和搜索状态，再重新读取最新历史。 */
-    const show = (): void => {
+    /** 每次打开都清理上次预览和搜索状态，再按快捷键指定的模式读取最新历史。 */
+    const show = (event: QuickPanelShowEvent): void => {
+      const nextMode = event.detail?.mode === 'favorites' ? 'favorites' : 'recent'
+      setMode(nextMode)
       previewRequestRef.current += 1
       previewOpenRef.current = false
       setPreviewOpen(false)
@@ -72,10 +83,10 @@ function ConnectedQuickRetrieval({ api }: { readonly api: SmartClipboardClientAp
       setStatus('')
       setLoading(true)
       void api.setQuickPanelLayout({ rows: 8, previewOpen: false }).catch(() => undefined)
-      void refresh().then((count) => api.setQuickPanelLayout({ rows: rowCount(count), previewOpen: false })).then(() => searchRef.current?.focus())
+      void refresh(nextMode).then((count) => api.setQuickPanelLayout({ rows: rowCount(count), previewOpen: false })).then(() => searchRef.current?.focus())
     }
-    window.addEventListener('hermit-smart-clipboard-show', show)
-    return () => window.removeEventListener('hermit-smart-clipboard-show', show)
+    window.addEventListener('hermit-smart-clipboard-show', show as EventListener)
+    return () => window.removeEventListener('hermit-smart-clipboard-show', show as EventListener)
   }, [api, refresh])
 
   useEffect(() => {
@@ -162,8 +173,11 @@ function ConnectedQuickRetrieval({ api }: { readonly api: SmartClipboardClientAp
     }
   }
 
+  const modeLabel = mode === 'favorites' ? '收藏信息' : '最近复制'
+  const emptyMessage = mode === 'favorites' ? '还没有收藏的剪贴板记录' : '没有匹配记录'
+
   return (
-    <main className={css.root} data-smart-clipboard-quick-panel="ready" data-has-preview={previewOpen && selected !== undefined} data-preview-placement={previewPlacement} role="dialog" aria-label="快速取回剪贴板">
+    <main className={css.root} data-smart-clipboard-quick-panel="ready" data-panel-mode={mode} data-has-preview={previewOpen && selected !== undefined} data-preview-placement={previewPlacement} role="dialog" aria-label={modeLabel}>
       <div className={css.searchBar}>
         <span className={css.searchIcon} aria-hidden="true">⌕</span>
         <input
@@ -171,8 +185,8 @@ function ConnectedQuickRetrieval({ api }: { readonly api: SmartClipboardClientAp
           autoFocus
           type="search"
           autoComplete="off"
-          aria-label="搜索剪贴板历史"
-          placeholder="搜索剪贴板历史"
+          aria-label={mode === 'favorites' ? '搜索收藏信息' : '搜索最近复制'}
+          placeholder={mode === 'favorites' ? '搜索收藏信息' : '搜索最近复制'}
           value={query}
           onChange={(event) => setQuery(event.currentTarget.value)}
           onKeyDown={onKeyDown}
@@ -186,7 +200,7 @@ function ConnectedQuickRetrieval({ api }: { readonly api: SmartClipboardClientAp
           {loading
             ? <LoadingList />
             : visible.length === 0
-              ? <div className={css.empty}><strong>没有匹配记录</strong><span>换一个关键词，或打开完整 History。</span></div>
+              ? <div className={css.empty}><strong>{emptyMessage}</strong><span>{mode === 'favorites' ? '先在最近复制中收藏一条记录。' : '换一个关键词，或打开完整 History。'}</span></div>
               : visible.map((entry, index) => (
                 <QuickRow
                   key={entry.id}

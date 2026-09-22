@@ -15,9 +15,11 @@ import type { NavigationActions } from './window-policy.js'
 import {
   configureSmartClipboardQuickPanel,
   createSmartClipboardQuickPanelSurface,
+  setSmartClipboardQuickPanelMode,
   SMART_CLIPBOARD_SURFACE_ID,
+  type SmartClipboardQuickPanelMode,
 } from './smart-clipboard-quick-panel.js'
-import { QUICK_PANEL_SHORTCUT } from './system-integration.js'
+import { FAVORITE_CLIPBOARD_SHORTCUT, RECENT_CLIPBOARD_SHORTCUT } from './system-integration.js'
 
 interface SmartClipboardDesktopRuntimeOptions {
   readonly userData: string
@@ -57,7 +59,7 @@ export class SmartClipboardDesktopRuntime {
     let disposeSurface: (() => void) | undefined
     let service: ClipboardCoreService | undefined
     let onLockScreen: (() => void) | undefined
-    let disposeShortcut: (() => void) | undefined
+    const shortcutDisposers: (() => void)[] = []
     try {
       const platform = new ElectronClipboardBridge(
         process.platform === 'darwin'
@@ -90,21 +92,32 @@ export class SmartClipboardDesktopRuntime {
         openQuickPanel: async () => { await this.#options.surfaceManager.open(SMART_CLIPBOARD_SURFACE_ID) },
         quickPanelLayout: (input) => configureSmartClipboardQuickPanel(panel, input),
       })
-      const shortcut = this.#options.shortcutRegistry.register({
-        id: 'smart-clipboard.open',
+
+      const openQuickPanel = (mode: SmartClipboardQuickPanelMode): void => {
+        setSmartClipboardQuickPanelMode(panel, mode)
+        // 只为用户随后明确选择的 paste 保留原应用；普通 copy 会在 Core 中清理它。
+        platform.rememberPasteTarget()
+        void this.#options.surfaceManager.open(SMART_CLIPBOARD_SURFACE_ID).catch((cause: unknown) => {
+          console.error(`Smart Clipboard 快速取回 Surface 打开失败: ${errorMessage(cause)}`)
+        })
+      }
+      shortcutDisposers.push(this.#options.shortcutRegistry.register({
+        id: 'smart-clipboard.open-recent',
         pluginId: 'smart-clipboard',
         pluginName: 'Smart Clipboard',
-        commandName: '打开剪贴板快速取回',
-        defaultAccelerator: QUICK_PANEL_SHORTCUT,
-        onTrigger: () => {
-          // 只为用户随后明确选择的 paste 保留原应用；普通 copy 会在 Core 中清理它。
-          platform.rememberPasteTarget()
-          void this.#options.surfaceManager.open(SMART_CLIPBOARD_SURFACE_ID).catch((cause: unknown) => {
-            console.error(`Smart Clipboard 快速取回 Surface 打开失败: ${errorMessage(cause)}`)
-          })
-        },
-      })
-      disposeShortcut = shortcut.dispose
+        commandName: '打开最近复制',
+        defaultAccelerator: RECENT_CLIPBOARD_SHORTCUT,
+        onTrigger: () => { openQuickPanel('recent') },
+      }).dispose)
+      shortcutDisposers.push(this.#options.shortcutRegistry.register({
+        id: 'smart-clipboard.open-favorites',
+        pluginId: 'smart-clipboard',
+        pluginName: 'Smart Clipboard',
+        commandName: '打开收藏信息',
+        defaultAccelerator: FAVORITE_CLIPBOARD_SHORTCUT,
+        onTrigger: () => { openQuickPanel('favorites') },
+      }).dispose)
+      quickPanel = panel
       onLockScreen = () => {
         void this.#options.surfaceManager.close(SMART_CLIPBOARD_SURFACE_ID, { disposition: 'keep-current' }).catch(() => undefined)
         this.#options.mainWindow.hide()
@@ -115,7 +128,7 @@ export class SmartClipboardDesktopRuntime {
       this.#stop = () => {
         if (stopped) return
         stopped = true
-        disposeShortcut?.()
+        for (const dispose of shortcutDisposers) dispose()
         service?.stop()
         disposeIpc?.()
         if (onLockScreen !== undefined) powerMonitor.removeListener('lock-screen', onLockScreen)
@@ -124,7 +137,7 @@ export class SmartClipboardDesktopRuntime {
       }
     } catch (cause) {
       service?.stop()
-      disposeShortcut?.()
+      for (const dispose of shortcutDisposers) dispose()
       disposeIpc?.()
       if (onLockScreen !== undefined) powerMonitor.removeListener('lock-screen', onLockScreen)
       disposeSurface?.()

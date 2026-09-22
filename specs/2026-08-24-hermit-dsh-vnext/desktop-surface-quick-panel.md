@@ -273,6 +273,7 @@ Surface 的 min/max 约束生效。
 | TEXT/IMAGE/FILE_LIST 规则 | Smart Clipboard |
 | 复制、纯文本复制、显式粘贴 | Smart Clipboard + 独立 clipboard capability |
 | 快速取回列表和动作映射 | Smart Clipboard View/Domain |
+| 快速取回入口模式 | Smart Clipboard View/Domain；两个快捷键共用同一个 Surface，分别查询最近复制或收藏 |
 
 Smart Clipboard 注册 `clipboard.quick-retrieval`，使用 Core 提供的窗口宿主；它不因为复用
 Surface Manager 就获得 DSH Conversation 或其他插件的数据。

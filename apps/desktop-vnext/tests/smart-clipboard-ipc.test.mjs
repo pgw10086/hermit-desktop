@@ -96,15 +96,15 @@ test('preload 将 Quick Panel 布局对象转换为主进程请求字段', async
     channel: 'desktop:shortcuts',
     request: { op: 'list' },
   })
-  await shortcutExposed.update('smart-clipboard.open', 'CommandOrControl+Shift+F12')
+  await shortcutExposed.update('smart-clipboard.open-recent', 'CommandOrControl+Shift+F12')
   assert.deepEqual(calls.at(-1), {
     channel: 'desktop:shortcuts',
-    request: { op: 'update', id: 'smart-clipboard.open', accelerator: 'CommandOrControl+Shift+F12' },
+    request: { op: 'update', id: 'smart-clipboard.open-recent', accelerator: 'CommandOrControl+Shift+F12' },
   })
-  await shortcutExposed.reset('smart-clipboard.open')
+  await shortcutExposed.reset('smart-clipboard.open-favorites')
   assert.deepEqual(calls.at(-1), {
     channel: 'desktop:shortcuts',
-    request: { op: 'reset', id: 'smart-clipboard.open' },
+    request: { op: 'reset', id: 'smart-clipboard.open-favorites' },
   })
   await deadlineExposed.arm({ id: 'occ-1', fireAt: '2026-09-02T00:00:00.000Z' })
   assert.deepEqual(calls.at(-1), {
