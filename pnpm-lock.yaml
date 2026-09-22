@@ -66,8 +66,8 @@ importers:
         specifier: 0.2.2
         version: 0.2.2(30577b7a4c4567ad4d49a58e1093aff2)
       '@tianbuyv/smart-clipboard':
-        specifier: 0.2.2
-        version: 0.2.2(@deepseek-ai/dsh-client-ui-layout@0.1.1-rc.2(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-client-runtime@0.1.1-rc.2(601e9129357dc48738583e18d75d19b2))(@deepseek-ai/dsh-client-ui-theme@0.1.1-rc.2(a6c39110759121c55549be9a5dac7bf7))(@deepseek-ai/dsh-invariants@0.1.1-rc.2(@deepseek-ai/cordis@4.0.1)))(react@18.3.1)
+        specifier: 0.2.3
+        version: 0.2.3(@deepseek-ai/dsh-client-ui-layout@0.1.1-rc.2(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-client-runtime@0.1.1-rc.2(601e9129357dc48738583e18d75d19b2))(@deepseek-ai/dsh-client-ui-theme@0.1.1-rc.2(a6c39110759121c55549be9a5dac7bf7))(@deepseek-ai/dsh-invariants@0.1.1-rc.2(@deepseek-ai/cordis@4.0.1)))(react@18.3.1)
       pnpm:
         specifier: 11.24.0
         version: 11.24.0
@@ -3141,8 +3141,8 @@ packages:
       react:
         optional: true
 
-  '@tianbuyv/smart-clipboard@0.2.2':
-    resolution: {integrity: sha512-tMGcoqrmdfZQl+TPx0Yh7nTh/5dsYObnWb2659tKLXH7IjTvB0ojOB9eEQy0+Ux+Q/OtlEYi4lAosDQO2Ygl8g==}
+  '@tianbuyv/smart-clipboard@0.2.3':
+    resolution: {integrity: sha512-ACTWJ+Om/hKR3s+podae5n3GzG33FJSjtHfFaGH3k6dz7lqNs+wVYAWmms5vnZvhNqnn69E2MRUuRbemo2b8UQ==}
     engines: {node: '>=24.0.0 <27'}
     peerDependencies:
       '@deepseek-ai/dsh-client-ui-layout': 0.1.1-rc.2
@@ -8759,7 +8759,7 @@ snapshots:
     optionalDependencies:
       react: 18.3.1
 
-  '@tianbuyv/smart-clipboard@0.2.2(@deepseek-ai/dsh-client-ui-layout@0.1.1-rc.2(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-client-runtime@0.1.1-rc.2(601e9129357dc48738583e18d75d19b2))(@deepseek-ai/dsh-client-ui-theme@0.1.1-rc.2(a6c39110759121c55549be9a5dac7bf7))(@deepseek-ai/dsh-invariants@0.1.1-rc.2(@deepseek-ai/cordis@4.0.1)))(react@18.3.1)':
+  '@tianbuyv/smart-clipboard@0.2.3(@deepseek-ai/dsh-client-ui-layout@0.1.1-rc.2(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-client-runtime@0.1.1-rc.2(601e9129357dc48738583e18d75d19b2))(@deepseek-ai/dsh-client-ui-theme@0.1.1-rc.2(a6c39110759121c55549be9a5dac7bf7))(@deepseek-ai/dsh-invariants@0.1.1-rc.2(@deepseek-ai/cordis@4.0.1)))(react@18.3.1)':
     optionalDependencies:
       '@deepseek-ai/dsh-client-ui-layout': 0.1.1-rc.2(@deepseek-ai/cordis@4.0.1)(@deepseek-ai/dsh-client-runtime@0.1.1-rc.2(601e9129357dc48738583e18d75d19b2))(@deepseek-ai/dsh-client-ui-theme@0.1.1-rc.2(a6c39110759121c55549be9a5dac7bf7))(@deepseek-ai/dsh-invariants@0.1.1-rc.2(@deepseek-ai/cordis@4.0.1))
       react: 18.3.1
