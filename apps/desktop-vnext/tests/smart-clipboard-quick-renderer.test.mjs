@@ -50,10 +50,11 @@ app.on('window-all-closed', () => app.quit())
     page.on('pageerror', (cause) => pageErrors.push(cause.message))
     const panel = page.locator('[data-smart-clipboard-quick-panel="ready"]')
     await panel.waitFor()
-    await page.evaluate(() => window.dispatchEvent(new Event('hermit-smart-clipboard-show')))
-    const search = page.getByRole('searchbox', { name: '搜索剪贴板历史' })
+    await page.evaluate(() => window.dispatchEvent(new CustomEvent('hermit-smart-clipboard-show', { detail: { mode: 'recent' } })))
+    const search = page.getByRole('searchbox', { name: '搜索最近复制' })
     await search.waitFor()
     assert.equal(await search.evaluate((element) => element === document.activeElement), true)
+    assert.equal(await page.locator('[data-panel-mode="recent"]').count(), 1)
     assert.equal(await page.getByRole('option').count(), 3)
 
     await search.press('ArrowDown')
@@ -100,6 +101,14 @@ app.on('window-all-closed', () => app.quit())
       closeCount: 1,
       openHistoryCount: 1,
     })
+
+    await page.evaluate(() => window.dispatchEvent(new CustomEvent('hermit-smart-clipboard-show', { detail: { mode: 'favorites' } })))
+    const favoritesSearch = page.getByRole('searchbox', { name: '搜索收藏信息' })
+    await favoritesSearch.waitFor()
+    assert.equal(await page.locator('[data-panel-mode="favorites"]').count(), 1)
+    assert.equal(await page.getByRole('option').count(), 1)
+    assert.match(await page.getByRole('option').first().innerText(), /Release checklist: verify package, smoke test, publish notes\./u)
+    await favoritesSearch.press('Escape')
     assert.deepEqual(pageErrors, [])
   } finally {
     await application.close().catch(() => undefined)

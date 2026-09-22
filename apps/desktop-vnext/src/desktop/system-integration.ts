@@ -1,8 +1,10 @@
 import type { MenuItemConstructorOptions } from "electron";
 import type { EvidenceSink } from "@tianbuyv/agent-desktop-core";
 
-/** Quick Panel 的全局快捷键；主进程和资格测试共用该固定值。 */
-export const QUICK_PANEL_SHORTCUT = "CommandOrControl+Shift+Space";
+/** 打开最近复制浮窗的默认全局快捷键。 */
+export const RECENT_CLIPBOARD_SHORTCUT = "CommandOrControl+Shift+Space"
+/** 打开收藏信息浮窗的默认全局快捷键。 */
+export const FAVORITE_CLIPBOARD_SHORTCUT = "CommandOrControl+Shift+F";
 
 export interface LoginItemState {
   /** 是否请求系统在登录时启动应用。 */

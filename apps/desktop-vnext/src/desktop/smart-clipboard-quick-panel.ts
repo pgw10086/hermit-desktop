@@ -7,6 +7,20 @@ import { hardenedWebPreferences } from './window-options.js'
 
 export const SMART_CLIPBOARD_SURFACE_ID = 'smart-clipboard.quick-retrieval'
 
+export type SmartClipboardQuickPanelMode = 'recent' | 'favorites'
+
+const modes = new WeakMap<BrowserWindow, SmartClipboardQuickPanelMode>()
+
+/** 在同一个 Surface 实例下一次打开前记录本次快捷键要求的列表模式。 */
+export function setSmartClipboardQuickPanelMode(window: BrowserWindow, mode: SmartClipboardQuickPanelMode): void {
+  modes.set(window, mode)
+}
+
+/** 读取当前 Surface 会话模式；没有指定时保持兼容的最近复制模式。 */
+export function smartClipboardQuickPanelMode(window: BrowserWindow): SmartClipboardQuickPanelMode {
+  return modes.get(window) ?? 'recent'
+}
+
 /** Quick Panel 主列表固定宽度，预览面板在此基础上向一侧扩展。 */
 const MAIN_PANEL_WIDTH = 480
 /** 预览面板宽度，必须与布局返回的 placement 一致。 */
@@ -91,7 +105,9 @@ export function createSmartClipboardQuickPanelSurface(actions: NavigationActions
         await window.loadFile(renderer)
       },
       position: (window) => { positionSmartClipboardQuickPanel(window) },
-      onShown: (window) => { window.webContents.send('hermit:smart-clipboard:show') },
+      onShown: (window) => {
+        window.webContents.send('hermit:smart-clipboard:show', { mode: smartClipboardQuickPanelMode(window) })
+      },
     },
   }
 }

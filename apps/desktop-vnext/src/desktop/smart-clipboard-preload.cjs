@@ -91,9 +91,10 @@ contextBridge.exposeInMainWorld('hermitDesktopNotifications', {
     return () => ipcRenderer.removeListener(NOTIFICATION_CHANNEL, handler)
   },
 })
-// 主进程事件只转换为无参数的刷新通知，正文和文件路径不会通过广播事件传递。
-ipcRenderer.on('hermit:smart-clipboard:show', () => {
-  window.dispatchEvent(new Event('hermit-smart-clipboard-show'))
+// 主进程事件只转换为受限的模式通知，正文和文件路径不会通过广播事件传递。
+ipcRenderer.on('hermit:smart-clipboard:show', (_event, value) => {
+  const mode = value?.mode === 'favorites' ? 'favorites' : 'recent'
+  window.dispatchEvent(new CustomEvent('hermit-smart-clipboard-show', { detail: { mode } }))
 })
 ipcRenderer.on('hermit:smart-clipboard:open-history', () => {
   window.dispatchEvent(new Event('hermit-smart-clipboard-open-history'))
