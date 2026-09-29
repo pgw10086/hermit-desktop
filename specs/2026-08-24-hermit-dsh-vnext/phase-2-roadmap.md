@@ -33,8 +33,8 @@ Desktop Core 可以提供一个可扩展的 Desktop Surface service，统一承�
 ### 2. 先补 Product Navigation，再谈更多插件
 
 当前 `product.surface` 已经解决“工作面由谁展示”；本阶段已把三个插件原先各自占用的
-`sidebar.footer.action` 收敛为一个 Core-owned 产品入口组。这个 DSH rc.2 slot 的官方语义只是
-Settings 旁边的 footer 小动作，因此它只作为 pinned rc.2 的兼容承载位，不再是插件的入口契约。
+`sidebar.footer.action` 收敛为一个 Core-owned 产品入口组。这个 DSH `0.1.7-rc.1` slot 的官方语义只是
+Settings 旁边的 footer 小动作，因此它只作为 pinned `0.1.7-rc.1` 的兼容承载位，不再是插件的入口契约。
 
 二期第一刀是现有 layout patch 的 `Product Navigation v1`：
 
@@ -51,7 +51,7 @@ Settings 旁边的 footer 小动作，因此它只作为 pinned rc.2 的兼容�
   持有；
 - 重复 id、空 id/label、非法 icon/order 都直接失败；插件卸载时入口一起消失，若当前
   正在显示该工作面则回到 Conversation；
-- pinned DSH rc.2 没有一级全局导航 slot，本轮用一个 Core-owned 产品入口组挂入现有
+- pinned DSH `0.1.7-rc.1` 没有一级全局导航 slot，本轮用一个 Core-owned 产品入口组挂入现有
   footer seat，插件不再直接占用该 seat；前台会话点击、搜索打开、分叉后打开和新会话会
   回到 Conversation。对同一会话重复点击不会改变 `sessions.current`，因此 bundled DSH
   Workspace 和 Sidebar adapter 通过精确 source patch 调用公开
@@ -138,7 +138,7 @@ DSH Session -> Model -> plugin Resource / Tool / Skill -> plugin Canonical servi
 
 ### 阶段 C：DSH AI 第一条闭环
 
-状态：`COMPLETED`。Organizer 已通过官方 `@deepseek-ai/dsh-llm-replay@0.1.1-rc.2`
+状态：`COMPLETED`。Organizer 已通过官方 `@deepseek-ai/dsh-llm-replay@0.1.7-rc.1`
 完成无密钥的真实 DSH Session 资格测试；生产 Provider 的凭据联调属于单独的环境资格，不作为
 本次代码闭环的前置条件。
 
@@ -146,7 +146,7 @@ DSH Session -> Model -> plugin Resource / Tool / Skill -> plugin Canonical servi
 一份 Skill；用同一条 Canonical service 支撑页面操作与 AI 操作，并记录成功/拒绝/冲突
 的可回读结果。正式 Resource contract 出现后，再把只读摘要迁移到 Resource。
 
-当前 pinned rc.2 没有可供第一方插件注册的独立 Resource API，因此本阶段先用
+当前 pinned `0.1.7-rc.1` 没有可供第一方插件注册的独立 Resource API，因此本阶段先用
 `organizer_list_today` 这个只读、摘要化 Tool 作为数据入口；它不是伪造 Resource，也不把
 正文默认注入模型。待 DSH 提供正式 typed Resource contract 后，再把同一投影迁移到该
 contract，Organizer 的 Skill 和 Canonical service 不改。当前已完成 Skill、只读摘要 Tool、
@@ -229,5 +229,5 @@ dismiss、Today/Reminder Center 和重启 reconcile 继续由 Organizer 自己�
   剪贴板产品能力，不是建设万能桌面扩展层的理由；
 - [Notion MCP overview](https://developers.notion.com/guides/mcp/overview)：AI 接入应
   使用明确的资源和动作边界，并保留权限与用户控制；
-- [DSH pinned source snapshot](https://github.com/deepseek-ai/deepseek-harness/tree/b150a551b8d465e31e418e1b2eaf5e79bbb7d28e)：
-  Hermit 当前以固定 rc.2 generation 作为兼容基线。
+- [DSH pinned source snapshot](https://github.com/deepseek-ai/deepseek-harness/tree/46a7f68b0922371ce7144b668b90e377d8e799f4)：
+  Hermit 当前以固定 `0.1.7-rc.1` generation 作为兼容基线。

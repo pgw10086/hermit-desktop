@@ -8,7 +8,7 @@
 
 M1 已确定 Electron + bundled Node + stock DSH Web 的桌面运行底座，且该结论已经通过
 本机资格。后续 Smart Clipboard 等 Product Plugin 需要一个可追加的持久业务入口；当前
-pinned DSH `0.1.1-rc.2` 的公开 client contract 没有提供该 Product Surface。仅等待上游
+pinned DSH `0.1.7-rc.1` 的公开 client contract 没有提供该 Product Surface。仅等待上游
 会让已经确认的本地产品闭环无法开始，但运行时 DOM 注入、私有 Router、private store 或
 直接 import DSH `src/*` 会破坏升级、生命周期和双宿主资格。
 
@@ -44,9 +44,9 @@ source patch 必须满足：
 
 首个 patch 已在 2026-08-31 落地：
 
-- 上游为 DeepSeek Harness tag `dsh-v0.1.1-rc.2`、commit
-  `b150a551b8d465e31e418e1b2eaf5e79bbb7d28e`；本地构建输入位于
-  `packages/dsh-client-ui-layout/`，包版本仍保持 `0.1.1-rc.2`；
+- 上游为 DeepSeek Harness tag `dsh-v0.1.7-rc.1`、commit
+  `46a7f68b0922371ce7144b668b90e377d8e799f4`；本地构建输入位于
+  `packages/dsh-client-ui-layout/`，包版本仍保持 `0.1.7-rc.1`；
 - 新增公开 typed `product.surface` list slot、`openProductSurface(id)`、
   `closeProductSurface()` 和数值型 `productSurfaceContract = 1` 协商标记；
 - 插件只从公开 `@deepseek-ai/dsh-client-ui-layout/client` 消费该契约，未引用 Router、

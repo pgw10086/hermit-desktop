@@ -2,10 +2,10 @@ import { useSyncExternalStore } from 'react'
 import type { ReactNode } from 'react'
 import {
   Button,
-  IconCopyOutline16,
-  IconCordisPluginOutline14,
-  IconFolderClose16,
-  IconListPenOutline16,
+  IconCopyOutlineMedium,
+  IconCordisPluginOutlineMedium,
+  IconFolderCloseMedium,
+  IconListPenOutlineMedium,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SidebarFooterActionOwnerProps } from '@deepseek-ai/dsh-client-ui-sidebar/client'
 import type { ILayout, ProductEntry, ProductEntryIcon } from './contract.ts'
@@ -59,10 +59,10 @@ export function ProductNavigation({ wide, layout }: ProductNavigationProps): Rea
 }
 
 function iconFor(icon: ProductEntryIcon, size: number): ReactNode {
-  if (icon === 'clipboard') return <IconCopyOutline16 size={size} />
-  if (icon === 'organizer') return <IconListPenOutline16 size={size} />
-  if (icon === 'file-workspace') return <IconFolderClose16 size={size} />
-  return <IconCordisPluginOutline14 size={size} />
+  if (icon === 'clipboard') return <IconCopyOutlineMedium size={size} />
+  if (icon === 'organizer') return <IconListPenOutlineMedium size={size} />
+  if (icon === 'file-workspace') return <IconFolderCloseMedium size={size} />
+  return <IconCordisPluginOutlineMedium size={size} />
 }
 
 /** Keep the option shape visible to the type checker at the registration site. */

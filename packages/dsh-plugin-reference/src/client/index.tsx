@@ -2,9 +2,9 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import {
   Button,
   DisclosureRow,
-  IconCheckOutline16,
-  IconChecklistOutline14,
-  IconPlusOutline16,
+  IconCheckOutlineMedium,
+  IconChecklistOutlineMedium,
+  IconPlusOutlineMedium,
   Input,
   Menu,
   Toast,
@@ -12,8 +12,14 @@ import {
   type MenuEntry,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { ILayout, ProductEntry } from '@deepseek-ai/dsh-client-ui-layout/client'
-import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
+import type { Context as ClientContext } from '@deepseek-ai/cordis'
+import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
+import type { SettingsPluginsTabOwnerProps } from '@deepseek-ai/dsh-client-ui-settings/client'
 import type {} from '@deepseek-ai/dsh-client-ui-settings-plugins/client'
+import type { PluginsSettingsSectionProps } from '@deepseek-ai/dsh-client-ui-settings-plugins/client'
+
+type _SettingsSlotOwner = SettingsPluginsTabOwnerProps
+type _SettingsContract = PluginsSettingsSectionProps
 
 /** Host 资格状态只读路由；用于验证同一制品的 Host/Client 配置一致。 */
 const STATE_ROUTE = '/__hermit_reference__/state'
@@ -28,8 +34,8 @@ const PRODUCT_ENTRY = {
 } satisfies ProductEntry
 /** 参考页面用于验证官方 Menu 的选择和分隔行为。 */
 const MENU_ITEMS: readonly MenuEntry[] = [
-  { id: 'today', label: '今天', icon: <IconCheckOutline16 size={16} /> },
-  { id: 'items', label: '全部事项', icon: <IconChecklistOutline14 size={16} /> },
+  { id: 'today', label: '今天', icon: <IconCheckOutlineMedium size={16} /> },
+  { id: 'items', label: '全部事项', icon: <IconChecklistOutlineMedium size={16} /> },
 ]
 
 interface HostState {
@@ -98,7 +104,7 @@ function ReferenceSettingsTab(): ReactNode {
       <Input
         aria-label="官方 Input 验证"
         placeholder="输入任意内容"
-        icon={<IconChecklistOutline14 size={16} />}
+        icon={<IconChecklistOutlineMedium size={16} />}
         value={inputValue}
         onChange={(event) => setInputValue(event.currentTarget.value)}
       />
@@ -133,7 +139,7 @@ function ReferenceSettingsTab(): ReactNode {
       <Button
         type="button"
         variant="outline"
-        icon={<IconPlusOutline16 size={16} />}
+        icon={<IconPlusOutlineMedium size={16} />}
         onClick={() => setToastSequence((value) => value + 1)}
       >
         显示 Toast
@@ -142,12 +148,12 @@ function ReferenceSettingsTab(): ReactNode {
         <Toast
           key={toastSequence}
           text="官方 Toast 正常"
-          icon={<IconCheckOutline16 size={16} />}
+          icon={<IconCheckOutlineMedium size={16} />}
           onDone={dismissToast}
         />
       )}
       <DisclosureRow
-        icon={<IconChecklistOutline14 size={16} />}
+        icon={<IconChecklistOutlineMedium size={16} />}
         title="DisclosureRow 验证"
         open={disclosureOpen}
         expandable
@@ -186,16 +192,40 @@ export function apply(ctx: ClientContext): void {
     label: () => 'Hermit 参考插件',
   }, ReferenceSettingsTab))
 
-  // stock DSH 没有 Hermit layout service；可选读取让 Settings 资格继续成立，
-  // 同时避免把 Product Surface 假装成 DSH 官方 stock 能力。
-  const layout = ctx.get('layout') as ILayout | undefined
-  if (layout?.productSurfaceContract !== 1 || layout.productNavigationContract !== 1) return
-  const closeSurface = (): void => layout.closeProductSurface()
-  ctx.slots.inject('product.surface', () => ctx.slots.register({
-    name: 'product.surface',
-    id: PRODUCT_SURFACE_ID,
-    order: PRODUCT_ENTRY.order,
-    inject: () => ({ onClose: closeSurface }),
-  }, ReferenceProductSurface))
-  ctx.effect(() => layout.registerProductEntry(PRODUCT_ENTRY), 'hermit-reference: product navigation entry')
+  // Stock DSH has no Hermit layout service. The service may also be provided
+  // after this client plugin's apply phase, so observe Cordis service
+  // availability instead of taking a one-time snapshot that races activation.
+  let disposeLayoutIntegration: (() => void) | undefined
+  const syncLayoutIntegration = (): void => {
+    const layout = ctx.get('layout') as ILayout | undefined
+    if (layout?.productSurfaceContract !== 1 || layout.productNavigationContract !== 1) {
+      disposeLayoutIntegration?.()
+      disposeLayoutIntegration = undefined
+      return
+    }
+    if (disposeLayoutIntegration !== undefined) return
+    const closeSurface = (): void => layout.closeProductSurface()
+    const disposeSurface = ctx.slots.inject('product.surface', () => ctx.slots.register({
+      name: 'product.surface',
+      id: PRODUCT_SURFACE_ID,
+      order: PRODUCT_ENTRY.order,
+      inject: () => ({ onClose: closeSurface }),
+    }, ReferenceProductSurface))
+    const disposeEntry = layout.registerProductEntry(PRODUCT_ENTRY)
+    disposeLayoutIntegration = () => {
+      disposeEntry()
+      disposeSurface()
+    }
+  }
+  ctx.effect(() => {
+    syncLayoutIntegration()
+    const off = ctx.on('internal/service', (name) => {
+      if (name === 'layout') syncLayoutIntegration()
+    })
+    return () => {
+      off()
+      disposeLayoutIntegration?.()
+      disposeLayoutIntegration = undefined
+    }
+  }, 'hermit-reference: optional layout integration')
 }

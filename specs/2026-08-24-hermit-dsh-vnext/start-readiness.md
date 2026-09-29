@@ -38,7 +38,7 @@ M1 桌面底座实现已经完成，并形成 macOS Apple Silicon 可运行候�
 | Electron | `43.x` 兼容范围 | 随桌面发布物和 Chromium 一起测试 |
 | Node | `24.x` 项目已验证；`22.x` 候选 | 随应用打包，不依赖系统 Node |
 | pnpm | `11.x` 项目已验证 | Corepack 用于开发；发布物携带插件管理所需 pnpm |
-| DSH | `0.1.1-rc.2` | 精确 npm closure 和完整 integrity |
+| DSH | `0.1.7-rc.1` | 精确 npm closure 和完整 integrity |
 | React | `18.x` 兼容范围 | 与 DSH 解析结果保持单实例 |
 
 当前 `scripts/qualification/` 的 Q0 检查继续用于记录 DSH 发布物、公开 export、React

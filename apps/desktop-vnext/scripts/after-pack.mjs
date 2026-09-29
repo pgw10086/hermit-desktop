@@ -3,8 +3,12 @@ import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { createRequire } from "node:module";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { validateForegroundSessionNavigationPatch } from "./dsh-foreground-session-navigation-patch.mjs";
 import { BUNDLED_GENERATION_ID, bundledGenerationRoot } from "./runtime-paths.mjs";
+import { readActiveDshCohort } from "../../../scripts/dsh-upstream.mjs";
+
+const ACTIVE_DSH = readActiveDshCohort(path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../.."));
 
 /** 返回受管 DSH runtime 的构建输入目录，避免打包脚本读取未声明路径。 */
 export function runtimeSource(projectDir) {
@@ -277,11 +281,11 @@ function readProductSurfacePatch(layoutManifestPath) {
   const manifest = JSON.parse(fs.readFileSync(layoutManifestPath, "utf8"));
   const patch = manifest.hermitPatch;
   if (
-    manifest.version !== "0.1.1-rc.2" ||
+    manifest.version !== ACTIVE_DSH.packageVersion ||
     patch?.contractVersion !== 6 ||
     patch?.name !== "product-navigation-shortcut-center-desktop-surface-and-primary-workspace" ||
-    patch?.upstreamTag !== "dsh-v0.1.1-rc.2" ||
-    patch?.upstreamCommit !== "b150a551b8d465e31e418e1b2eaf5e79bbb7d28e"
+    patch?.upstreamTag !== ACTIVE_DSH.tag ||
+    patch?.upstreamCommit !== ACTIVE_DSH.commit
   ) {
     throw new Error("Bundled DSH layout does not carry the approved Hermit layout and Desktop Surface patch");
   }

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type KeyboardEvent, type ReactNode } from 'react'
-import { Button, IconChecklistOutline14, Toast } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, IconChecklistOutlineMedium, Toast } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SettingsSectionOwnerProps } from '@deepseek-ai/dsh-client-ui-settings/client'
 import type { DesktopShortcutFacade, DesktopShortcutSnapshot } from './shortcut-contract.ts'
 import css from './ShortcutCenter.module.css'
@@ -121,7 +121,7 @@ export function ShortcutCenter(_props: SettingsSectionOwnerProps): ReactNode {
             })}
           </section>
         ))}
-      {feedback !== undefined && <Toast text={feedback} icon={<IconChecklistOutline14 size={14} />} onDone={() => setFeedback(undefined)} />}
+      {feedback !== undefined && <Toast text={feedback} icon={<IconChecklistOutlineMedium size={14} />} onDone={() => setFeedback(undefined)} />}
     </section>
   )
 

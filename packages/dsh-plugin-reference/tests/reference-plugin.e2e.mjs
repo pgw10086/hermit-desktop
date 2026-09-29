@@ -30,7 +30,7 @@ const bundledDsh = path.join(
 )
 const bundledPnpm = path.join(bundledDshRoot, 'node_modules', 'pnpm', 'bin', 'pnpm.cjs')
 const expectedNode = 'v24.19.0'
-const expectedDsh = '0.1.1-rc.2'
+const expectedDsh = '0.1.7-rc.1'
 const packageName = '@hermit/dsh-plugin-reference'
 const stateRoute = '/__hermit_reference__/state'
 
@@ -111,16 +111,22 @@ async function qualifyRuntime(runtime, artifact, runtimeRootPath) {
   const active = startDsh(runtime.dshEntry, workspace, environment)
   try {
     const url = await waitForReady(active)
-    const state = await readState(url)
+    const request = await authenticatedFetch(url)
+    const authenticatedUrl = new URL(url)
+    authenticatedUrl.search = ''
+    const state = await readState(authenticatedUrl, request)
     assert.deepEqual(state, {
       plugin: packageName,
       prefix: 'Hermit Reference',
       toolRegistered: true,
     })
 
-    const index = await fetch(url).then((response) => response.text())
+    const index = await request(authenticatedUrl).then((response) => response.text())
     assert.match(index, /"id":"@hermit\/dsh-plugin-reference"/u)
-    const client = await fetch(new URL('/plugins/@hermit/dsh-plugin-reference/client.js', url))
+    const boot = parseBootManifest(index)
+    const clientEntry = boot.entries.find(({ id }) => id === packageName)
+    assert.ok(clientEntry, `DSH boot manifest did not advertise ${packageName}`)
+    const client = await request(new URL(clientEntry.url, authenticatedUrl))
       .then((response) => response.text())
     assert.match(client, /^window\.__ModuleLoader__\.load/u)
     assert.match(client, /require\("react"\)/u)
@@ -136,9 +142,12 @@ async function qualifyRuntime(runtime, artifact, runtimeRootPath) {
   const inactive = startDsh(runtime.dshEntry, workspace, environment)
   try {
     const url = await waitForReady(inactive)
-    const index = await fetch(url).then((response) => response.text())
+    const request = await authenticatedFetch(url)
+    const authenticatedUrl = new URL(url)
+    authenticatedUrl.search = ''
+    const index = await request(authenticatedUrl).then((response) => response.text())
     assert.doesNotMatch(index, /"id":"@hermit\/dsh-plugin-reference"/u)
-    const response = await fetch(new URL(stateRoute, url))
+    const response = await request(new URL(stateRoute, authenticatedUrl))
     assert.notEqual(response.headers.get('content-type'), 'application/json; charset=utf-8')
   } finally {
     await stopProcess(inactive)
@@ -236,7 +245,7 @@ async function assertClientUi(url, browserRoot, runtimeLabel) {
     await page.getByRole('button', { name: /^(Settings|设置)$/u }).last().click()
     const settingsDialog = page.getByRole('dialog', { name: /^(Settings|设置)$/u })
     await settingsDialog.waitFor({ timeout: 20_000 })
-    await settingsDialog.getByRole('button', { name: /^(Plugins|插件)$/u }).click()
+    await settingsDialog.getByRole('button', { name: /^(Plugins|插件|内置插件)$/u }).click()
     await settingsDialog.getByRole('tab', { name: 'Hermit 参考插件' }).click()
 
     const surface = settingsDialog.locator('[data-hermit-reference-plugin="ready"]')
@@ -262,9 +271,9 @@ async function assertClientUi(url, browserRoot, runtimeLabel) {
     await menu.waitFor({ state: 'detached' })
 
     const tooltipTrigger = surface.getByRole('button', { name: '提示触发器' })
-    await tooltipTrigger.focus()
+    await tooltipTrigger.hover()
     await page.getByRole('tooltip').filter({ hasText: '官方 Tooltip 正常' }).waitFor()
-    await tooltipTrigger.blur()
+    await page.mouse.move(0, 0)
 
     await surface.getByRole('button', { name: '显示 Toast' }).click()
     await page.getByRole('alert').filter({ hasText: '官方 Toast 正常' }).waitFor()
@@ -335,7 +344,7 @@ async function waitForReady(child) {
     }, 100)
     const inspect = (chunk) => {
       output += chunk.toString('utf8')
-      const match = /\bdsh web:\s+(http:\/\/127\.0\.0\.1:\d+)/u.exec(output)
+      const match = /\bdsh web:\s+(http:\/\/127\.0\.0\.1:\d+\/\?token=[^\s]+)/u.exec(output)
       if (match?.[1] === undefined) return
       clearInterval(timer)
       resolve(new URL(match[1]))
@@ -353,10 +362,28 @@ async function waitForReady(child) {
   })
 }
 
-async function readState(url) {
-  const response = await fetch(new URL(stateRoute, url))
+async function authenticatedFetch(url) {
+  const bootstrap = await fetch(url, { redirect: 'manual' })
+  assert.equal(bootstrap.status, 303)
+  const setCookie = bootstrap.headers.get('set-cookie')
+  assert.ok(setCookie !== null, 'DSH auth bootstrap did not return a cookie')
+  const cookie = setCookie.split(';', 1)[0]
+  return (target, init = {}) => fetch(target, {
+    ...init,
+    headers: { ...init.headers, cookie },
+  })
+}
+
+async function readState(url, request) {
+  const response = await request(new URL(stateRoute, url))
   assert.equal(response.status, 200)
   return await response.json()
+}
+
+function parseBootManifest(index) {
+  const match = /globalThis\["__DSH_BOOT__"\] = (\{.*?\})<\/script>/su.exec(index)
+  assert.ok(match?.[1], 'DSH index did not contain __DSH_BOOT__')
+  return JSON.parse(match[1])
 }
 
 async function stopProcess(child) {

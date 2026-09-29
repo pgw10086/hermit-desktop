@@ -3,7 +3,7 @@
 状态：`current`
 
 `@hermit/dsh-plugin-reference` 是 Hermit 的 DSH 公共接入资格包。它用一个最小制品验证
-DSH `0.1.1-rc.2` 的 Bundle、Host、Client、Settings、Tool、Product Navigation、Product
+DSH `0.1.7-rc.1` 的 Bundle、Host、Client、Settings、Tool、Product Navigation、Product
 Surface、React 单实例和插件生命周期，
 作为第一方 Product Plugin 开发前的可执行参考。
 
@@ -58,9 +58,9 @@ Hermit bundled DSH 额外验证：Product Navigation 入口出现、打开最小
 
 ## 边界
 
-本包已证明 rc.2 的 Settings contribution 可以作为 Client/UI 兼容性探针，并用独立的
+本包已证明 0.1.7-rc.1 的 Settings contribution 可以作为 Client/UI 兼容性探针，并用独立的
 Hermit bundled DSH 资格证明 Product Navigation/Product Surface 公共 contract。当前包默认
-同时验证 stock `0.1.1-rc.2` 和 Hermit patched generation；不能把 Settings、私有 Router、
+同时验证 stock `0.1.7-rc.1` 和 Hermit patched generation；不能把 Settings、私有 Router、
 DSH DOM 或 CSS selector 当成业务入口。Product Plugin 的静态私有依赖红线不因 source patch 放宽。
 
 当前资格也不把外部 Client 插件的进程内热卸载视为已验证能力。插件安装、激活或停用后

@@ -19,7 +19,7 @@ import css from './AppFrame.module.css'
 
 /** Full composed props: runtime share + child-slot render share + store share. */
 export type AppFrameProps =
-  & PropsRuntime<'root'>
+  & Pick<PropsRuntime<'sidebar'>, 'useSessions'>
   & PropsRenderSlots<'sidebar' | 'conversation' | 'details' | 'product.surface' | 'shell.overlay'>
   & PropsStore<ReturnType<typeof createLayoutStore>>
 
@@ -96,11 +96,12 @@ export function AppFrame({
   const primaryView = panels.primaryView
   const productSurfaceId = primaryView.kind === 'product-surface' ? primaryView.surfaceId : null
   const showingProductSurface = primaryView.kind === 'product-surface'
+  const selectedSession = useSessions((s) => s.ids.find((id) => (s.byId[id]?.retainedBy.mainView ?? 0) > 0))
   const detailsSession = useSessions((s) => {
-    const current = s.current
+    const current = selectedSession
     return current !== undefined && s.byId[current]?.blank === false ? current : undefined
   })
-  const currentSession = useSessions((s) => s.current)
+  const currentSession = selectedSession
   const frameRef = useRef<HTMLDivElement | null>(null)
   const [viewport, setViewport] = useState(() => window.innerWidth)
 

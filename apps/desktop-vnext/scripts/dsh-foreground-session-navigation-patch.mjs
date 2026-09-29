@@ -1,24 +1,28 @@
 import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { readActiveDshCohort } from "../../../scripts/dsh-upstream.mjs";
 
-const APPROVED_PACKAGE_VERSION = "0.1.1-rc.2";
-const UPSTREAM_COMMIT = "b150a551b8d465e31e418e1b2eaf5e79bbb7d28e";
+const REPOSITORY_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
+const ACTIVE_DSH = readActiveDshCohort(REPOSITORY_ROOT);
+const APPROVED_PACKAGE_VERSION = ACTIVE_DSH.packageVersion;
+const UPSTREAM_COMMIT = ACTIVE_DSH.commit;
 const PATCH_VERSION = 1;
 const CLOSE_SURFACE_CALL = 'ctx.get("layout")?.closeProductSurface();';
 const PATCH_TARGETS = Object.freeze([
   {
     packageName: "@deepseek-ai/dsh-client-ui-workspace",
     statements: [
-      ["ctx.workspaces.startSession(workspaceId);", "startSession"],
-      ["ctx.sessions.open(sessionId);", "open session"],
-      ["ctx.sessions.open(childId);", "forked session"],
+      ["uiWorkspace.startSession(workspaceId);", "startSession"],
+      ["uiWorkspace.openSession(sessionId);", "open session"],
+      ["uiWorkspace.forkSession(sessionId).catch(() => {});", "forked session"],
     ],
     marker: "/* hermit: primary-workspace-navigation-v1:workspace */",
   },
   {
     packageName: "@deepseek-ai/dsh-client-ui-sidebar",
-    statements: [["ctx.workspaces.startSession(workspaceId);", "sidebar startSession"]],
+    statements: [["workspaceNavigation.startSession(workspaceId);", "sidebar startSession"]],
     marker: "/* hermit: primary-workspace-navigation-v1:sidebar */",
   },
 ]);

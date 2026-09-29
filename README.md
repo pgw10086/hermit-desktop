@@ -29,6 +29,7 @@ tarball。包仓库发布不会触发 Desktop；Desktop 通过自己的 tag 决�
 - [npm 解耦交付规范](specs/2026-09-11-npm-decoupled-delivery-pipeline.md)：多仓 package、Desktop CI 和 Release；
 - [public npm 发布配置](docs/development/npm-publishing.md)：scope、Trusted Publisher、bootstrap 和故障恢复；
 - [Git 与 Hermit 打包入门](docs/development/git-and-release-beginner-guide.md)：分支、commit、push、tag 和打包；
+- [Product Plugin 开发与发布操作手册](docs/development/dsh-plugin-development-and-packaging.md)：从插件接入、npm 制品、Desktop 依赖到资格验收；
 - [Smart Clipboard 打包与更新流程](docs/development/smart-clipboard-packaging-runbook.md)：插件专属验收清单；
 - [ADR-0002](docs/adr/0002-electron-loopback-dsh-carrier.md)：Electron + stock DSH Web 底座；
 - [ADR-0003](docs/adr/0003-hermit-bundled-dsh-web-source-patch.md)：受控 DSH Web source patch。

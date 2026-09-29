@@ -9,7 +9,7 @@ import { createRequire } from 'node:module'
 import electronPath from 'electron'
 import { _electron as playwrightElectron } from 'playwright-core'
 import { copyRuntimeClosure } from '../scripts/after-pack.mjs'
-import { packInstalledPackage } from './installed-package-artifact.mjs'
+import { packInstalledPackage, replaceRuntimePackage } from './installed-package-artifact.mjs'
 
 const appRoot = path.resolve(fileURLToPath(new URL('..', import.meta.url)))
 const repositoryRoot = path.resolve(appRoot, '..', '..')
@@ -18,8 +18,13 @@ const bundledNode = path.join(runtimeRoot, 'node', process.platform === 'win32' 
 const bundledDshRoot = path.join(runtimeRoot, 'dsh')
 const bundledDsh = path.join(bundledDshRoot, 'node_modules', '@deepseek-ai', 'dsh', 'lib', 'bin.js')
 const packageName = '@tianbuyv/smart-clipboard'
-const artifactRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'hermit-smart-clipboard-package-'))
-const pluginArtifact = packInstalledPackage({ repositoryRoot, packageName, outputDirectory: artifactRoot })
+const requestedArtifact = process.env.HERMIT_SMART_CLIPBOARD_ARTIFACT
+const artifactRoot = requestedArtifact === undefined
+  ? fs.mkdtempSync(path.join(os.tmpdir(), 'hermit-smart-clipboard-package-'))
+  : undefined
+const pluginArtifact = requestedArtifact === undefined
+  ? packInstalledPackage({ repositoryRoot, packageName, outputDirectory: artifactRoot })
+  : path.resolve(requestedArtifact)
 
 for (const required of [bundledNode, bundledDsh, pluginArtifact, electronPath]) {
   assert.equal(fs.existsSync(required), true, `Smart Clipboard 资格缺少运行时文件：${required}`)
@@ -29,16 +34,19 @@ const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hermit-smart-clipboard-surfa
 let succeeded = false
 
 try {
-  const stockDsh = prepareStockRuntime(path.join(root, 'stock-runtime'))
+  const stockDsh = prepareStockRuntime(path.join(root, 'stock-runtime'), pluginArtifact)
   await qualifyStock(stockDsh, pluginArtifact, path.join(root, 'stock'))
-  await qualifyHermit(pluginArtifact, path.join(root, 'hermit'))
+  const hermitDsh = requestedArtifact === undefined
+    ? bundledDsh
+    : prepareHermitRuntime(path.join(root, 'hermit-runtime'), pluginArtifact)
+  await qualifyHermit(pluginArtifact, path.join(root, 'hermit'), hermitDsh)
   console.log('Smart Clipboard Product Surface qualification passed: stock=settings, hermit=sidebar+history')
   succeeded = true
 } catch (cause) {
   console.error(`Smart Clipboard Product Surface 资格目录已保留：${root}`)
   throw cause
 } finally {
-  fs.rmSync(artifactRoot, { recursive: true, force: true })
+  if (artifactRoot !== undefined) fs.rmSync(artifactRoot, { recursive: true, force: true })
   if (succeeded) fs.rmSync(root, { recursive: true, force: true })
 }
 
@@ -51,7 +59,7 @@ async function qualifyStock(stockDsh, artifact, target) {
       await page.getByRole('button', { name: /^(Settings|设置)$/u }).last().click()
       const settings = page.getByRole('dialog', { name: /^(Settings|设置)$/u })
       await settings.waitFor({ timeout: 20_000 })
-      await settings.getByRole('button', { name: /^(Plugins|插件)$/u }).click()
+      await settings.getByRole('button', { name: /^(Plugins|插件|内置插件)$/u }).click()
       await settings.getByRole('tab', { name: '剪贴板历史' }).click()
       await settings.locator('[data-smart-clipboard-history="unavailable"]').waitFor({ timeout: 20_000 })
     })
@@ -60,8 +68,9 @@ async function qualifyStock(stockDsh, artifact, target) {
   }
 }
 
-function prepareStockRuntime(target) {
+function prepareStockRuntime(target, artifact) {
   copyRuntimeClosure(bundledDshRoot, target)
+  if (requestedArtifact !== undefined) replaceRuntimePackage({ runtimeRoot: target, packageName, artifact, expectedVersion: '0.2.4' })
   const require = createRequire(import.meta.url)
   const officialWebApp = require.resolve('@deepseek-ai/dsh-web-app/package.json')
   const officialRequire = createRequire(officialWebApp)
@@ -97,8 +106,14 @@ function prepareStockRuntime(target) {
   return entry
 }
 
-async function qualifyHermit(artifact, target) {
-  const runtime = await startRuntime(bundledDsh, artifact, target)
+function prepareHermitRuntime(target, artifact) {
+  copyRuntimeClosure(bundledDshRoot, target)
+  replaceRuntimePackage({ runtimeRoot: target, packageName, artifact, expectedVersion: '0.2.4' })
+  return path.join(target, 'node_modules', '@deepseek-ai', 'dsh', 'lib', 'bin.js')
+}
+
+async function qualifyHermit(artifact, target, dshEntry) {
+  const runtime = await startRuntime(dshEntry, artifact, target)
   try {
     await withBrowser(runtime.url, path.join(target, 'browser'), async (page) => {
       await openSidebar(page)
@@ -251,7 +266,7 @@ async function waitForReady(child) {
     }, 100)
     const inspect = (chunk) => {
       output += chunk.toString('utf8')
-      const match = /\bdsh web:\s+(http:\/\/127\.0\.0\.1:\d+)/u.exec(output)
+      const match = /\bdsh web:\s+(http:\/\/127\.0\.0\.1:\d+\/\?token=[^\s]+)/u.exec(output)
       if (match?.[1] === undefined) return
       clearInterval(timer)
       resolve(new URL(match[1]))

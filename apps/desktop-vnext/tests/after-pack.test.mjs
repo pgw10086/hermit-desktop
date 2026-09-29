@@ -115,24 +115,24 @@ test("Hermit layout and Desktop Surface gate validates the pinned patch and clie
     fs.writeFileSync(path.join(webApp, "package.json"), JSON.stringify({ name: "@deepseek-ai/dsh-web-app" }));
     fs.writeFileSync(path.join(layout, "package.json"), JSON.stringify({
       name: "@deepseek-ai/dsh-client-ui-layout",
-      version: "0.1.1-rc.2",
+      version: "0.1.7-rc.1",
       hermitPatch: {
         contractVersion: 6,
         name: "product-navigation-shortcut-center-desktop-surface-and-primary-workspace",
-        upstreamTag: "dsh-v0.1.1-rc.2",
-        upstreamCommit: "b150a551b8d465e31e418e1b2eaf5e79bbb7d28e",
+        upstreamTag: "dsh-v0.1.7-rc.1",
+        upstreamCommit: "46a7f68b0922371ce7144b668b90e377d8e799f4",
       },
     }));
     fs.writeFileSync(path.join(layout, "lib", "client.js"), "product.surface openProductSurface registerProductEntry shortcut-center getDesktopSurfaceClient getDesktopDeadlineClient getDesktopNotificationClient\n");
     fs.writeFileSync(path.join(stockLayout, "package.json"), JSON.stringify({
       name: "@deepseek-ai/dsh-client-ui-layout",
-      version: "0.1.1-rc.2",
+      version: "0.1.7-rc.1",
     }));
     fs.writeFileSync(path.join(stockLayout, "lib", "client.js"), "stock layout\n");
 
     installProductSurfacePatch(root);
     const result = validateProductSurfacePatch(root);
-    assert.equal(result.packageVersion, "0.1.1-rc.2");
+    assert.equal(result.packageVersion, "0.1.7-rc.1");
     assert.equal(result.contractVersion, 6);
     assert.equal(result.clientSha256.length, 64);
   } finally {
@@ -152,20 +152,18 @@ test("DSH foreground navigation patches are precise and idempotent", () => {
     fs.mkdirSync(path.join(workspace, "lib"), { recursive: true });
     fs.writeFileSync(path.join(workspace, "package.json"), JSON.stringify({
       name: "@deepseek-ai/dsh-client-ui-workspace",
-      version: "0.1.1-rc.2",
+      version: "0.1.7-rc.1",
     }));
     fs.writeFileSync(path.join(workspace, "lib", "client.js"), [
       "const browserInjected = () => ({",
       "  startSession: (workspaceId) => {",
-      "    ctx.workspaces.startSession(workspaceId);",
+      "    uiWorkspace.startSession(workspaceId);",
       "  },",
       "  open: (sessionId) => {",
-      "    ctx.sessions.open(sessionId);",
+      "    uiWorkspace.openSession(sessionId);",
       "  },",
       "  forkSession: (sessionId) => {",
-      "    ctx.sessions.fork({ sessionId }).then((childId) => {",
-      "      ctx.sessions.open(childId);",
-      "    });",
+      "    uiWorkspace.forkSession(sessionId).catch(() => {});",
       "  },",
       "});",
       "",
@@ -179,12 +177,12 @@ test("DSH foreground navigation patches are precise and idempotent", () => {
     fs.mkdirSync(path.join(sidebar, "lib"), { recursive: true });
     fs.writeFileSync(path.join(sidebar, "package.json"), JSON.stringify({
       name: "@deepseek-ai/dsh-client-ui-sidebar",
-      version: "0.1.1-rc.2",
+      version: "0.1.7-rc.1",
     }));
     fs.writeFileSync(path.join(sidebar, "lib", "client.js"), [
       "const sidebarInjected = {",
       "  startSession: (workspaceId) => {",
-      "    ctx.workspaces.startSession(workspaceId);",
+      "    workspaceNavigation.startSession(workspaceId);",
       "  },",
       "};",
       "",
@@ -222,7 +220,7 @@ test("DSH Workspace foreground navigation patch rejects a stale source anchor", 
     fs.mkdirSync(path.join(workspace, "lib"), { recursive: true });
     fs.writeFileSync(path.join(workspace, "package.json"), JSON.stringify({
       name: "@deepseek-ai/dsh-client-ui-workspace",
-      version: "0.1.1-rc.2",
+      version: "0.1.7-rc.1",
     }));
     fs.writeFileSync(path.join(workspace, "lib", "client.js"), "const stale = true;\n");
     assert.throws(

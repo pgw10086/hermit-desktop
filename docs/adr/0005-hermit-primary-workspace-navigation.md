@@ -33,7 +33,7 @@ Surface 却仍然停留在页面上。原因是 Layout 的 `productSurfaceId` �
 所有权不变。重复执行 runtime 准备脚本不会重复注入补丁；固定 DSH 版本、源码锚点、补丁
 摘要和 generation manifest 都是打包验收的一部分。
 
-代价是当前 pinned DSH rc.2 需要携带一个小型 source patch。DSH 升级时必须重新核对
+代价是当前 pinned DSH `0.1.7-rc.1` 需要携带一个小型 source patch。DSH 升级时必须重新核对
 Workspace 和 Sidebar adapter 的源码锚点并重新执行打包及前台导航资格；上游提供等价公开 seam 后，应
 删除该补丁，而不是长期维护两套实现。
 

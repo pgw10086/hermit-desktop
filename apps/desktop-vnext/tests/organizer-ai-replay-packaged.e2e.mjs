@@ -106,7 +106,7 @@ function runtimeEnvironment() {
 }
 
 function stageReplayProfile() {
-  const install = spawnSync(nodeBinary, [dshEntry, 'plugin', '--profile', 'web', 'add', '-E', '@deepseek-ai/dsh-llm-replay@0.1.1-rc.2'], {
+  const install = spawnSync(nodeBinary, [dshEntry, 'plugin', '--profile', 'web', 'add', '-E', '@deepseek-ai/dsh-llm-replay@0.1.7-rc.1'], {
     cwd: workspace,
     env: runtimeEnvironment(),
     encoding: 'utf8',
@@ -116,7 +116,7 @@ function stageReplayProfile() {
   assert.equal(install.status, 0, `${install.stdout}\n${install.stderr}`)
   const profileRoot = path.join(profileHome, 'profiles', 'web')
   const profile = JSON.parse(fs.readFileSync(path.join(profileRoot, 'package.json'), 'utf8'))
-  assert.equal(profile.dependencies?.['@deepseek-ai/dsh-llm-replay'], '0.1.1-rc.2')
+  assert.equal(profile.dependencies?.['@deepseek-ai/dsh-llm-replay'], '0.1.7-rc.1')
   fs.writeFileSync(path.join(profileRoot, 'cordis.patch.yml'), `# Hermit keyless Organizer AI qualification overlay.
 - id: llm-deepseek
   disabled: true

@@ -11,6 +11,19 @@
 多仓工作区的跨项目边界见外层 `docs/architecture/platform-boundaries.md`；本文只保留 Hermit
 Desktop 的产品架构、runtime 组合和宿主生命周期。
 
+## 当前组合（2026-09-24）
+
+- bundled DSH generation 固定为 DeepSeek Harness `dsh-v0.1.7-rc.1`，commit
+  `46a7f68b0922371ce7144b668b90e377d8e799f4`；Node `24.19.0`、pnpm `11.24.0` 和
+  React/ReactDOM `18.3.1` 由 Desktop runtime manifest 与锁文件共同约束。
+- Desktop 正式依赖仍是公开 npm 版本：`@tianbuyv/smart-clipboard@0.2.3`、
+  `@tianbuyv/organizer@0.2.2`、`@tianbuyv/file-workspace@0.2.2`。这三个仓库已经完成
+  DSH `0.1.7-rc.1` 的本地候选迁移并通过隔离 Product Surface 资格，但候选包尚未发布，
+  因此本地 tarball 不进入正式 manifest 或 lockfile。
+- 当前架构的全局 `/api` 入口仍由 DSH Connection/Gateway 统一承载；Organizer 和 File
+  Workspace 使用各自精确的 `connection.fetch.register()` endpoint，避免插件争抢同一个
+  interceptor。
+
 ## 长期运行形态
 
 ```text

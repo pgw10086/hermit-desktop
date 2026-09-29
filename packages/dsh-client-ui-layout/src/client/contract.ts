@@ -107,8 +107,18 @@ export interface ILayout {
   readonly productSurfaceContract: 1
   /** Hermit Product Navigation contract version exposed for feature negotiation. */
   readonly productNavigationContract: 1
+  /** DSH global-panel selection; null returns to the current Conversation. */
+  selectPanel(panelId: string | null): void
+  /** Abort prior async workspace navigation and return the new cancellation signal. */
+  beginNavigation(): AbortSignal
+  /** Abort pending navigation when the layout owner is unloaded. */
+  dispose(): void
   /** Toggle the sidebar panel (closed ⟷ contract default width). */
   toggleSidebar(): void
+  /** Report the right panel's current presentation. */
+  openRightbar(track: boolean, fullscreen: boolean): void
+  /** Report the right panel as hidden. */
+  closeRightbar(): void
   /** Open the details panel (no-op when already open). */
   openDetails(): void
   /** Close the details panel. */
