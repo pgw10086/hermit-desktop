@@ -9,7 +9,7 @@ import { createRequire } from 'node:module'
 import electronPath from 'electron'
 import { _electron as playwrightElectron } from 'playwright-core'
 import { copyRuntimeClosure } from '../scripts/after-pack.mjs'
-import { packInstalledPackage } from './installed-package-artifact.mjs'
+import { packInstalledPackage, replaceRuntimePackage } from './installed-package-artifact.mjs'
 
 const appRoot = path.resolve(fileURLToPath(new URL('..', import.meta.url)))
 const repositoryRoot = path.resolve(appRoot, '..', '..')
@@ -18,24 +18,28 @@ const bundledNode = path.join(runtimeRoot, 'node', process.platform === 'win32' 
 const bundledDshRoot = path.join(runtimeRoot, 'dsh')
 const bundledDsh = path.join(bundledDshRoot, 'node_modules', '@deepseek-ai', 'dsh', 'lib', 'bin.js')
 const packageName = '@tianbuyv/file-workspace'
-const artifactRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'hermit-file-workspace-package-'))
-const pluginArtifact = packInstalledPackage({ repositoryRoot, packageName, outputDirectory: artifactRoot })
+const requestedArtifact = process.env.HERMIT_FILE_WORKSPACE_ARTIFACT
+const artifactRoot = requestedArtifact === undefined ? fs.mkdtempSync(path.join(os.tmpdir(), 'hermit-file-workspace-package-')) : undefined
+const pluginArtifact = requestedArtifact === undefined
+  ? packInstalledPackage({ repositoryRoot, packageName, outputDirectory: artifactRoot })
+  : path.resolve(requestedArtifact)
 
 for (const required of [bundledNode, bundledDsh, pluginArtifact, electronPath]) assert.equal(fs.existsSync(required), true, `File Workspace 资格缺少运行时文件：${required}`)
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hermit-file-workspace-surface-'))
 let succeeded = false
 try {
-  const stockDsh = prepareStockRuntime(path.join(root, 'stock-runtime'))
+  const stockDsh = prepareStockRuntime(path.join(root, 'stock-runtime'), pluginArtifact)
   await qualifyStock(stockDsh, pluginArtifact, path.join(root, 'stock'))
-  await qualifyHermit(pluginArtifact, path.join(root, 'hermit'))
+  const hermitDsh = requestedArtifact === undefined ? bundledDsh : prepareHermitRuntime(path.join(root, 'hermit-runtime'), pluginArtifact)
+  await qualifyHermit(pluginArtifact, path.join(root, 'hermit'), hermitDsh)
   console.log('File Workspace Product Surface qualification passed: stock=unavailable, hermit=managed lifecycle')
   succeeded = true
 } catch (cause) {
   console.error(`File Workspace 资格目录已保留：${root}`)
   throw cause
 } finally {
-  fs.rmSync(artifactRoot, { recursive: true, force: true })
+  if (artifactRoot !== undefined) fs.rmSync(artifactRoot, { recursive: true, force: true })
   if (succeeded) fs.rmSync(root, { recursive: true, force: true })
 }
 
@@ -49,8 +53,8 @@ async function qualifyStock(dshEntry, artifact, target) {
   } finally { await stopProcess(runtime.child) }
 }
 
-async function qualifyHermit(artifact, target) {
-  const runtime = await startRuntime(bundledDsh, artifact, target)
+async function qualifyHermit(artifact, target, dshEntry) {
+  const runtime = await startRuntime(dshEntry, artifact, target)
   try {
     await withBrowser(runtime.url, path.join(target, 'browser'), async (page) => {
       await openSidebar(page)
@@ -108,8 +112,9 @@ async function qualifyHermit(artifact, target) {
   } finally { await stopProcess(runtime.child) }
 }
 
-function prepareStockRuntime(target) {
+function prepareStockRuntime(target, artifact) {
   copyRuntimeClosure(bundledDshRoot, target)
+  if (requestedArtifact !== undefined) replaceRuntimePackage({ runtimeRoot: target, packageName, artifact, expectedVersion: '0.2.3' })
   const require = createRequire(import.meta.url)
   const officialWebApp = require.resolve('@deepseek-ai/dsh-web-app/package.json')
   const officialRequire = createRequire(officialWebApp)
@@ -126,6 +131,12 @@ function prepareStockRuntime(target) {
     for (const entry of ['LICENSE', 'package.json', 'lib']) fs.cpSync(path.join(officialLayout, entry), path.join(layout, entry), { recursive: true, dereference: true })
     assert.equal(JSON.parse(fs.readFileSync(path.join(layout, 'package.json'), 'utf8')).hermitPatch, undefined)
   }
+  return path.join(target, 'node_modules', '@deepseek-ai', 'dsh', 'lib', 'bin.js')
+}
+
+function prepareHermitRuntime(target, artifact) {
+  copyRuntimeClosure(bundledDshRoot, target)
+  replaceRuntimePackage({ runtimeRoot: target, packageName, artifact, expectedVersion: '0.2.3' })
   return path.join(target, 'node_modules', '@deepseek-ai', 'dsh', 'lib', 'bin.js')
 }
 
@@ -180,5 +191,5 @@ async function openSidebar(page) {
 
 function run(command, args, options) { const result = spawnSync(command, args, { ...options, encoding: 'utf8', windowsHide: true }); if (result.error !== undefined) throw result.error; assert.equal(result.status, 0, `${result.stdout ?? ''}\n${result.stderr ?? ''}`) }
 function runtimeEnvironment(home) { const environment = { ...process.env, DSH_HOME: home, PATH: [path.dirname(bundledNode), path.join(bundledDshRoot, 'node_modules', '.bin'), process.env.PATH].filter(Boolean).join(path.delimiter) }; delete environment.NODE_OPTIONS; delete environment.NODE_PATH; delete environment.node_path; delete environment.PNPM_HOME; delete environment.COREPACK_HOME; return environment }
-async function waitForReady(child) { let output = ''; const deadline = Date.now() + 30_000; return await new Promise((resolve, reject) => { const timer = setInterval(() => { if (Date.now() < deadline) return; clearInterval(timer); reject(new Error(`DSH 未在期限内 ready：${output}`)) }, 100); const inspect = (chunk) => { output += chunk.toString('utf8'); const match = /\bdsh web:\s+(http:\/\/127\.0\.0\.1:\d+)/u.exec(output); if (match?.[1] === undefined) return; clearInterval(timer); resolve(new URL(match[1])) }; child.stdout.on('data', inspect); child.stderr.on('data', inspect); child.once('error', reject); child.once('exit', (code, signal) => reject(new Error(`DSH ready 前退出 code=${String(code)} signal=${String(signal)}：${output}`))) }) }
+async function waitForReady(child) { let output = ''; const deadline = Date.now() + 30_000; return await new Promise((resolve, reject) => { const timer = setInterval(() => { if (Date.now() < deadline) return; clearInterval(timer); reject(new Error(`DSH 未在期限内 ready：${output}`)) }, 100); const inspect = (chunk) => { output += chunk.toString('utf8'); const match = /\bdsh web:\s+(http:\/\/127\.0\.0\.1:\d+\/\?token=[^\s]+)/u.exec(output); if (match?.[1] === undefined) return; clearInterval(timer); resolve(new URL(match[1])) }; child.stdout.on('data', inspect); child.stderr.on('data', inspect); child.once('error', reject); child.once('exit', (code, signal) => reject(new Error(`DSH ready 前退出 code=${String(code)} signal=${String(signal)}：${output}`))) }) }
 async function stopProcess(child) { if (child.exitCode !== null || child.signalCode !== null) return; const exited = once(child, 'exit'); if (process.platform === 'win32' && child.pid !== undefined) spawnSync('taskkill.exe', ['/PID', String(child.pid), '/T', '/F'], { windowsHide: true }); else if (child.pid !== undefined) process.kill(-child.pid, 'SIGTERM'); await Promise.race([exited, new Promise((resolve) => setTimeout(resolve, 5_000))]) }

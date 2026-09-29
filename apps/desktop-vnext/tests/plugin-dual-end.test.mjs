@@ -93,7 +93,7 @@ async function waitForReady(child) {
     }, 100);
     const inspect = (chunk) => {
       output += chunk.toString("utf8");
-      const match = /\bdsh web:\s+(http:\/\/127\.0\.0\.1:\d+)/u.exec(output);
+      const match = /\bdsh web:\s+(http:\/\/127\.0\.0\.1:\d+\/\?token=[^\s]+)/u.exec(output);
       if (match?.[1] === undefined) return;
       clearInterval(timer);
       resolve(new URL(match[1]));

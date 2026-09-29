@@ -7,7 +7,7 @@
 ## 背景
 
 v0.1.0 的三个 Product Plugin 都能打开自己的 Product Surface，但每个插件还重复注册
-`sidebar.footer.action` 并各自实现 wide/collapsed 按钮。这个 DSH rc.2 slot 的官方语义是
+`sidebar.footer.action` 并各自实现 wide/collapsed 按钮。这个 DSH `0.1.7-rc.1` slot 的官方语义是
 Settings 旁边的可选 footer action，不是一级产品导航；继续复制按钮会让入口布局、active
 状态和生命周期逐渐分叉。
 
@@ -22,7 +22,7 @@ Settings 旁边的可选 footer action，不是一级产品导航；继续复制
   稳定 `order`；不接受 JSX、SVG、React component、route、badge、permission 或 click handler；
 - Core 统一渲染入口、active 状态、展开/收起表现和注销；Product Plugin 只声明 metadata，
   继续拥有自己的 Product Surface、业务状态和 Canonical service；
-- pinned DSH rc.2 暂无一级全局导航 slot，因此 v1 注册一个 Core-owned 产品入口组到
+- pinned DSH `0.1.7-rc.1` 暂无一级全局导航 slot，因此 v1 注册一个 Core-owned 产品入口组到
   `sidebar.footer.action`，三个插件不再直接注册该 slot。这个承载方式不改变 DSH 官方
   footer slot 的语义；上游提供等价公开 seam 或真实使用证明必要时，再做精确位置迁移；
 - Product Surface 当前没有 dirty guard，下一步仅在真实丢失 draft 的流程出现后增加统一

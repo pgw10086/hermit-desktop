@@ -8,8 +8,9 @@
  * by the runtime sessions service. A second effect seats the theme presenter,
  * which projects ctx.theme snapshots onto document.body.
  */
-import type { ClientContext, SessionId, WorkspaceId } from '@deepseek-ai/dsh-client-runtime/client'
-import type {} from '@deepseek-ai/dsh-client-runtime/client'
+import type { Context as ClientContext } from '@deepseek-ai/cordis'
+import type { SnapshotSelectorHook } from '@deepseek-ai/dsh-client-ui-slots'
+import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-theme/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
@@ -73,13 +74,12 @@ declare module '@deepseek-ai/cordis' {
 // DSH SessionRuntime 负责创建空白会话，但基础 ISessions 对同级包只开放导航能力。
 // Quick Surface 属于受信的 DSH layout 集成，因此使用公开的创建方法完成每次新打开的交接；
 // 这条边界不允许 Electron 或宿主专属 API 穿透。
-declare module '@deepseek-ai/dsh-client-runtime/client' {
-  interface ISessions {
-    create(options?: { workspaceId?: WorkspaceId; cwd?: string; sessionId?: SessionId }): Promise<SessionId>
-  }
-}
-
 declare module '@deepseek-ai/dsh-client-ui-slots' {
+  interface GlobalStandardProps {
+    /** Subscribe to the selected Hermit Product Surface. */
+    usePanelInfo: SnapshotSelectorHook<{ readonly activePanelId: string | null }>
+  }
+
   interface SlotMap {
     // The 'root' entry itself is the runtime's built-in slot (declared
     // there); these five are the frame's children, declared by the same
@@ -113,12 +113,16 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      * The right details column, shown when the layout opens it. OCCUPIED by
      * ui-conversation's DetailsPanel, which declares the tool-details seat
      * inside it — registering here replaces the column and takes that seat
-     * with it. Absent an occupant the column renders nothing.
+     * with it. Absent an occupant or current session the column renders nothing.
      *
-     * No owner props: the framework injects the session id and hooks for the
-     * `session` scope, and `ctx.layout` owns whether the column is open.
+     * No owner props: the framework injects the current optional session
+     * binding, and `ctx.layout` owns whether the column is open.
      */
-    'details': { kind: 'single'; scope: 'session'; owner: DetailsOwnerProps }
+    // The frame is root-scoped, so it resolves the current session through the
+    // optional adapter before rendering the details occupant. A strict
+    // session declaration here would make the first root render fail before
+    // DSH's session restoration has established a binding.
+    'details': { kind: 'single'; scope: 'session-maybe'; owner: DetailsOwnerProps }
     /**
      * Persistent root business pages. The layout renders exactly the entry
      * selected through `ctx.layout.openProductSurface(id)` and leaves the
@@ -174,13 +178,19 @@ export const inject = ['slots', 'theme', 'sessions', 'workspaces']
 export function apply(ctx: ClientContext): void {
   const layout = new LayoutController()
   ctx.effect(() => {
+    const disposePanelInfo = ctx.slots.provideRoot({ hooks: {
+      panelInfo: {
+        getSnapshot: () => layout.getPanelInfo(),
+        subscribe: (listener) => layout.subscribePanelInfo(listener),
+      },
+    } })
     const disposeService = ctx.reflect.provide('layout', layout)
     const disposeRegistration = ctx.slots.register({
       name: 'root',
       children: {
         'sidebar': { kind: 'single', scope: 'root' },
         'conversation': { kind: 'single', scope: 'session-maybe' },
-        'details': { kind: 'single', scope: 'session' },
+        'details': { kind: 'single', scope: 'session-maybe' },
         'product.surface': { kind: 'list', scope: 'root' },
         'shell.overlay': { kind: 'list', scope: 'root' },
       },
@@ -217,69 +227,18 @@ export function apply(ctx: ClientContext): void {
       order: 80,
       label: () => '快捷键',
     }, ShortcutCenter))
-    const disposeSessionNavigation = subscribeSessionNavigation(ctx, layout)
     return () => {
-      disposeSessionNavigation()
       disposeShortcutCenter()
       disposeProductNavigation()
       disposeQuickSession()
       disposeQuickSurface()
       disposeRegistration()
+      disposePanelInfo()
+      layout.dispose()
       // provide()'s disposer settles asynchronously; teardown is synchronous fire-and-forget.
       void disposeService()
     }
   }, 'ui-layout: service + root registration')
-
-  // A Quick Conversation surface may carry an existing Session id in its URL.
-  // The selection remains client-local; the Session log and stream stay in DSH.
-  const requestedSessionId = new URLSearchParams(window.location.search).get('sessionId')?.trim() as SessionId | undefined
-  if (requestedSessionId !== undefined && requestedSessionId !== '') {
-    ctx.effect(() => {
-      let live = true
-      const reconcile = (): void => {
-        if (!live) return
-        const sessions = ctx.sessions.list.getSnapshot()
-        if (sessions.current === requestedSessionId) {
-          live = false
-          off()
-          return
-        }
-        if (sessions.byId[requestedSessionId] === undefined) return
-        ctx.sessions.open(requestedSessionId)
-      }
-      const off = ctx.sessions.list.subscribe(reconcile)
-      reconcile()
-      return () => {
-        live = false
-        off()
-      }
-    }, 'ui-layout: requested Surface Session')
-  }
-
-  // Quick Conversation 每次重新打开都明确请求一个空白会话。由 DSH 公开服务创建，Core 不创建
-  // 或镜像 Session 来实现这个行为。
-  if (new URLSearchParams(window.location.search).get('hermitNewSession') === '1') {
-    ctx.effect(() => {
-      let live = true
-      const sessionList = ctx.sessions.list.getSnapshot()
-      const workspaceList = ctx.workspaces.list.getSnapshot()
-      const currentSessionId = sessionList.current
-      const currentWorkspace = currentSessionId === undefined
-        ? undefined
-        : workspaceList.items.find((workspace) => workspace.sessionIds.includes(currentSessionId))
-      const workspace = currentWorkspace
-        ?? workspaceList.items.find((item) => item.workspaceId === workspaceList.recentWorkspaceId)
-        ?? workspaceList.items[0]
-      ctx.sessions.clear()
-      const createOptions = workspace === undefined ? {} : { workspaceId: workspace.workspaceId }
-      void ctx.sessions.create(createOptions).then((sessionId) => {
-        if (live) ctx.sessions.open(sessionId)
-      }).catch((error: unknown) => {
-        console.error(`创建 Quick Session 失败: ${error instanceof Error ? error.message : String(error)}`)
-      })
-      return () => { live = false }
-    }, 'ui-layout: fresh Surface Session')
-  }
 
   // Theme presentation: pure DOM writes from resolved snapshots — initial
   // state through the getter once, then event-driven only; no React path.
@@ -292,21 +251,4 @@ export function apply(ctx: ClientContext): void {
       presenter.dispose()
     }
   }, 'ui-layout: theme presenter')
-}
-
-/**
- * 让所有通过 DSH sessions 服务完成的前台会话切换回到会话主工作区。
- * 同一会话的重复打开由 bundled DSH 的 Workspace adapter 直接通知；这里
- * 负责处理真正改变 current 的其他公开路径，不能把 sessionId 复制进布局状态。
- */
-function subscribeSessionNavigation(ctx: ClientContext, layout: LayoutController): () => void {
-  let previous = ctx.sessions.list.getSnapshot().current
-  return ctx.sessions.list.subscribe(() => {
-    const next = ctx.sessions.list.getSnapshot().current
-    if (next === previous) return
-    previous = next
-    if (layout.getProductNavigationState().activeProductSurfaceId !== null) {
-      layout.closeProductSurface()
-    }
-  })
 }

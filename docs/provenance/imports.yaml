@@ -29,7 +29,7 @@ imports:
     sourceTag: dsh-v0.1.1-rc.2
     sourcePackageVersion: 0.1.1-rc.2
     sourceSha256: 0b295e1ff88eb443c5fd16cb3e9b23938606706d4377a2d94f45c1bdff08af25
-    sourceState: upstream-immutable-active-snapshot
+    sourceState: upstream-immutable-candidate-snapshot
     sourceLicense: MIT
     sanitization: excluded-upstream-agent-instructions-only
     modifications: none-to-retained-files
@@ -48,3 +48,16 @@ imports:
     modifications: none-to-retained-files
     reviewedBy: pgw10086
     importedAt: 2026-09-01
+  - target: docs/provenance/deepseek-harness/snapshots/0.1.7-rc.1__46a7f68
+    sourceRepository: https://github.com/deepseek-ai/deepseek-harness
+    sourcePath: docs/**, apps/cli/reference/**, packages/*/README*, README*, package.json, LICENSE, THIRD_PARTY_NOTICES.md
+    sourceContextCommit: 46a7f68b0922371ce7144b668b90e377d8e799f4
+    sourceTag: dsh-v0.1.7-rc.1
+    sourcePackageVersion: 0.1.7-rc.1
+    sourceSha256: 6f459ad58082896d9b92976cfe54778214a36ce3e97dae637608263775e2b800
+    sourceState: upstream-immutable-active-snapshot
+    sourceLicense: MIT
+    sanitization: excluded-upstream-agent-instructions-only
+    modifications: none-to-retained-files
+    reviewedBy: pgw10086
+    importedAt: 2026-09-24

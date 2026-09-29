@@ -10,7 +10,7 @@ type QuickSurfaceOverlayProps = PropsRuntime<'shell.overlay'> & PropsRenderSlots
 export function QuickSurfaceOverlay({ useSessions, renderSlot }: QuickSurfaceOverlayProps) {
   const surface = new URLSearchParams(window.location.search).get('hermitSurface')
   if (surface !== 'conversation.quick' && surface !== 'approval.companion') return null
-  const current = useSessions((state) => state.current)
+  const current = useSessions((state) => state.ids.find((id) => (state.byId[id]?.retainedBy.mainView ?? 0) > 0))
   if (current === undefined) return null
   return (
     <div data-quick-surface-overlay>

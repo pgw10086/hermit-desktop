@@ -141,10 +141,10 @@ Core 的 renderer 能力时，只允许公开、最小的 typed facade；每个�
   Hermit 自带 DSH 的底座构建输入，不授权插件在运行时读取 patch 的私有实现；stock DSH
   未携带该 patch 时，依赖该能力的插件必须确定性 unavailable。
 
-### rc.2 已验证插件基线
+### 0.1.7-rc.1 已验证插件基线
 
 [`@hermit/dsh-plugin-reference`](../../packages/dsh-plugin-reference/README.md) 固化了当前
-`0.1.1-rc.2` 的最小外部插件接入面。资格脚本只生成一个 tarball，并用 bundled Node
+`0.1.7-rc.1` 的最小外部插件接入面。资格脚本只生成一个 tarball，并用 bundled Node
 `24.19.0` 分别安装到 stock DSH 和 Hermit bundled DSH。当前已经验证：
 
 - `dsh.bundle.patch` 能通过官方 profile 插件管理路径激活 Host root；
@@ -161,12 +161,12 @@ Core 的 renderer 能力时，只允许公开、最小的 typed facade；每个�
   和 bundle entry。
 
 该结果只建立插件平台的 Bundle/Host/Client/Settings/Tool/lifecycle 基线。Settings tab
-是兼容 fallback，不是 Hermit 中的日常业务工作面；stock rc.2 仍没有 Product Surface，
+是兼容 fallback，不是 Hermit 中的日常业务工作面；stock `0.1.7-rc.1` 仍没有 Product Surface，
 Product Plugin 仍不得使用私有 Router、DOM 注入或 Settings 页面冒充业务入口。
 
 ### Hermit Product Surface v1 与 Product Navigation v1
 
-Hermit bundled generation 已在 rc.2 的 `@deepseek-ai/dsh-client-ui-layout` 上增加受控
+Hermit bundled generation 已在 `0.1.7-rc.1` 的 `@deepseek-ai/dsh-client-ui-layout` 上增加受控
 Product Surface patch。当前公开面包括：
 
 - root-scoped `product.surface` list slot；
@@ -250,14 +250,14 @@ stock package 的插件 API，也不是某个业务插件的设置页；页面�
 进程列表猜测冲突拥有者，也不自动抢占。没有真实快捷键动作的插件不会注册空行。详细字段、
 状态和分步验收见[DSH 桌面快捷键中心 spec](../../specs/2026-08-24-hermit-dsh-vnext/desktop-shortcut-center.md)。
 
-由于 pinned DSH rc.2 没有一级全局产品导航 slot，当前实现只向官方
+由于 pinned DSH `0.1.7-rc.1` 没有一级全局产品导航 slot，当前实现只向官方
 `sidebar.footer.action` 注册一个 Core-owned 产品入口组，三个插件不再直接注册该 slot。
 这不会改变 DSH footer slot 的官方语义，也不把它开放为插件导航 API。主工作区切换则通过
 `ctx.layout` 的公开服务完成，入口承载和工作区状态仍由 Core 统一负责，不复制 DSH sidebar
 或维护第二份会话状态。
 
-patch 固定到 DeepSeek Harness `dsh-v0.1.1-rc.2` commit
-`b150a551b8d465e31e418e1b2eaf5e79bbb7d28e`，源码构建输入位于
+patch 固定到 DeepSeek Harness `dsh-v0.1.7-rc.1` commit
+`46a7f68b0922371ce7144b668b90e377d8e799f4`，源码构建输入位于
 `packages/dsh-client-ui-layout/`；Workspace 前台导航补丁的源文件位于
 `apps/desktop-vnext/scripts/dsh-foreground-session-navigation-patch.mjs`。运行时 generation
 manifest 同时记录 layout client、Workspace adapter 和 Sidebar adapter 的 SHA-256，`afterPack`
@@ -268,6 +268,34 @@ manifest 同时记录 layout client、Workspace adapter 和 Sidebar adapter 的 
 fallback 并确定没有 Product Surface 入口；Hermit patched DSH 显示 Core-owned 产品入口组，
 能够打开、关闭完整 History，且 sidebar 保持挂载。该 PASS 不意味着 stock DSH 获得 Product Surface，也不扩展到其他布局
 能力；未来上游提供等价公开契约时应删除本 patch。
+
+### 第一方外部 Product Plugin 迁移矩阵（2026-09-24）
+
+三个外部包都被 Desktop 的 Product Surface、Host/Client 或数据能力直接消费，不能删除后用
+Desktop Core 重写一份隐式实现。当前按 DSH `0.1.7-rc.1` 做了本地候选迁移：
+
+| 包 | 当前公开 npm pin | 本地 DSH 0.1.7 候选 | 迁移结果 |
+| --- | --- | --- | --- |
+| `@tianbuyv/smart-clipboard` | `0.2.3` | `0.2.4` | 删除旧 runtime peer 与 layout vendor；使用 Hermit Product Surface 适配器 |
+| `@tianbuyv/organizer` | `0.2.2` | `0.2.3` | Host storage 与 RPC 适配 DSH 0.1.7；使用 `/api` 下精确 Fetch 路由 |
+| `@tianbuyv/file-workspace` | `0.2.2` | `0.2.3` | Host storage 与 RPC 适配 DSH 0.1.7；使用 `/api` 下精确 Fetch 路由 |
+
+候选包已移除 `@deepseek-ai/dsh-client-runtime` 和旧版 `vendor/*.tgz`，图标迁移到
+`0.1.7-rc.1` 的公共命名，Cordis/Host/Client peer 统一锁定到新版本。Organizer 与 File
+Workspace 的 Host 不再抢占共享 `/api` interceptor：它们通过公开的
+`connection.fetch.register()` 注册各自的精确 POST endpoint，沿用 DSH 的鉴权和 `/api` 入口；
+这避免多个插件之间的全局 interceptor 冲突，也不读取 WebServer private state。
+
+候选验证证据：三方包各自 frozen install、build、unit/package tests 通过；用同一 bundled
+Node 和隔离 DSH runtime 安装候选 tarball 后，Smart Clipboard、Organizer、File Workspace
+的 Hermit Product Surface 资格分别通过。候选尚未发布到 npm，因此 Desktop 的正式
+`package.json`、lockfile、runtime manifest 和 `minimumReleaseAgeExclude` 暂时保持当前公开
+版本；不得把本地 tarball 写入正式依赖来伪造已集成状态。
+
+正式切换门槛是：三个候选包发布后，用固定 npm 版本重新生成 profile/runtime 闭包，更新 Desktop
+lockfile 与 allowlist，重跑 stock/Hermit 双宿主安装、Product Surface、重启恢复和 after-pack
+检查，再移除这段候选边界说明中的“未发布”状态。单次本机候选资格不代表 npm 发布、所有平台
+制品或签名安装包已经验收。
 
 双端停用资格仍以重启 DSH 为生效边界，没有验证 profile 命令或外部 Client 插件的进程内
 热卸载。M1 无特权 fixture 另外使用真实 Cordis `Context` 和公开 `WebServer` 验证：插件

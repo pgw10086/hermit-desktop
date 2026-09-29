@@ -3,7 +3,7 @@
   "productName": "Hermit",
   "description": "Hermit desktop shell for a qualified bundled DeepSeek Harness generation",
   "author": "pgw10086",
-  "version": "0.2.11",
+  "version": "0.2.12",
   "private": true,
   "type": "module",
   "main": "lib/main.js",
@@ -44,17 +44,17 @@
     "test:conversation:quick:packaged": "node tests/conversation-quick-packaged.e2e.mjs"
   },
   "dependencies": {
-    "@deepseek-ai/dsh": "0.1.1-rc.2",
+    "@deepseek-ai/dsh": "0.1.7-rc.1",
     "@tianbuyv/agent-desktop-core": "0.1.1",
     "@tianbuyv/dsh-runtime-adapter": "0.1.1",
-    "@tianbuyv/file-workspace": "0.2.2",
-    "@tianbuyv/organizer": "0.2.2",
-    "@tianbuyv/smart-clipboard": "0.2.3",
+    "@tianbuyv/file-workspace": "0.2.3",
+    "@tianbuyv/organizer": "0.2.3",
+    "@tianbuyv/smart-clipboard": "0.2.4",
     "pnpm": "11.24.0"
   },
   "devDependencies": {
-    "@deepseek-ai/cordis": ">=4.0.0 <5",
-    "@deepseek-ai/dsh-host-webserver": "0.1.1-rc.2",
+    "@deepseek-ai/cordis": "~4.0.4",
+    "@deepseek-ai/dsh-host-webserver": "0.1.7-rc.1",
     "@types/node": ">=24.0.0 <25",
     "@types/react": ">=18.3.0 <19",
     "@types/react-dom": ">=18.3.0 <19",

@@ -1,10 +1,13 @@
 import { createRequire } from "node:module";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import ts from "typescript";
+import { readActiveDshCohort } from "../dsh-upstream.mjs";
 
 /** 本次资格检查锁定的 DSH Web 版本；改变时必须重新审计公开契约。 */
-const TARGET_DSH_VERSION = "0.1.1-rc.2";
+const REPOSITORY_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+const TARGET_DSH_VERSION = readActiveDshCohort(REPOSITORY_ROOT).packageVersion;
 const workspaceRequire = createRequire(import.meta.url);
 const CLIENT_PACKAGES = [
   "@deepseek-ai/dsh-client-ui-layout",

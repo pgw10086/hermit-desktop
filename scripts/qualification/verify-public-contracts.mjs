@@ -5,9 +5,11 @@ import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { parse as parseYaml } from "yaml";
+import { readActiveDshCohort } from "../dsh-upstream.mjs";
 
 const require = createRequire(import.meta.url);
-const EXPECTED_VERSION = "0.1.1-rc.2";
+const REPOSITORY_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+const EXPECTED_VERSION = readActiveDshCohort(REPOSITORY_ROOT).packageVersion;
 const QUALIFIED_REACT_VERSION = "18.3.1";
 const EXPECTED_NODE_SPEC = ">=22.13.0 <23 || >=24.0.0 <27";
 const EXPECTED_PNPM_SPEC = ">=10.0.0 <13";
@@ -17,8 +19,8 @@ const EXPECTED_ELECTRON_SPEC = ">=43.0.0 <44";
 const EXPECTED_ELECTRON_BUILDER_SPEC = ">=26.0.0 <27";
 const EXPECTED_TYPESCRIPT_SPEC = ">=6.0.0 <7";
 const EXPECTED_NODE_TYPES_SPEC = ">=24.0.0 <25";
-const EXPECTED_DSH_CLOSURE_SHA256 = "7afbcc4845573a1745dde5f3ed0f99380ae105f664f80d310a94961ba6419fa4";
-const EXPECTED_DSH_PACKAGE_COUNT = 189;
+const EXPECTED_DSH_CLOSURE_SHA256 = "fb669a5852f5e1ad3fe2eb26492a70c58c5aea2cec9b70898b5562951f86a900";
+const EXPECTED_DSH_PACKAGE_COUNT = 268;
 
 const PACKAGES = [
   "@deepseek-ai/dsh",
@@ -26,7 +28,6 @@ const PACKAGES = [
   "@deepseek-ai/dsh-client-connection",
   "@deepseek-ai/dsh-client-modules",
   "@deepseek-ai/dsh-client-web",
-  "@deepseek-ai/dsh-host-apiproxy",
   "@deepseek-ai/dsh-host-webserver",
   "@deepseek-ai/dsh-web-app",
   "@deepseek-ai/dsh-web-frontend",
@@ -96,7 +97,7 @@ function normalizedDependency(name, descriptor) {
 }
 
 async function verifyLockfile() {
-  const lockPath = path.resolve("pnpm-lock.yaml");
+  const lockPath = path.join(REPOSITORY_ROOT, "pnpm-lock.yaml");
   const source = await readFile(lockPath, "utf8");
   const lock = parseYaml(source);
   const rootImporter = lock.importers?.["."];
@@ -169,7 +170,7 @@ async function verifyLockfile() {
 
 export async function verifyPublicContracts() {
   const pnpmVersion = /pnpm\/([^\s]+)/u.exec(process.env.npm_config_user_agent ?? "")?.[1];
-  const workspaceManifest = JSON.parse(await readFile(path.resolve("package.json"), "utf8"));
+  const workspaceManifest = JSON.parse(await readFile(path.join(REPOSITORY_ROOT, "package.json"), "utf8"));
   assert.equal(workspaceManifest.engines?.node, EXPECTED_NODE_SPEC);
   assert.equal(workspaceManifest.engines?.pnpm, EXPECTED_PNPM_SPEC);
   for (const packageName of PACKAGES) {
@@ -183,7 +184,7 @@ export async function verifyPublicContracts() {
   assert.equal(workspaceManifest.devDependencies?.["react-dom"], EXPECTED_REACT_SPEC);
 
   const desktopManifest = JSON.parse(
-    await readFile(path.resolve("apps/desktop-vnext/package.json"), "utf8"),
+    await readFile(path.join(REPOSITORY_ROOT, "apps/desktop-vnext/package.json"), "utf8"),
   );
   assert.equal(desktopManifest.dependencies?.["@deepseek-ai/dsh"], EXPECTED_VERSION);
   assert.equal(desktopManifest.dependencies?.pnpm, EXPECTED_PNPM_PACKAGE_SPEC);
@@ -201,8 +202,7 @@ export async function verifyPublicContracts() {
 
   const appBoot = await import("@deepseek-ai/dsh-app-boot");
   const modules = await import("@deepseek-ai/dsh-client-modules");
-  const apiProxy = await import("@deepseek-ai/dsh-host-apiproxy");
-  const apiProxyClient = await import("@deepseek-ai/dsh-host-apiproxy/client");
+  const connection = await import("@deepseek-ai/dsh-client-connection");
   const webServer = await import("@deepseek-ai/dsh-host-webserver");
   const react = await manifest("react");
   const reactDom = await manifest("react-dom");
@@ -210,10 +210,9 @@ export async function verifyPublicContracts() {
   assert.equal(typeof appBoot.boot, "function");
   assert.equal(typeof modules.bootInjections, "function");
   assert.equal(typeof modules.orderByModuleGraph, "function");
-  assert.equal(typeof apiProxy.createApiProxy, "function");
-  assert.equal(typeof apiProxy.toFetchHandler, "function");
-  assert.equal(typeof apiProxyClient.AbstractApiClient, "function");
-  assert.equal(typeof apiProxyClient.InProcessApiClient, "function");
+  assert.equal(typeof connection.HostConnectionService, "function");
+  assert.equal(typeof connection.apply, "function");
+  assert.equal(typeof connection.API_PATH, "string");
   assert.equal(typeof webServer.WebServer, "function");
   assert.equal(typeof webServer.renderIndexInjections, "function");
   assert.equal(react.version, QUALIFIED_REACT_VERSION);
@@ -236,10 +235,9 @@ export async function verifyPublicContracts() {
       "app-boot.boot",
       "client-modules.bootInjections",
       "client-modules.orderByModuleGraph",
-      "host-apiproxy.createApiProxy",
-      "host-apiproxy.toFetchHandler",
-      "host-apiproxy/client.AbstractApiClient",
-      "host-apiproxy/client.InProcessApiClient",
+      "client-connection.HostConnectionService",
+      "client-connection.apply",
+      "client-connection.API_PATH",
       "host-webserver.WebServer",
       "host-webserver.renderIndexInjections",
     ],

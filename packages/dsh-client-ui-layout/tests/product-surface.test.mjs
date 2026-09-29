@@ -7,14 +7,14 @@ import { createRequire } from 'node:module'
 const require = createRequire(import.meta.url)
 const primitiveStubs = {
   Button() { return null },
-  IconCopyOutline16() { return null },
-  IconCordisPluginOutline14() { return null },
-  IconFolderClose16() { return null },
-  IconListPenOutline16() { return null },
+  IconCopyOutlineMedium() { return null },
+  IconCordisPluginOutlineMedium() { return null },
+  IconFolderCloseMedium() { return null },
+  IconListPenOutlineMedium() { return null },
 }
 
 function loadClientDependency(id) {
-  if (id === '@deepseek-ai/dsh-client-runtime/client') return { defineStore: () => ({}) }
+  if (id === '@deepseek-ai/dsh-client-store') return { defineStore: () => ({}) }
   if (id === '@deepseek-ai/dsh-client-ui-primitives') return primitiveStubs
   return require(id)
 }
@@ -25,8 +25,8 @@ test('package records the pinned upstream layout, Navigation and Desktop Surface
     contractVersion: 6,
     name: 'product-navigation-shortcut-center-desktop-surface-and-primary-workspace',
     upstreamRepository: 'https://github.com/deepseek-ai/deepseek-harness.git',
-    upstreamTag: 'dsh-v0.1.1-rc.2',
-    upstreamCommit: 'b150a551b8d465e31e418e1b2eaf5e79bbb7d28e',
+    upstreamTag: 'dsh-v0.1.7-rc.1',
+    upstreamCommit: '46a7f68b0922371ce7144b668b90e377d8e799f4',
   })
 })
 

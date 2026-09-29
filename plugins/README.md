@@ -10,8 +10,9 @@
 本目录保留 Hermit DSH/Layout 的产品侧兼容入口和 UI 细节。
 
 当前三个第一方插件仓库为 `plugin-organizer`、`plugin-file-workspace` 和
-`plugin-smart-clipboard`。Hermit Desktop 只消费它们打出的固定 tarball；runtime 清单和
-`vendor/README.md` 记录版本与摘要。
+`plugin-smart-clipboard`。Hermit Desktop 只消费它们已经发布到 public npm 的 exact version，
+并由 `pnpm-lock.yaml` 固定解析结果和 integrity；不从 sibling 源码或本地 tarball 组装正式版本。
+完整操作步骤见[Product Plugin 开发与发布操作手册](../docs/development/dsh-plugin-development-and-packaging.md)。
 
 新增插件先看[Product Plugin 最小接入](../docs/development/product-plugin-quickstart.md)。开发
 规范见[Product Plugin 开发规范](development-guidelines.md)；需要系统剪贴板、全局快捷键、

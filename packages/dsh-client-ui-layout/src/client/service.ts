@@ -33,6 +33,9 @@ export class LayoutController implements ILayout {
     activeProductSurfaceId: null,
   }
   #navigationListeners = new Set<() => void>()
+  // Allocate lazily so the public service remains usable in the package's
+  // Node-only contract tests, where the browser AbortController is absent.
+  #navigation: AbortController | undefined
 
   /**
    * Adopt the root entry's bound store actions. Called from the root
@@ -43,6 +46,31 @@ export class LayoutController implements ILayout {
    */
   attachPanels(actions: PanelActions): void {
     this.#panels = actions
+  }
+
+  /** Select the global panel exposed by the DSH 0.1.7 layout contract. */
+  selectPanel(panelId: string | null): void {
+    this.#navigation?.abort()
+    if (panelId === null) {
+      this.closeProductSurface()
+      return
+    }
+    if (!this.#entries.has(panelId)) {
+      throw new Error(`layout.selectPanel: main panel "${panelId}" is not registered`)
+    }
+    this.openProductSurface(panelId)
+  }
+
+  /** Start a navigation and invalidate any older pending workspace operation. */
+  beginNavigation(): AbortSignal {
+    this.#navigation?.abort()
+    this.#navigation = new AbortController()
+    return this.#navigation.signal
+  }
+
+  /** Invalidate pending navigation during layout teardown. */
+  dispose(): void {
+    this.#navigation?.abort()
   }
 
   /** Toggle the sidebar panel (closed ⟷ contract default width). */
@@ -58,6 +86,17 @@ export class LayoutController implements ILayout {
   /** Close the details panel. */
   closeDetails(): void {
     this.#require().closeDetails()
+  }
+
+  /** Report rightbar presentation through Hermit's details-panel state. */
+  openRightbar(track: boolean, fullscreen: boolean): void {
+    if (track || fullscreen) this.openDetails()
+    else this.closeDetails()
+  }
+
+  /** Report rightbar hidden state through Hermit's details-panel state. */
+  closeRightbar(): void {
+    this.closeDetails()
   }
 
   /** Open a registered root Product Surface by entry id. */
@@ -104,6 +143,16 @@ export class LayoutController implements ILayout {
   /** Read the stable navigation snapshot used by the Core renderer. */
   getProductNavigationState(): ProductNavigationState {
     return this.#navigationState
+  }
+
+  /** DSH global-panel projection consumed by official sidebar entries. */
+  getPanelInfo(): { readonly activePanelId: string | null } {
+    return { activePanelId: this.#navigationState.activeProductSurfaceId }
+  }
+
+  /** Subscribe to the panel projection without exposing mutable navigation state. */
+  subscribePanelInfo(listener: () => void): () => void {
+    return this.subscribeProductNavigation(listener)
   }
 
   /** Subscribe to entry registration and active-surface changes. */

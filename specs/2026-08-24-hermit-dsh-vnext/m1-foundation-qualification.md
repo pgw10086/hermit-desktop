@@ -99,7 +99,7 @@ Windows 留到后续平台阶段；Quick Panel 及其全局快捷键改为独立
   公开 `WebServer`，验证插件 fiber dispose 后，同一进程、同一端口的资格路由从 200
   变为 404；它不替代 Client 插件热卸载资格；
 - `apps/desktop-vnext/tests/m1-replay-packaged.e2e.mjs` 启动实际打包的 `Hermit.app`，使用
-  DSH 官方 `@deepseek-ai/dsh-llm-replay@0.1.1-rc.2` 和固定来源夹具，验证 Read Only
+  DSH 官方 `@deepseek-ai/dsh-llm-replay@0.1.7-rc.1` 和固定来源夹具，验证 Read Only
   拒绝、Approval、`Allow once`、真实文件写入、`DONE`、强杀 Electron main 后完整 DSH
   进程组/端口消失，以及重启后 Session 恢复；
 - Replay 只替换模型 provider，Agent loop、Tool、sandbox、Approval、Web、持久化和 Electron
@@ -125,7 +125,7 @@ Windows 留到后续平台阶段；Quick Panel 及其全局快捷键改为独立
 
 ## 6. 当前原生证据与剩余项
 
-当前 Mac 候选的 manifest 记录 Node `24.19.0`、pnpm `11.7.0`、DSH `0.1.1-rc.2`；这些是
+当前 Mac 候选的 manifest 记录 Node `24.19.0`、pnpm `11.7.0`、DSH `0.1.7-rc.1`；这些是
 本次产物事实，长期开发政策仍是 Node `24.x`、pnpm `11.x` 的项目已验证范围。
 
 | 项目 | 2026-08-28 状态 |
@@ -161,9 +161,10 @@ M1 的更新 Gate 到“预置 generation 激活与回滚”为止。下载、�
 
 ## 7. 与已有 Q0 检查的关系
 
-现有 `scripts/qualification/` 检查继续验证 DSH `0.1.1-rc.2` 的发布物边界、公开
-contract、React 单实例和 clean install。`Q-CMOD-01` 的 blocked 结果说明“无 WebServer
-的 DSH Client Host”不是当前 M1 需要的能力；它不再阻止 Electron 加载 stock DSH Web。
+现有 `scripts/qualification/` 检查继续验证 DSH `0.1.7-rc.1` 的发布物边界、公开
+contract、React 单实例和 clean install。早期 `Q-CMOD-01` 的 blocked 结论已经完成其
+架构决策用途；它验证的是“无 WebServer 的 DSH Client Host”不是当前 M1 需要的能力，
+因此旧 verifier 和独立 CLI 已删除，不再维护一条不会参与运行时的资格分支。
 
 如果 DSH 版本、公开 export 或 React graph 改变，必须重新运行 Q0 和本文件的 M1 gate。
 任何 verifier 通过都不能把内部源码 import 升级为 public contract。

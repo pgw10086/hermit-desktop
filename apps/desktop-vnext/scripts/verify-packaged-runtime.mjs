@@ -121,7 +121,10 @@ const child = spawn(
 let output = "";
 let settled = false;
 const deadline = Date.now() + 30_000;
-const readyPattern = /\bdsh web:\s+(http:\/\/127\.0\.0\.1:\d+)/u;
+// dsh-web-app prints a one-time launch URL. The root request exchanges its
+// query token for an HttpOnly browser-session cookie and redirects to `./`;
+// capturing only the origin would therefore produce the expected 401.
+const readyPattern = /\bdsh web:\s+(http:\/\/127\.0\.0\.1:\d+\/\?token=[^\s]+)/u;
 
 function stop() {
   if (child.exitCode !== null || child.signalCode !== null) return Promise.resolve();
@@ -202,7 +205,21 @@ try {
     });
   });
 
-  const response = await fetch(ready);
+  const bootstrap = await fetch(ready, { redirect: "manual" });
+  let response = bootstrap;
+  if (bootstrap.status >= 300 && bootstrap.status < 400) {
+    const setCookies = typeof bootstrap.headers.getSetCookie === "function"
+      ? bootstrap.headers.getSetCookie()
+      : [bootstrap.headers.get("set-cookie")].filter(Boolean);
+    const cookie = setCookies[0]?.split(";", 1)[0];
+    const location = bootstrap.headers.get("location");
+    if (cookie === undefined || location === null) {
+      throw new Error("Packaged DSH launch URL did not return an authentication cookie");
+    }
+    response = await fetch(new URL(location, ready), {
+      headers: { cookie },
+    });
+  }
   if (response.status < 200 || response.status >= 400) {
     throw new Error(`Packaged DSH returned unexpected HTTP status ${String(response.status)}`);
   }

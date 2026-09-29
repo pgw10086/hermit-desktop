@@ -9,7 +9,7 @@ import { createRequire } from 'node:module'
 import electronPath from 'electron'
 import { _electron as playwrightElectron } from 'playwright-core'
 import { copyRuntimeClosure } from '../scripts/after-pack.mjs'
-import { packInstalledPackage } from './installed-package-artifact.mjs'
+import { packInstalledPackage, replaceRuntimePackage } from './installed-package-artifact.mjs'
 
 const appRoot = path.resolve(fileURLToPath(new URL('..', import.meta.url)))
 const repositoryRoot = path.resolve(appRoot, '..', '..')
@@ -18,8 +18,11 @@ const bundledNode = path.join(runtimeRoot, 'node', process.platform === 'win32' 
 const bundledDshRoot = path.join(runtimeRoot, 'dsh')
 const bundledDsh = path.join(bundledDshRoot, 'node_modules', '@deepseek-ai', 'dsh', 'lib', 'bin.js')
 const packageName = '@tianbuyv/organizer'
-const artifactRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'hermit-organizer-package-'))
-const pluginArtifact = packInstalledPackage({ repositoryRoot, packageName, outputDirectory: artifactRoot })
+const requestedArtifact = process.env.HERMIT_ORGANIZER_ARTIFACT
+const artifactRoot = requestedArtifact === undefined ? fs.mkdtempSync(path.join(os.tmpdir(), 'hermit-organizer-package-')) : undefined
+const pluginArtifact = requestedArtifact === undefined
+  ? packInstalledPackage({ repositoryRoot, packageName, outputDirectory: artifactRoot })
+  : path.resolve(requestedArtifact)
 
 for (const required of [bundledNode, bundledDsh, pluginArtifact, electronPath]) {
   assert.equal(fs.existsSync(required), true, `Personal Organizer 资格缺少运行时文件：${required}`)
@@ -28,16 +31,17 @@ for (const required of [bundledNode, bundledDsh, pluginArtifact, electronPath]) 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hermit-organizer-surface-'))
 let succeeded = false
 try {
-  const stockDsh = prepareStockRuntime(path.join(root, 'stock-runtime'))
+  const stockDsh = prepareStockRuntime(path.join(root, 'stock-runtime'), pluginArtifact)
   await qualifyStock(stockDsh, pluginArtifact, path.join(root, 'stock'))
-  await qualifyHermit(pluginArtifact, path.join(root, 'hermit'))
+  const hermitDsh = requestedArtifact === undefined ? bundledDsh : prepareHermitRuntime(path.join(root, 'hermit-runtime'), pluginArtifact)
+  await qualifyHermit(pluginArtifact, path.join(root, 'hermit'), hermitDsh)
   console.log('Personal Organizer Product Surface qualification passed: stock=unavailable, hermit=todo+note-conversion+restart')
   succeeded = true
 } catch (cause) {
   console.error(`Personal Organizer Product Surface 资格目录已保留：${root}`)
   throw cause
 } finally {
-  fs.rmSync(artifactRoot, { recursive: true, force: true })
+  if (artifactRoot !== undefined) fs.rmSync(artifactRoot, { recursive: true, force: true })
   if (succeeded) fs.rmSync(root, { recursive: true, force: true })
 }
 
@@ -53,8 +57,8 @@ async function qualifyStock(dshEntry, artifact, target) {
   }
 }
 
-async function qualifyHermit(artifact, target) {
-  const runtime = await startRuntime(bundledDsh, artifact, target)
+async function qualifyHermit(artifact, target, dshEntry) {
+  const runtime = await startRuntime(dshEntry, artifact, target)
   const title = '资格测试：提交周报'
   const noteTitle = '资格测试：门禁卡 9 月到期'
   try {
@@ -94,7 +98,7 @@ async function qualifyHermit(artifact, target) {
     await stopProcess(runtime.child)
   }
 
-  const restarted = await startRuntime(bundledDsh, artifact, target, false)
+  const restarted = await startRuntime(dshEntry, artifact, target, false)
   try {
     await withBrowser(restarted.url, path.join(target, 'browser-restart'), async (page) => {
       await openOrganizer(page)
@@ -125,8 +129,9 @@ async function openOrganizer(page) {
   await page.locator('[data-organizer-surface="ready"]').waitFor({ timeout: 20_000 })
 }
 
-function prepareStockRuntime(target) {
+function prepareStockRuntime(target, artifact) {
   copyRuntimeClosure(bundledDshRoot, target)
+  if (requestedArtifact !== undefined) replaceRuntimePackage({ runtimeRoot: target, packageName, artifact, expectedVersion: '0.2.3' })
   const require = createRequire(import.meta.url)
   const officialWebApp = require.resolve('@deepseek-ai/dsh-web-app/package.json')
   const officialRequire = createRequire(officialWebApp)
@@ -143,6 +148,12 @@ function prepareStockRuntime(target) {
     for (const entry of ['LICENSE', 'package.json', 'lib']) fs.cpSync(path.join(officialLayout, entry), path.join(layout, entry), { recursive: true, dereference: true })
     assert.equal(JSON.parse(fs.readFileSync(path.join(layout, 'package.json'), 'utf8')).hermitPatch, undefined, 'stock DSH 闭包意外包含 Hermit patch')
   }
+  return path.join(target, 'node_modules', '@deepseek-ai', 'dsh', 'lib', 'bin.js')
+}
+
+function prepareHermitRuntime(target, artifact) {
+  copyRuntimeClosure(bundledDshRoot, target)
+  replaceRuntimePackage({ runtimeRoot: target, packageName, artifact, expectedVersion: '0.2.3' })
   return path.join(target, 'node_modules', '@deepseek-ai', 'dsh', 'lib', 'bin.js')
 }
 
@@ -238,7 +249,7 @@ async function waitForReady(child) {
   const deadline = Date.now() + 30_000
   return await new Promise((resolve, reject) => {
     const timer = setInterval(() => { if (Date.now() >= deadline) { clearInterval(timer); reject(new Error(`DSH 未在期限内 ready：${output}`)) } }, 100)
-    const inspect = (chunk) => { output += chunk.toString('utf8'); const match = /\bdsh web:\s+(http:\/\/127\.0\.0\.1:\d+)/u.exec(output); if (match?.[1] !== undefined) { clearInterval(timer); resolve(new URL(match[1])) } }
+    const inspect = (chunk) => { output += chunk.toString('utf8'); const match = /\bdsh web:\s+(http:\/\/127\.0\.0\.1:\d+\/\?token=[^\s]+)/u.exec(output); if (match?.[1] !== undefined) { clearInterval(timer); resolve(new URL(match[1])) } }
     child.stdout.on('data', inspect)
     child.stderr.on('data', inspect)
     child.once('error', reject)

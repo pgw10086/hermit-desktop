@@ -45,8 +45,8 @@ SOFTWARE.
 
 Hermit's bundled DSH generation includes a source-controlled adaptation of
 [`@deepseek-ai/dsh-client-ui-layout`](https://github.com/deepseek-ai/deepseek-harness),
-tag `dsh-v0.1.1-rc.2`, commit
-`b150a551b8d465e31e418e1b2eaf5e79bbb7d28e`.
+tag `dsh-v0.1.7-rc.1`, commit
+`46a7f68b0922371ce7144b668b90e377d8e799f4`.
 
 Hermit also retains the unmodified DSH documentation and package README snapshots listed in
 [`DEEPSEEK-HARNESS-UPSTREAM.md`](DEEPSEEK-HARNESS-UPSTREAM.md). Each snapshot keeps the upstream
